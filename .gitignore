@@ -1,0 +1,61 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Storage & Uploads (heavy files)
+storage/app/public/*
+!storage/app/public/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Logs
+*.log
+logs/*
+!logs/.gitkeep
+public/error_log
+error_log
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Composer
+/vendor/
+composer.phar
+composer.lock
+
+# NPM
+node_modules/
+package-lock.json
+
+# Temporary files
+tmp/*
+!tmp/.gitkeep
+cache/*
+!cache/.gitkeep
+
+# Database backups
+*.sql.gz
+*.sql.zip
+backup/*.sql
+
+# Session files
+sessions/*
+!sessions/.gitkeep
+
+# Images from carousel (if very large)
+# Uncomment if carousel images are too large
+# public/assets/images/carousel/*.jpg
+# public/assets/images/carousel/*.png
+
+# Keep important directories
+!.gitkeep
