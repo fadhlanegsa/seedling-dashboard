@@ -543,4 +543,28 @@ class Request extends Model {
         $result = $this->queryOne($sql);
         return (int)($result['total'] ?? 0);
     }
+    /**
+     * Get monthly distribution statistics per province
+     * For Stacked Bar Chart in Dashboard
+     */
+    public function getMonthlyDistributionStats($year = null) {
+        $year = $year ?? date('Y');
+        
+        $sql = "SELECT 
+                    MONTH(r.updated_at) as month,
+                    p.name as province_name,
+                    SUM(COALESCE(r.quantity, (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id), 0)) as total_distributed
+                FROM requests r
+                JOIN bpdas b ON r.bpdas_id = b.id
+                JOIN provinces p ON b.province_id = p.id
+                WHERE r.status = 'delivered' 
+                AND YEAR(r.updated_at) = ?
+                GROUP BY MONTH(r.updated_at), p.id, p.name
+                ORDER BY MONTH(r.updated_at) ASC, total_distributed DESC";
+                
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$year]);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

@@ -55,8 +55,9 @@
 
 <!-- Charts Section -->
 <div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
+    <!-- Chart 1: Stock per Province -->
+    <div class="col-lg-4 col-md-12 mb-4">
+        <div class="card h-100">
             <div class="card-header">
                 <h3><i class="fas fa-map-marked-alt"></i> Stok per Provinsi</h3>
             </div>
@@ -65,9 +66,10 @@
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="card">
+
+    <!-- Chart 2: Top 10 Seedlings -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
             <div class="card-header">
                 <h3><i class="fas fa-chart-bar"></i> Top 10 Jenis Bibit</h3>
             </div>
@@ -76,25 +78,21 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h3><i class="fas fa-map-marked-alt"></i> Peta Distribusi Bibit</h3>
+    
+    <!-- Chart 3: Monthly Distribution -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-area"></i> Distribusi Bulanan</h3>
             </div>
-            <div class="card-body p-0">
-                <div id="dashboardMap" style="height: 500px; width: 100%;"></div>
-            </div>
-            <div class="card-footer text-center">
-                <a href="<?= url('admin/map-distribution') ?>" class="btn btn-primary">
-                    <i class="fas fa-expand"></i> Lihat Peta Lengkap dengan Filter
-                </a>
+            <div class="card-body">
+                <canvas id="distributionChart" height="300"></canvas>
             </div>
         </div>
     </div>
 </div>
+
+
 
 <!-- Quick Actions -->
 <div class="row mt-4">
@@ -184,6 +182,92 @@ if (stockByProvinceData && stockByProvinceData.length > 0) {
         '<p class="text-center text-muted py-5">Belum ada data stok per provinsi</p>';
 }
 
+// Prepare Distribution Data
+const distributionStats = <?= json_encode($distributionStats ?? []) ?>;
+
+if (distributionStats && distributionStats.length > 0) {
+    // Process data for Stacked Bar Chart
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    // Get unique provinces
+    const provinces = [...new Set(distributionStats.map(item => item.province_name))];
+    
+    // Generate distinct colors for provinces
+    const colors = [
+        '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', 
+        '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
+        '#882d17', '#8175aa', '#6baa2c', '#d6a319', '#be514b'
+    ];
+    
+    // Create datasets
+    const datasets = provinces.map((province, index) => {
+        const data = months.map((_, monthIndex) => {
+            const monthNum = monthIndex + 1;
+            const record = distributionStats.find(item => 
+                item.province_name === province && parseInt(item.month) === monthNum
+            );
+            return record ? parseInt(record.total_distributed) : 0;
+        });
+        
+        return {
+            label: province,
+            data: data,
+            backgroundColor: colors[index % colors.length],
+            stack: 'Stack 0'
+        };
+    });
+    
+    const ctxDist = document.getElementById('distributionChart');
+    if (ctxDist) {
+        new Chart(ctxDist, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            footer: (tooltipItems) => {
+                                let total = 0;
+                                tooltipItems.forEach((item) => {
+                                    total += item.parsed.y;
+                                });
+                                return 'Total Bulan Ini: ' + total.toLocaleString();
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribusi Bibit per Bulan (Tahun <?= date("Y") ?>)'
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+} else {
+     const chartContainer = document.getElementById('distributionChart');
+     if(chartContainer) {
+        chartContainer.parentElement.innerHTML = 
+            '<p class="text-center text-muted py-5">Belum ada data distribusi (Requests Delivered) tahun ini</p>';
+     }
+}
+
 // Top Seedlings Chart
 if (topSeedlingsData && topSeedlingsData.length > 0) {
     const ctx2 = document.getElementById('topSeedlingsChart');
@@ -236,90 +320,7 @@ if (topSeedlingsData && topSeedlingsData.length > 0) {
 
 // Update Trend Chart - REMOVED, replaced with Distribution Map
 
-// Initialize Distribution Map
-document.addEventListener('DOMContentLoaded', function() {
-    const mapElement = document.getElementById('dashboardMap');
-    if (mapElement) {
-        // Initialize map centered on Indonesia
-        const map = L.map('dashboardMap').setView([-2.5489, 118.0149], 5);
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(map);
-        
-        // Marker cluster group
-        const markers = L.markerClusterGroup();
-        
-        // Function to get marker color based on status
-        function getMarkerIcon(status) {
-            let color = 'blue';
-            switch(status) {
-                case 'pending': color = 'orange'; break;
-                case 'approved': color = 'green'; break;
-                case 'completed': color = 'blue'; break;
-                case 'rejected': color = 'red'; break;
-            }
-            
-            return L.icon({
-                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
-            });
-        }
-        
-        // Load map data
-        fetch('<?= url('admin/get-map-data') ?>')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.data.length > 0) {
-                    data.data.forEach(item => {
-                        const marker = L.marker([item.latitude, item.longitude], {
-                            icon: getMarkerIcon(item.status)
-                        });
-                        
-                        const popupContent = `
-                            <div style="min-width: 180px;">
-                                <h6><strong>${item.requester_name}</strong></h6>
-                                <p style="margin: 5px 0;">
-                                    <i class="fas fa-seedling"></i> ${item.seedling_name}<br>
-                                    <small>${item.quantity} bibit</small>
-                                </p>
-                                <p style="margin: 5px 0;">
-                                    <i class="fas fa-building"></i> ${item.bpdas_name}
-                                </p>
-                                <p style="margin: 5px 0;">
-                                    <span class="badge badge-${item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : item.status === 'completed' ? 'info' : 'danger'}">
-                                        ${item.status.toUpperCase()}
-                                    </span>
-                                </p>
-                            </div>
-                        `;
-                        
-                        marker.bindPopup(popupContent);
-                        markers.addLayer(marker);
-                    });
-                    
-                    map.addLayer(markers);
-                    
-                    // Fit bounds to show all markers
-                    if (data.data.length > 0) {
-                        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
-                    }
-                } else {
-                    mapElement.innerHTML = '<div class="text-center p-5"><p class="text-muted">Belum ada data lokasi penanaman</p></div>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading map data:', error);
-                mapElement.innerHTML = '<div class="text-center p-5"><p class="text-danger">Gagal memuat data peta</p></div>';
-            });
-    }
-});
+// Initialize Map Code Removed
 
 </script>
 

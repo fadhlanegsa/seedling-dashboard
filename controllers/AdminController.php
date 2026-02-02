@@ -39,7 +39,8 @@ class AdminController extends Controller {
             'title' => 'Dashboard Admin',
             'stats' => $stats,
             'stockByProvince' => $stockByProvince,
-            'topSeedlings' => $topSeedlings
+            'topSeedlings' => $topSeedlings,
+            'distributionStats' => $requestModel->getMonthlyDistributionStats(date('Y'))
         ];
         
         $this->render('admin/dashboard', $data, 'dashboard');
