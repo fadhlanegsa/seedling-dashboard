@@ -104,18 +104,9 @@
                             <td><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></td>
                             <td><strong><?= formatNumber($item['quantity'] ?? 0) ?></strong></td>
                             <td>
-                                <?php
-                                $statusClass = [
-                                    'pending' => 'warning',
-                                    'approved' => 'success',
-                                    'rejected' => 'danger',
-                                    'completed' => 'info'
-                                ];
-                                $status = $item['status'] ?? 'pending';
-                                $class = $statusClass[$status] ?? 'secondary';
-                                ?>
-                                <span class="badge badge-<?= $class ?>">
-                                    <?= REQUEST_STATUS[$status] ?? $status ?>
+                                <?php $status = $item['status'] ?? 'pending'; ?>
+                                <span class="badge badge-<?= status_badge_class($status) ?>">
+                                    <?= status_text($status) ?>
                                 </span>
                             </td>
                             <td><?= isset($item['created_at']) ? formatDate($item['created_at'], DATE_FORMAT) : '-' ?></td>

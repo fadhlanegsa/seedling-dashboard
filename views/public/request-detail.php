@@ -2,28 +2,6 @@
 /**
  * Request Detail Page
  */
-
-$statusClass = [
-    'pending' => 'warning',
-    'approved' => 'success',
-    'rejected' => 'danger',
-    'completed' => 'info',
-    'delivered' => 'purple'
-];
-$statusText = [
-    'pending' => 'Menunggu Persetujuan',
-    'approved' => 'Disetujui',
-    'rejected' => 'Ditolak',
-    'completed' => 'Selesai',
-    'delivered' => 'Sudah Diserahkan'
-];
-$statusIcon = [
-    'pending' => 'clock',
-    'approved' => 'check-circle',
-    'rejected' => 'times-circle',
-    'completed' => 'check-double',
-    'delivered' => 'handshake'
-];
 ?>
 
 <div class="page-header">
@@ -46,9 +24,9 @@ $statusIcon = [
                     </div>
                     <div class="col-md-6 text-right">
                         <strong>Status:</strong><br>
-                        <span class="badge badge-<?= $statusClass[$request['status']] ?> badge-lg">
-                            <i class="fas fa-<?= $statusIcon[$request['status']] ?>"></i>
-                            <?= $statusText[$request['status']] ?>
+                        <span class="badge badge-<?= status_badge_class($request['status']) ?> badge-lg">
+                            <i class="fas fa-<?= status_icon($request['status']) ?>"></i>
+                            <?= status_text($request['status']) ?>
                         </span>
                     </div>
                 </div>
@@ -67,17 +45,43 @@ $statusIcon = [
                     </div>
                 </div>
                 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong><i class="fas fa-seedling"></i> Jenis Bibit:</strong><br>
-                        <?= htmlspecialchars($request['seedling_name']) ?><br>
-                        <small class="text-muted"><?= htmlspecialchars($request['scientific_name'] ?? '') ?></small>
+                <?php if (!empty($request['items'])): ?>
+                    <div class="mb-3">
+                        <strong><i class="fas fa-seedling"></i> Daftar Bibit Diminta:</strong>
+                        <table class="table table-sm table-bordered mt-2">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Jenis Bibit</th>
+                                    <th class="text-right">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($request['items'] as $item): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></td>
+                                    <td class="text-right"><?= formatNumber($item['quantity']) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <tr class="bg-light">
+                                    <th>Total</th>
+                                    <th class="text-right text-primary"><strong><?= formatNumber($request['total_quantity'] ?? 0) ?></strong></th>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong><i class="fas fa-sort-numeric-up"></i> Jumlah:</strong><br>
-                        <span class="h5 text-primary"><?= formatNumber($request['quantity']) ?> bibit</span>
+                <?php else: ?>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong><i class="fas fa-seedling"></i> Jenis Bibit:</strong><br>
+                            <?= htmlspecialchars($request['seedling_name']) ?><br>
+                            <small class="text-muted"><?= htmlspecialchars($request['scientific_name'] ?? '') ?></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong><i class="fas fa-sort-numeric-up"></i> Jumlah:</strong><br>
+                            <span class="h5 text-primary"><?= formatNumber($request['quantity']) ?> bibit</span>
+                        </div>
                     </div>
-                </div>
+                <?php endif; ?>
                 
                 <div class="mb-3">
                     <strong><i class="fas fa-bullseye"></i> Tujuan Penggunaan:</strong><br>
@@ -175,12 +179,12 @@ $statusIcon = [
                     <div class="timeline">
                         <?php foreach ($history as $item): ?>
                             <div class="timeline-item">
-                                <div class="timeline-marker bg-<?= $statusClass[$item['status']] ?? 'secondary' ?>">
-                                    <i class="fas fa-<?= $statusIcon[$item['status']] ?? 'circle' ?>"></i>
+                                <div class="timeline-marker bg-<?= status_badge_class($item['status']) ?>">
+                                    <i class="fas fa-<?= status_icon($item['status']) ?>"></i>
                                 </div>
                                 <div class="timeline-content">
                                     <h6 class="mb-1">
-                                        <?= $statusText[$item['status']] ?? ucfirst($item['status']) ?>
+                                        <?= status_text($item['status']) ?>
                                     </h6>
                                     <p class="text-muted mb-1">
                                         <small>

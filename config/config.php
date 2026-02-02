@@ -85,12 +85,12 @@ define('PDF_FONT_SIZE', 11);
 
 // Seedling Categories
 define('SEEDLING_CATEGORIES', [
-    'Pohon Hutan',
-    'Pohon Buah',
+    'Tanaman Kayu-Kayuan',
+    'HHBK',
     'Tanaman Obat',
     'Bambu',
     'Mangrove',
-    'Lainnya'
+    'Estetika, Pakan, Dll'
 ]);
 
 // Request Status

@@ -52,20 +52,11 @@
                                 <small class="text-muted"><?= htmlspecialchars($request['requester_email'] ?? '-') ?></small>
                             </td>
                             <td><?= htmlspecialchars($request['seedling_name'] ?? '-') ?></td>
-                            <td><strong><?= formatNumber($request['quantity'] ?? 0) ?></strong></td>
+                            <td><strong><?= formatNumber($request['quantity'] ?? $request['item_quantity'] ?? 0) ?></strong></td>
                             <td>
-                                <?php
-                                $status = $request['status'] ?? 'pending';
-                                $statusClass = [
-                                    'pending' => 'warning',
-                                    'approved' => 'success',
-                                    'rejected' => 'danger',
-                                    'completed' => 'info'
-                                ];
-                                $class = $statusClass[$status] ?? 'secondary';
-                                ?>
-                                <span class="badge badge-<?= $class ?>">
-                                    <?= REQUEST_STATUS[$status] ?? $status ?>
+                                <?php $status = $request['status'] ?? 'pending'; ?>
+                                <span class="badge badge-<?= status_badge_class($status) ?>">
+                                    <?= status_text($status) ?>
                                 </span>
                             </td>
                             <td><?= isset($request['created_at']) ? formatDate($request['created_at'], DATE_FORMAT) : '-' ?></td>

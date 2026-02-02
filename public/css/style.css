@@ -17,6 +17,8 @@
     --danger-color: #dc3545;
     --warning-color: #ffc107;
     --info-color: #17a2b8;
+    --purple-color: #9b59b6;
+    --delivered-color: #28a745;
     --light-bg: #f8f9fa;
     --white: #ffffff;
     --text-dark: #333333;
@@ -670,6 +672,14 @@ select.form-control {
 
 .badge-info {
     background: var(--info-color);
+}
+
+.badge-purple {
+    background: var(--purple-color);
+}
+
+.badge-delivered {
+    background: var(--delivered-color);
 }
 
 /* ============================================

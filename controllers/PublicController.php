@@ -87,7 +87,7 @@ class PublicController extends Controller {
     }
     
     /**
-     * Submit seedling request
+     * Submit seedling request (supports multiple items)
      */
     public function submitRequest() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -101,11 +101,49 @@ class PublicController extends Controller {
         
         $user = currentUser();
         
+        //  Parse items from POST
+        $items = $_POST['items'] ?? [];
+        
+        if (empty($items) || !is_array($items)) {
+            $this->setFlash('error', 'Pilih minimal 1 jenis bibit');
+            $this->redirect('public/request-form');
+            return;
+        }
+        
+        // Validate and sanitize items
+        $validItems = [];
+        $totalQuantity = 0;
+        
+        foreach ($items as $item) {
+            if (empty($item['seedling_type_id']) || empty($item['quantity'])) {
+                continue; // Skip empty items
+            }
+            
+            $seedlingTypeId = (int)$item['seedling_type_id'];
+            $quantity = (int)$item['quantity'];
+            
+            if ($quantity <= 0) {
+                continue; // Skip invalid quantities
+            }
+            
+            $validItems[] = [
+                'seedling_type_id' => $seedlingTypeId,
+                'quantity' => $quantity
+            ];
+            
+            $totalQuantity += $quantity;
+        }
+        
+        if (empty($validItems)) {
+            $this->setFlash('error', 'Pilih minimal 1 jenis bibit dengan jumlah valid');
+            $this->redirect('public/request-form');
+            return;
+        }
+        
+        // Request metadata
         $data = [
             'user_id' => $user['id'],
             'bpdas_id' => $this->post('bpdas_id'),
-            'seedling_type_id' => $this->post('seedling_type_id'),
-            'quantity' => $this->post('quantity'),
             'purpose' => sanitize($this->post('purpose')),
             'land_area' => $this->post('land_area'),
             'latitude' => $this->post('latitude'),
@@ -113,19 +151,8 @@ class PublicController extends Controller {
         ];
         
         // Validate required fields
-        $errors = $this->validateRequired($data, [
-            'bpdas_id', 'seedling_type_id', 'quantity', 'purpose'
-        ]);
-        
-        if (!empty($errors)) {
+        if (empty($data['bpdas_id']) || empty($data['purpose'])) {
             $this->setFlash('error', 'Semua field harus diisi');
-            $this->redirect('public/request-form');
-            return;
-        }
-        
-        // Validate quantity
-        if (!is_numeric($data['quantity']) || $data['quantity'] <= 0) {
-            $this->setFlash('error', 'Jumlah bibit harus berupa angka positif');
             $this->redirect('public/request-form');
             return;
         }
@@ -151,17 +178,16 @@ class PublicController extends Controller {
             return;
         }
         
-        // Validate land area (required, must be > 0)
+        // Validate land area
         if (empty($data['land_area']) || !is_numeric($data['land_area']) || $data['land_area'] <= 0) {
             $this->setFlash('error', 'Luas lahan wajib diisi dan harus lebih dari 0');
             $this->redirect('public/request-form');
             return;
         }
         
-        // Handle proposal upload for requests > 25 seedlings
+        // Handle proposal upload if total > 25
         $proposalPath = null;
-        if ($data['quantity'] > 25) {
-            // Check if file is uploaded
+        if ($totalQuantity > 25) {
             if (!isset($_FILES['proposal']) || $_FILES['proposal']['error'] === UPLOAD_ERR_NO_FILE) {
                 $this->setFlash('error', 'Permintaan bibit lebih dari 25 batang wajib melampirkan surat pengajuan/proposal');
                 $this->redirect('public/request-form');
@@ -170,14 +196,13 @@ class PublicController extends Controller {
             
             $file = $_FILES['proposal'];
             
-            // Check for upload errors
             if ($file['error'] !== UPLOAD_ERR_OK) {
                 $this->setFlash('error', 'Gagal mengupload file proposal');
                 $this->redirect('public/request-form');
                 return;
             }
             
-            // Validate file type (PDF only)
+            // Validate PDF
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mimeType = finfo_file($finfo, $file['tmp_name']);
             finfo_close($finfo);
@@ -188,8 +213,8 @@ class PublicController extends Controller {
                 return;
             }
             
-            // Validate file size (max 1MB)
-            $maxSize = 1048576; // 1MB in bytes
+            // Validate size (max 1MB)
+            $maxSize = 1048576;
             if ($file['size'] > $maxSize) {
                 $sizeMB = round($file['size'] / 1048576, 2);
                 $this->setFlash('error', "Ukuran file proposal terlalu besar ({$sizeMB} MB). Maksimal 1 MB");
@@ -197,12 +222,10 @@ class PublicController extends Controller {
                 return;
             }
             
-            // Generate unique filename
-            $extension = 'pdf';
-            $filename = 'proposal_' . uniqid() . '_' . time() . '.' . $extension;
+            // Save file
+            $filename = 'proposal_' . uniqid() . '_' . time() . '.pdf';
             $uploadPath = UPLOAD_PATH . $filename;
             
-            // Move uploaded file
             if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
                 $this->setFlash('error', 'Gagal menyimpan file proposal');
                 $this->redirect('public/request-form');
@@ -212,28 +235,35 @@ class PublicController extends Controller {
             $proposalPath = $filename;
         }
         
-        // Add proposal path to data
         $data['proposal_file_path'] = $proposalPath;
         
-        // Check stock availability
+        // Check stock availability for ALL items
         $stockModel = $this->model('Stock');
-        $stock = $stockModel->findByBPDASAndSeedling($data['bpdas_id'], $data['seedling_type_id']);
         
-        if (!$stock || $stock['quantity'] < $data['quantity']) {
-            $this->setFlash('error', 'Stok bibit tidak mencukupi. Stok tersedia: ' . ($stock['quantity'] ?? 0));
-            $this->redirect('public/request-form');
-            return;
+        foreach ($validItems as $item) {
+            $stock = $stockModel->findByBPDASAndSeedling($data['bpdas_id'], $item['seedling_type_id']);
+            
+            if (!$stock || $stock['quantity'] < $item['quantity']) {
+                $this->setFlash('error', 'Stok bibit tidak mencukupi untuk salah satu jenis bibit. Silakan periksa kembali.');
+                $this->redirect('public/request-form');
+                return;
+            }
         }
         
-        // Create request
+        // Create request with multiple items
         $requestModel = $this->model('Request');
-        $requestId = $requestModel->createRequest($data);
+        $requestId = $requestModel->createRequestWithItems($data, $validItems);
         
         if ($requestId) {
             // Add to history
-            $requestModel->addHistory($requestId, 'pending', $user['id'], 'Permintaan dibuat');
+            try {
+                $requestModel->addHistory($requestId, 'pending', $user['id'], 'Permintaan dibuat');
+            } catch (Exception $e) {
+                logError("Add History Error: " . $e->getMessage());
+            }
             
-            // Send email notification to BPDAS
+            // Email notification DISABLED
+            /*
             try {
                 require_once UTILS_PATH . 'EmailSender.php';
                 $emailSender = new EmailSender();
@@ -242,6 +272,7 @@ class PublicController extends Controller {
             } catch (Exception $e) {
                 logError("Email notification error: " . $e->getMessage());
             }
+            */
             
             $this->setFlash('success', 'Permintaan berhasil diajukan. Silakan tunggu persetujuan dari BPDAS.');
             $this->redirect('public/my-requests');

@@ -46,14 +46,42 @@
                         <th>Tanggal Permintaan:</th>
                         <td><?= isset($request['created_at']) ? formatDate($request['created_at'], DATETIME_FORMAT) : '-' ?></td>
                     </tr>
-                    <tr>
-                        <th>Jenis Bibit:</th>
-                        <td><strong><?= htmlspecialchars($request['seedling_name'] ?? '-') ?></strong></td>
-                    </tr>
-                    <tr>
-                        <th>Jumlah Diminta:</th>
-                        <td><strong><?= formatNumber($request['quantity'] ?? 0) ?></strong> bibit</td>
-                    </tr>
+                    <?php if (!empty($request['items'])): ?>
+                        <tr>
+                            <th>Daftar Bibit:</th>
+                            <td class="p-0">
+                                <table class="table table-sm table-bordered m-0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Jenis Bibit</th>
+                                            <th class="text-right">Jumlah</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($request['items'] as $item): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($item['seedling_name'] ?? 'Item #' . $item['seedling_type_id']) ?></td>
+                                            <td class="text-right"><?= formatNumber($item['quantity']) ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                        <tr class="bg-light">
+                                            <th>Total</th>
+                                            <th class="text-right"><?= formatNumber($request['total_quantity'] ?? 0) ?></th>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <tr>
+                            <th>Jenis Bibit:</th>
+                            <td><strong><?= htmlspecialchars($request['seedling_name'] ?? 'Permintaan Multi-Item') ?></strong></td>
+                        </tr>
+                        <tr>
+                            <th>Jumlah Diminta:</th>
+                            <td><strong><?= formatNumber($request['quantity'] ?? 0) ?></strong> bibit</td>
+                        </tr>
+                    <?php endif; ?>
                     <tr>
                         <th>Tujuan Penggunaan:</th>
                         <td><?= htmlspecialchars($request['purpose'] ?? '-') ?></td>

@@ -122,21 +122,9 @@
                                 <td><?= htmlspecialchars($request['seedling_name'] ?? 'N/A') ?></td>
                                 <td><?= formatNumber($request['quantity'] ?? 0) ?> bibit</td>
                                 <td>
-                                    <?php
-                                    $statusClass = [
-                                        'pending' => 'warning',
-                                        'approved' => 'success',
-                                        'rejected' => 'danger'
-                                    ];
-                                    $statusText = [
-                                        'pending' => 'Menunggu',
-                                        'approved' => 'Disetujui',
-                                        'rejected' => 'Ditolak'
-                                    ];
-                                    $status = $request['status'] ?? 'pending';
-                                    ?>
-                                    <span class="badge badge-<?= $statusClass[$status] ?? 'secondary' ?>">
-                                        <?= $statusText[$status] ?? 'Unknown' ?>
+                                    <?php $status = $request['status'] ?? 'pending'; ?>
+                                    <span class="badge badge-<?= status_badge_class($status) ?>">
+                                        <?= status_text($status) ?>
                                     </span>
                                 </td>
                                 <td><?= isset($request['created_at']) ? formatDate($request['created_at']) : 'N/A' ?></td>

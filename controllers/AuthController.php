@@ -12,10 +12,18 @@ class AuthController extends Controller {
      * Login page
      */
     public function login() {
-        // Redirect if already logged in
+        // Clear any stale session data except flash messages
         if (isLoggedIn()) {
+            // If already logged in, redirect to dashboard
             $this->redirectToDashboard();
             return;
+        }
+        
+        // Clean up any leftover session data (except flash)
+        $flash = $_SESSION['flash'] ?? null;
+        $_SESSION = [];
+        if ($flash) {
+            $_SESSION['flash'] = $flash;
         }
         
         $data = [
@@ -208,17 +216,32 @@ class AuthController extends Controller {
      * Logout
      */
     public function logout() {
-        // Clear session
-        session_unset();
-        session_destroy();
+        // Clear all session variables
+        $_SESSION = [];
+        
+        // Clear session cookie
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 3600, '/');
+        }
         
         // Clear remember me cookie
         if (isset($_COOKIE['remember_token'])) {
             setcookie('remember_token', '', time() - 3600, '/');
         }
         
-        $this->setFlash('success', 'Anda telah logout');
-        $this->redirect('auth/login');
+        // Destroy session
+        session_destroy();
+        
+        // Start a new clean session for flash message
+        session_start();
+        $_SESSION['flash'] = [
+            'type' => 'success',
+            'message' => 'Anda telah logout. Silakan login kembali.'
+        ];
+        
+        // Redirect to login
+        header('Location: ' . url('auth/login'));
+        exit;
     }
     
     /**

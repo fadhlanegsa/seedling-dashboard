@@ -52,30 +52,143 @@ class Request extends Model {
     }
     
     /**
+     * Create new request with multiple items
+     * 
+     * @param array $requestData Request metadata
+     * @param array $items Array of items [{seedling_type_id, quantity}, ...]
+     * @return int|bool Request ID or false on failure
+     */
+    public function createRequestWithItems($requestData, $items) {
+        // Generate request number
+        $requestData['request_number'] = $this->generateRequestNumber();
+        $requestData['status'] = 'pending';
+        
+        // Set legacy columns to NULL (for backward compatibility)
+        $requestData['seedling_type_id'] = null;
+        $requestData['quantity'] = null;
+        
+        try {
+            // Start transaction
+            $this->beginTransaction();
+            
+            // Create request
+            $requestId = $this->create($requestData);
+            
+            if (!$requestId) {
+                $this->rollback();
+                return false;
+            }
+            
+            // Insert items
+            $sql = "INSERT INTO request_items (request_id, seedling_type_id, quantity, created_at) 
+                    VALUES (?, ?, ?, NOW())";
+            
+            foreach ($items as $item) {
+                $stmt = $this->db->prepare($sql);
+                $success = $stmt->execute([
+                    $requestId,
+                    $item['seedling_type_id'],
+                    $item['quantity']
+                ]);
+                
+                if (!$success) {
+                    $this->rollback();
+                    return false;
+                }
+            }
+            
+            // Commit transaction
+            $this->commit();
+            
+            return $requestId;
+            
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("Create Request With Items Error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get request items
+     * 
+     * @param int $requestId
+     * @return array
+     */
+    public function getRequestItems($requestId) {
+        $sql = "SELECT ri.*, st.name as seedling_name, st.scientific_name, st.category
+                FROM request_items ri
+                INNER JOIN seedling_types st ON ri.seedling_type_id = st.id
+                WHERE ri.request_id = ?
+                ORDER BY ri.id ASC";
+        
+        return $this->query($sql, [$requestId]);
+    }
+    
+    /**
+     * Get total quantity for a request (sum of all items)
+     * 
+     * @param int $requestId
+     * @return int
+     */
+    public function getTotalQuantityForRequest($requestId) {
+        $sql = "SELECT COALESCE(SUM(quantity), 0) as total
+                FROM request_items
+                WHERE request_id = ?";
+        
+        $result = $this->queryOne($sql, [$requestId]);
+        return (int)($result['total'] ?? 0);
+    }
+    
+    /**
      * Get request with full details
      * 
      * @param int $id
      * @return array|null
      */
     public function getWithDetails($id) {
+        // Get main request data (compatible with old & new schema)
         $sql = "SELECT r.*, 
                 u.full_name as requester_name, u.email as requester_email, 
                 u.phone as requester_phone, u.nik as requester_nik, u.address as requester_address,
                 b.name as bpdas_name, b.address as bpdas_address, 
                 b.phone as bpdas_phone, b.email as bpdas_email,
                 p.name as province_name,
-                st.name as seedling_name, st.scientific_name, st.category,
                 approver.full_name as approver_name
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id
-                INNER JOIN seedling_types st ON r.seedling_type_id = st.id
                 LEFT JOIN users approver ON r.approved_by = approver.id
                 WHERE r.id = ?
                 LIMIT 1";
         
-        return $this->queryOne($sql, [$id]);
+        $request = $this->queryOne($sql, [$id]);
+        
+        if (!$request) {
+            return null;
+        }
+        
+        // Get items (new schema)
+        $request['items'] = $this->getRequestItems($id);
+        
+        // Calculate total quantity from items
+        $request['total_quantity'] = $this->getTotalQuantityForRequest($id);
+        
+        // For backward compatibility: if old schema (single item), add to request
+        if (!empty($request['seedling_type_id'])) {
+            // Old schema compatibility
+            $seedlingSql = "SELECT name, scientific_name, category FROM seedling_types WHERE id = ?";
+            $seedling = $this->queryOne($seedlingSql, [$request['seedling_type_id']]);
+            
+            if ($seedling) {
+                $request['seedling_name'] = $seedling['name'];
+                $request['scientific_name'] = $seedling['scientific_name'];
+                $request['category'] = $seedling['category'];
+            }
+        }
+        
+        return $request;
     }
     
     /**
@@ -98,12 +211,13 @@ class Request extends Model {
     public function getByUser($userId, $status = null) {
         $sql = "SELECT r.*, 
                 b.name as bpdas_name,
-                st.name as seedling_name,
+                COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name,
+                (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id) as item_quantity,
                 p.name as province_name
                 FROM {$this->table} r
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id
-                INNER JOIN seedling_types st ON r.seedling_type_id = st.id
+                LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
                 WHERE r.user_id = ?";
         
         $params = [$userId];
@@ -129,10 +243,12 @@ class Request extends Model {
         $sql = "SELECT r.*, 
                 u.full_name as requester_name, u.email as requester_email,
                 u.phone as requester_phone, u.nik as requester_nik,
-                st.name as seedling_name, st.category
+                u.phone as requester_phone, u.nik as requester_nik,
+                COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name, st.category,
+                (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id) as item_quantity
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
-                INNER JOIN seedling_types st ON r.seedling_type_id = st.id
+                LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
                 WHERE r.bpdas_id = ?";
         
         $params = [$bpdasId];
@@ -162,12 +278,13 @@ class Request extends Model {
                 u.full_name as requester_name,
                 b.name as bpdas_name,
                 p.name as province_name,
-                st.name as seedling_name
+                COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name,
+                (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id) as item_quantity
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id
-                INNER JOIN seedling_types st ON r.seedling_type_id = st.id
+                LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
                 WHERE 1=1";
         
         $countSql = "SELECT COUNT(*) as total FROM {$this->table} r WHERE 1=1";
@@ -350,13 +467,13 @@ class Request extends Model {
                 u.full_name as requester_name,
                 b.name as bpdas_name, b.id as bpdas_id,
                 p.name as province_name, p.id as province_id,
-                st.name as seedling_name, st.id as seedling_type_id,
-                r.quantity
+                COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name, st.id as seedling_type_id,
+                COALESCE(r.quantity, (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id)) as quantity
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id
-                INNER JOIN seedling_types st ON r.seedling_type_id = st.id
+                LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
                 WHERE r.latitude IS NOT NULL 
                 AND r.longitude IS NOT NULL";
         
@@ -373,7 +490,8 @@ class Request extends Model {
         }
         
         if (!empty($filters['seedling_type_id'])) {
-            $sql .= " AND st.id = ?";
+            $sql .= " AND (st.id = ? OR EXISTS (SELECT 1 FROM request_items ri WHERE ri.request_id = r.id AND ri.seedling_type_id = ?))";
+            $params[] = $filters['seedling_type_id'];
             $params[] = $filters['seedling_type_id'];
         }
         

@@ -300,11 +300,24 @@ class BPDASController extends Controller {
         
         // Check stock availability
         $stockModel = $this->model('Stock');
-        $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $request['seedling_type_id']);
+        $isMultiItem = !empty($request['items']);
         
-        if (!$stock || $stock['quantity'] < $request['quantity']) {
-            $this->json(['success' => false, 'message' => 'Stok tidak mencukupi']);
-            return;
+        if ($isMultiItem) {
+            foreach ($request['items'] as $item) {
+                $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $item['seedling_type_id']);
+                if (!$stock || $stock['quantity'] < $item['quantity']) {
+                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi untuk salah satu jenis bibit']);
+                    return;
+                }
+            }
+        } else {
+            // Legacy single item
+            $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $request['seedling_type_id']);
+            
+            if (!$stock || $stock['quantity'] < $request['quantity']) {
+                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi']);
+                return;
+            }
         }
         
         // Begin transaction
@@ -318,7 +331,13 @@ class BPDASController extends Controller {
             $requestModel->approve($requestId, $user['id'], $notes);
             
             // Decrease stock
-            $stockModel->decreaseStock($bpdasId, $request['seedling_type_id'], $request['quantity']);
+            if ($isMultiItem) {
+                foreach ($request['items'] as $item) {
+                    $stockModel->decreaseStock($bpdasId, $item['seedling_type_id'], $item['quantity']);
+                }
+            } else {
+                $stockModel->decreaseStock($bpdasId, $request['seedling_type_id'], $request['quantity']);
+            }
             
             // Add to history
             $requestModel->addHistory($requestId, 'approved', $user['id'], $notes);
@@ -337,6 +356,8 @@ class BPDASController extends Controller {
                 logError("PDF Generation Error: " . $pdfError->getMessage());
             }
             
+            // Email notification DISABLED (causing errors on hosting)
+            /*
             // Send email notification (wrapped in try-catch)
             try {
                 require_once UTILS_PATH . 'EmailSender.php';
@@ -346,6 +367,7 @@ class BPDASController extends Controller {
                 // Log email error but don't fail the approval
                 logError("Email Notification Error: " . $emailError->getMessage());
             }
+            */
             
             // Clean output buffer
             ob_end_clean();

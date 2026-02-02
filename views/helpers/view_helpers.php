@@ -62,8 +62,9 @@ function safe_date($array, $key, $format = DATE_FORMAT, $default = '') {
 function status_badge_class($status) {
     $classes = [
         'pending' => 'warning',
-        'approved' => 'success',
+        'approved' => 'purple',
         'rejected' => 'danger',
+        'delivered' => 'delivered',
         'active' => 'success',
         'inactive' => 'secondary'
     ];
@@ -81,6 +82,7 @@ function status_text($status) {
         'pending' => 'Menunggu',
         'approved' => 'Disetujui',
         'rejected' => 'Ditolak',
+        'delivered' => 'Sudah Diserahkan',
         'active' => 'Aktif',
         'inactive' => 'Tidak Aktif'
     ];
@@ -98,6 +100,7 @@ function status_icon($status) {
         'pending' => 'clock',
         'approved' => 'check-circle',
         'rejected' => 'times-circle',
+        'delivered' => 'truck',
         'active' => 'check',
         'inactive' => 'times'
     ];

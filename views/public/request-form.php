@@ -36,19 +36,28 @@
                         <small class="form-text text-muted">Pilih BPDAS yang akan Anda ajukan permintaan</small>
                     </div>
                     
+                    <!-- Dynamic Items Section -->
                     <div class="form-group">
-                        <label class="form-label required">Jenis Bibit</label>
-                        <select name="seedling_type_id" id="seedling_type_id" class="form-control" required disabled>
-                            <option value="">-- Pilih BPDAS Terlebih Dahulu --</option>
-                        </select>
-                        <small class="form-text text-muted">Hanya menampilkan jenis bibit yang tersedia di BPDAS terpilih</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label required">Jumlah Bibit</label>
-                        <input type="number" name="quantity" id="quantity" class="form-control" 
-                               min="1" required placeholder="Masukkan jumlah bibit">
-                        <small class="form-text text-muted" id="stockInfo"></small>
+                        <label class="form-label required">Jenis Bibit yang Diminta</label>
+                        <small class="form-text text-muted mb-2 d-block">
+                            <i class="fas fa-info-circle"></i> Anda dapat memilih beberapa jenis bibit sekaligus
+                        </small>
+                        
+                        <!-- Items Container -->
+                        <div id="itemsContainer">
+                            <!-- Item template will be added here -->
+                        </div>
+                        
+                        <!-- Add Button -->
+                        <button type="button" id="addItemBtn" class="btn btn-success btn-sm mt-2" disabled>
+                            <i class="fas fa-plus"></i> Tambah Jenis Bibit Lain
+                        </button>
+                        
+                        <!-- Total Display -->
+                        <div class="alert alert-info mt-3" id="totalDisplay" style="display: none;">
+                            <strong><i class="fas fa-calculator"></i> Total Permintaan:</strong> 
+                            <span id="totalQuantity">0</span> bibit
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -155,53 +164,48 @@
 document.addEventListener('DOMContentLoaded', function() {
     const provinceSelect = document.getElementById('province_id');
     const bpdasSelect = document.getElementById('bpdas_id');
-    const seedlingSelect = document.getElementById('seedling_type_id');
-    const quantityInput = document.getElementById('quantity');
-    const stockInfo = document.getElementById('stockInfo');
+    const itemsContainer = document.getElementById('itemsContainer');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const totalDisplay = document.getElementById('totalDisplay');
+    const totalQuantitySpan = document.getElementById('totalQuantity');
+    
+    let itemCounter = 0;
+    let availableStocks = []; // Store available stock data
     
     // Initialize Leaflet Map
-    // Center on Indonesia
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
     
-    // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(map);
     
-    // Marker for selected location
     let marker = null;
     
-    // Function to update coordinates
     function updateCoordinates(lat, lng) {
         document.getElementById('latitude').value = lat.toFixed(8);
         document.getElementById('longitude').value = lng.toFixed(8);
         document.getElementById('coordText').innerHTML = 
             `<strong>Lat:</strong> ${lat.toFixed(6)}, <strong>Lng:</strong> ${lng.toFixed(6)}`;
         
-        // Remove existing marker
         if (marker) {
             map.removeLayer(marker);
         }
         
-        // Add new marker
         marker = L.marker([lat, lng], {
             draggable: true
         }).addTo(map);
         
-        // Update coordinates when marker is dragged
         marker.on('dragend', function(e) {
             const pos = e.target.getLatLng();
             updateCoordinates(pos.lat, pos.lng);
         });
     }
     
-    // Click on map to set location
     map.on('click', function(e) {
         updateCoordinates(e.latlng.lat, e.latlng.lng);
     });
     
-    // Use GPS location
     document.getElementById('useGPSBtn').addEventListener('click', function() {
         const btn = this;
         btn.disabled = true;
@@ -213,10 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     
-                    // Update coordinates
                     updateCoordinates(lat, lng);
-                    
-                    // Center map on location
                     map.setView([lat, lng], 15);
                     
                     btn.disabled = false;
@@ -245,9 +246,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const provinceId = this.value;
         bpdasSelect.innerHTML = '<option value="">-- Loading... --</option>';
         bpdasSelect.disabled = true;
-        seedlingSelect.innerHTML = '<option value="">-- Pilih BPDAS Terlebih Dahulu --</option>';
-        seedlingSelect.disabled = true;
-        stockInfo.textContent = '';
+        
+        // Clear items
+        itemsContainer.innerHTML = '';
+        addItemBtn.disabled = true;
+        availableStocks = [];
+        calculateTotal();
         
         if (provinceId) {
             fetch('<?= url('public/get-bpdas-by-province') ?>?province_id=' + provinceId)
@@ -269,82 +273,191 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load seedlings when BPDAS changes
     bpdasSelect.addEventListener('change', function() {
         const bpdasId = this.value;
-        seedlingSelect.innerHTML = '<option value="">-- Loading... --</option>';
-        seedlingSelect.disabled = true;
-        stockInfo.textContent = '';
+        
+        // Clear items
+        itemsContainer.innerHTML = '';
+        addItemBtn.disabled = true;
+        availableStocks = [];
+        calculateTotal();
         
         if (bpdasId) {
             fetch('<?= url('public/get-seedlings-by-bpdas') ?>?bpdas_id=' + bpdasId)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.data.length > 0) {
-                        seedlingSelect.innerHTML = '<option value="">-- Pilih Jenis Bibit --</option>';
-                        data.data.forEach(stock => {
-                            seedlingSelect.innerHTML += `<option value="${stock.seedling_type_id}" data-quantity="${stock.quantity}">${stock.seedling_name} (Stok: ${stock.quantity})</option>`;
-                        });
-                        seedlingSelect.disabled = false;
+                        availableStocks = data.data;
+                        addItemBtn.disabled = false;
+                        
+                        // Auto-add first item
+                        addItem();
                     } else {
-                        seedlingSelect.innerHTML = '<option value="">-- Tidak Ada Stok Tersedia --</option>';
+                        alert('Tidak ada stok bibit tersedia di BPDAS ini');
                     }
                 });
         }
     });
     
-    // Check stock when seedling or quantity changes
-    function checkStock() {
-        const bpdasId = bpdasSelect.value;
-        const seedlingId = seedlingSelect.value;
-        const quantity = quantityInput.value;
+    // Add item function
+    function addItem() {
+        itemCounter++;
+        const itemId = `item_${itemCounter}`;
         
-        if (bpdasId && seedlingId) {
-            fetch(`<?= url('public/check-stock-availability') ?>?bpdas_id=${bpdasId}&seedling_type_id=${seedlingId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.available) {
-                        const available = data.quantity;
-                        if (quantity && parseInt(quantity) > available) {
-                            stockInfo.innerHTML = `<span class="text-danger">Stok tidak mencukupi! Tersedia: ${available} bibit</span>`;
-                        } else {
-                            stockInfo.innerHTML = `<span class="text-success">Stok tersedia: ${available} bibit (Update: ${data.last_update})</span>`;
-                        }
-                    } else {
-                        stockInfo.innerHTML = '<span class="text-danger">Stok tidak tersedia</span>';
-                    }
-                });
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'card mb-3';
+        itemDiv.id = itemId;
+        itemDiv.innerHTML = `
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label required">Jenis Bibit #${itemCounter}</label>
+                        <select name="items[${itemCounter}][seedling_type_id]" class="form-control item-seedling" data-item-id="${itemId}" required>
+                            <option value="">-- Pilih Jenis Bibit --</option>
+                            ${availableStocks.map(stock => 
+                                `<option value="${stock.seedling_type_id}" data-stock="${stock.quantity}">
+                                    ${stock.seedling_name} (Stok: ${stock.quantity})
+                                </option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required">Jumlah</label>
+                        <input type="number" name="items[${itemCounter}][quantity]" class="form-control item-quantity" 
+                               data-item-id="${itemId}" min="1" required placeholder="Jumlah">
+                        <small class="form-text stock-info-${itemId}"></small>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-danger btn-block remove-item-btn" data-item-id="${itemId}">
+                            <i class="fas fa-trash"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        itemsContainer.appendChild(itemDiv);
+        
+        // Attach event listeners
+        const seedlingSelect = itemDiv.querySelector('.item-seedling');
+        const quantityInput = itemDiv.querySelector('.item-quantity');
+        const removeBtn = itemDiv.querySelector('.remove-item-btn');
+        
+        seedlingSelect.addEventListener('change', function() {
+            validateItemStock(itemId);
+            calculateTotal();
+        });
+        
+        quantityInput.addEventListener('input', function() {
+            validateItemStock(itemId);
+            calculateTotal();
+        });
+        
+        removeBtn.addEventListener('click', function() {
+            removeItem(itemId);
+        });
+        
+        // Show remove button only if more than 1 item
+        updateRemoveButtons();
+        calculateTotal();
+    }
+    
+    // Remove item function
+    function removeItem(itemId) {
+        const itemDiv = document.getElementById(itemId);
+        if (itemDiv) {
+            itemDiv.remove();
+            updateRemoveButtons();
+            calculateTotal();
         }
     }
     
-    seedlingSelect.addEventListener('change', checkStock);
-    quantityInput.addEventListener('input', checkStock);
+    // Update remove buttons visibility
+    function updateRemoveButtons() {
+        const items = itemsContainer.querySelectorAll('.card');
+        items.forEach((item, index) => {
+            const removeBtn = item.querySelector('.remove-item-btn');
+            if (items.length === 1) {
+                removeBtn.style.display = 'none';
+            } else {
+                removeBtn.style.display = 'block';
+            }
+        });
+    }
     
-    // ===== PROPOSAL UPLOAD LOGIC =====
-    const proposalGroup = document.getElementById('proposalGroup');
-    const proposalInput = document.getElementById('proposal');
-    const proposalError = document.getElementById('proposalError');
-    
-    // Show/hide proposal field based on quantity
-    quantityInput.addEventListener('input', function() {
-        const quantity = parseInt(this.value);
+    // Validate stock for individual item
+    function validateItemStock(itemId) {
+        const itemDiv = document.getElementById(itemId);
+        if (!itemDiv) return;
         
-        if (quantity > 25) {
+        const seedlingSelect = itemDiv.querySelector('.item-seedling');
+        const quantityInput = itemDiv.querySelector('.item-quantity');
+        const stockInfo = itemDiv.querySelector(`.stock-info-${itemId}`);
+        
+        const selectedOption = seedlingSelect.options[seedlingSelect.selectedIndex];
+        const availableStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
+        const requestedQty = parseInt(quantityInput.value) || 0;
+        
+        if (seedlingSelect.value && requestedQty > 0) {
+            if (requestedQty > availableStock) {
+                stockInfo.innerHTML = `<span class="text-danger">❌ Stok kurang! Tersedia: ${availableStock}</span>`;
+                quantityInput.setCustomValidity('Jumlah melebihi stok');
+            } else {
+                stockInfo.innerHTML = `<span class="text-success">✓ Stok cukup</span>`;
+                quantityInput.setCustomValidity('');
+            }
+        } else {
+            stockInfo.innerHTML = '';
+            quantityInput.setCustomValidity('');
+        }
+    }
+    
+    // Calculate total quantity
+    function calculateTotal() {
+        let total = 0;
+        const quantityInputs = itemsContainer.querySelectorAll('.item-quantity');
+        
+        quantityInputs.forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            total += qty;
+        });
+        
+        totalQuantitySpan.textContent = total;
+        
+        if (total > 0) {
+            totalDisplay.style.display = 'block';
+        } else {
+            totalDisplay.style.display = 'none';
+        }
+        
+        // Show/hide proposal upload based on total
+        const proposalGroup = document.getElementById('proposalGroup');
+        const proposalInput = document.getElementById('proposal');
+        
+        if (total > 25) {
             proposalGroup.style.display = 'block';
             proposalInput.required = true;
         } else {
             proposalGroup.style.display = 'none';
             proposalInput.required = false;
-            proposalInput.value = ''; // Clear file input
-            proposalError.style.display = 'none';
+            proposalInput.value = '';
         }
-    });
+        
+        return total;
+    }
     
-    // Validate proposal file
+    // Add item button
+    addItemBtn.addEventListener('click', addItem);
+    
+    // Proposal validation
+    const proposalInput = document.getElementById('proposal');
+    const proposalError = document.getElementById('proposalError');
+    
     proposalInput.addEventListener('change', function() {
         const file = this.files[0];
         proposalError.style.display = 'none';
         
         if (!file) return;
         
-        // Check file type
         if (file.type !== 'application/pdf') {
             proposalError.textContent = '❌ File harus berformat PDF';
             proposalError.style.display = 'block';
@@ -352,7 +465,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Check file size (max 1MB = 1048576 bytes)
         const maxSize = 1048576;
         if (file.size > maxSize) {
             const sizeMB = (file.size / 1048576).toFixed(2);
@@ -362,19 +474,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // File valid
         const sizeMB = (file.size / 1048576).toFixed(2);
         proposalError.innerHTML = `<span class="text-success">✓ File valid: ${file.name} (${sizeMB} MB)</span>`;
         proposalError.style.display = 'block';
     });
     
-    // Form validation before submit
+    // Form validation
     const requestForm = document.getElementById('requestForm');
     requestForm.addEventListener('submit', function(e) {
-        const quantity = parseInt(quantityInput.value);
+        const total = calculateTotal();
         const latitude = document.getElementById('latitude').value;
         const longitude = document.getElementById('longitude').value;
         const landArea = document.getElementById('land_area').value;
+        
+        // Validate at least one item
+        if (total === 0) {
+            e.preventDefault();
+            alert('Pilih minimal 1 jenis bibit dengan jumlah > 0');
+            return false;
+        }
         
         // Validate land area
         if (!landArea || parseFloat(landArea) <= 0) {
@@ -390,8 +508,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        // Validate proposal if quantity > 25
-        if (quantity > 25 && !proposalInput.files[0]) {
+        // Validate proposal if total > 25
+        if (total > 25 && !proposalInput.files[0]) {
             e.preventDefault();
             alert('Permintaan bibit lebih dari 25 batang wajib melampirkan surat pengajuan/proposal');
             return false;

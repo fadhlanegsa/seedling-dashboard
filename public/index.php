@@ -30,7 +30,14 @@ if (empty($path) || $path === 'home') {
 
 // Parse route
 $parts = explode('/', $path);
-$controllerName = ucfirst($parts[0]) . 'Controller';
+
+// Handle special cases for acronyms
+$controller = $parts[0];
+if ($controller === 'bpdas') {
+    $controllerName = 'BPDASController';
+} else {
+    $controllerName = ucfirst($controller) . 'Controller';
+}
 
 // Convert kebab-case to camelCase for action
 $action = isset($parts[1]) ? $parts[1] : 'index';
