@@ -10,6 +10,11 @@ session_start();
 // Load configuration
 require_once __DIR__ . '/../config/config.php';
 
+// Composer Autoloader
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
 // Load core classes
 require_once CORE_PATH . 'Model.php';
 require_once CORE_PATH . 'View.php';
@@ -31,21 +36,29 @@ if (empty($path) || $path === 'home') {
 // Parse route
 $parts = explode('/', $path);
 
-// Handle special cases for acronyms
-$controller = $parts[0];
-if ($controller === 'bpdas') {
-    $controllerName = 'BPDASController';
+// Handle special routing for seed-sources
+if ((($parts[0] === 'admin' || $parts[0] === 'bpdas') && isset($parts[1]) && $parts[1] === 'seed-sources')) {
+    $controllerName = 'SeedSourceController';
+    $action = isset($parts[2]) ? $parts[2] : 'index';
+    $params = array_slice($parts, 3);
 } else {
-    $controllerName = ucfirst($controller) . 'Controller';
+    // Handle special cases for acronyms
+    $controller = $parts[0];
+    if ($controller === 'bpdas') {
+        $controllerName = 'BPDASController';
+    } else {
+        $controllerName = ucfirst($controller) . 'Controller';
+    }
+    
+    // Convert kebab-case to camelCase for action
+    $action = isset($parts[1]) ? $parts[1] : 'index';
+    if (strpos($action, '-') !== false) {
+        $action = lcfirst(str_replace('-', '', ucwords($action, '-')));
+    }
+    
+    $params = array_slice($parts, 2);
 }
 
-// Convert kebab-case to camelCase for action
-$action = isset($parts[1]) ? $parts[1] : 'index';
-if (strpos($action, '-') !== false) {
-    $action = lcfirst(str_replace('-', '', ucwords($action, '-')));
-}
-
-$params = array_slice($parts, 2);
 
 // Controller file path
 $controllerFile = CONTROLLERS_PATH . $controllerName . '.php';

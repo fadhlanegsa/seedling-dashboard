@@ -5,6 +5,8 @@
  */
 
 require_once CORE_PATH . 'Controller.php';
+require_once MODELS_PATH . 'SeedSource.php';
+
 
 class PublicController extends Controller {
     
@@ -34,7 +36,7 @@ class PublicController extends Controller {
             'completed_requests' => $requestModel->count(['status' => 'completed'])
         ];
         
-        $this->render('public/landing', ['stats' => $stats], null);
+        $this->render('public/landing', ['stats' => $stats], 'public');
     }
     
     /**
@@ -145,13 +147,14 @@ class PublicController extends Controller {
             'user_id' => $user['id'],
             'bpdas_id' => $this->post('bpdas_id'),
             'purpose' => sanitize($this->post('purpose')),
+            'planting_address' => sanitize($this->post('planting_address')),
             'land_area' => $this->post('land_area'),
             'latitude' => $this->post('latitude'),
             'longitude' => $this->post('longitude')
         ];
         
         // Validate required fields
-        if (empty($data['bpdas_id']) || empty($data['purpose'])) {
+        if (empty($data['bpdas_id']) || empty($data['purpose']) || empty($data['planting_address'])) {
             $this->setFlash('error', 'Semua field harus diisi');
             $this->redirect('public/request-form');
             return;
@@ -574,6 +577,137 @@ class PublicController extends Controller {
         $this->json([
             'success' => true,
             'data' => $stocks
+        ]);
+    }
+    
+    /**
+     * Seed Source Directory (public, no auth required)
+     */
+    public function seedSourceDirectory() {
+        $provinceModel = $this->model('Province');
+        $seedlingTypeModel = $this->model('SeedlingType');
+        $seedSourceModel = $this->model('SeedSource');
+        
+        $data = [
+            'title' => 'Direktori Sumber Benih Nasional',
+            'provinces' => $provinceModel->getAllOrdered(),
+            'seedlingTypes' => $seedlingTypeModel->getAllActive(),
+            'seedSources' => $seedSourceModel->getAll()
+        ];
+        
+        $this->render('public/seed-source-directory', $data, 'public');
+    }
+    
+    /**
+     * Seed Source Detail (public, no auth required)
+     */
+    public function seedSourceDetail($id) {
+        $seedSourceModel = $this->model('SeedSource');
+        $seedSource = $seedSourceModel->getById($id);
+        
+        if (!$seedSource) {
+            $this->setFlash('error', 'Sumber benih tidak ditemukan');
+            $this->redirect('public/seed-source-directory');
+            return;
+        }
+        
+        $data = [
+            'title' => $seedSource['seed_source_name'],
+            'seedSource' => $seedSource
+        ];
+        
+        $this->render('public/seed-source-detail', $data, 'public');
+    }
+    
+    /**
+     * AJAX: Get seed sources map data (GeoJSON format)
+     */
+    public function getSeedSourcesMapData() {
+        $seedSourceModel = new SeedSource();
+        
+        $filters = [];
+        
+        if ($this->get('province_id')) {
+            $filters['province_id'] = $this->get('province_id');
+        }
+        
+        if ($this->get('seedling_type_id')) {
+            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+        }
+        
+        if ($this->get('seed_class')) {
+            $filters['seed_class'] = $this->get('seed_class');
+        }
+        
+        $seedSources = $seedSourceModel->getAllForMap($filters);
+        
+        // Convert to GeoJSON format
+        $features = [];
+        foreach ($seedSources as $source) {
+            $features[] = [
+                'type' => 'Feature',
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [
+                        floatval($source['longitude']),
+                        floatval($source['latitude'])
+                    ]
+                ],
+                'properties' => [
+                    'id' => $source['id'],
+                    'name' => $source['seed_source_name'],
+                    'local_name' => $source['local_name'],
+                    'location' => $source['location'],
+                    'province' => $source['province_name'],
+                    'seedling_type' => $source['seedling_type_name'],
+                    'seed_class' => $source['seed_class'],
+                    'owner' => $source['owner_name'],
+                    'phone' => $source['owner_phone'],
+                    'certificate' => $source['certificate_number']
+                ]
+            ];
+        }
+        
+        $geojson = [
+            'type' => 'FeatureCollection',
+            'features' => $features
+        ];
+        
+        $this->json([
+            'success' => true,
+            'data' => $geojson
+        ]);
+    }
+    
+    /**
+     * AJAX: Search seed sources
+     */
+    public function searchSeedSources() {
+        $seedSourceModel = new SeedSource();
+        
+        $filters = [];
+        
+        if ($this->get('province_id')) {
+            $filters['province_id'] = $this->get('province_id');
+        }
+        
+        if ($this->get('seedling_type_id')) {
+            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+        }
+        
+        if ($this->get('seed_class')) {
+            $filters['seed_class'] = $this->get('seed_class');
+        }
+        
+        if ($this->get('owner_name')) {
+            $filters['owner_name'] = $this->get('owner_name');
+        }
+        
+        $seedSources = $seedSourceModel->search($filters);
+        
+        $this->json([
+            'success' => true,
+            'data' => $seedSources
         ]);
     }
 }

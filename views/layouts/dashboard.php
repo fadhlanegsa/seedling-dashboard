@@ -119,6 +119,9 @@ $user = currentUser();
                         <li><a href="<?= url('admin/users') ?>" class="<?= $this->activeClass('admin/users') ?>">
                             <i class="fas fa-users"></i> Pengguna
                         </a></li>
+                        <li><a href="<?= url('admin/seed-sources') ?>" class="<?= $this->activeClass('admin/seed-sources') ?>">
+                            <i class="fas fa-tree"></i> Direktori Sumber Benih
+                        </a></li>
                     <?php elseif ($user['role'] === 'bpdas'): ?>
                         <li><a href="<?= url('bpdas/dashboard') ?>" class="<?= $this->activeClass('bpdas/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
@@ -134,6 +137,9 @@ $user = currentUser();
                         </a></li>
                         <li><a href="<?= url('bpdas/profile') ?>" class="<?= $this->activeClass('bpdas/profile') ?>">
                             <i class="fas fa-user"></i> Profil
+                        </a></li>
+                        <li><a href="<?= url('bpdas/seed-sources') ?>" class="<?= $this->activeClass('bpdas/seed-sources') ?>">
+                            <i class="fas fa-tree"></i> Direktori Sumber Benih
                         </a></li>
                     <?php else: ?>
                         <li><a href="<?= url('public/dashboard') ?>" class="<?= $this->activeClass('public/dashboard') ?>">

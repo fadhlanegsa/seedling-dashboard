@@ -10,7 +10,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? 'Dashboard Stok Bibit Persemaian Indonesia' ?></title>
-    <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/style.css') ?>?v=<?= time() ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 </head>
@@ -18,31 +18,64 @@
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <nav class="navbar">
-                <a href="<?= url('') ?>" class="navbar-brand">
-                    🌳 Dashboard Stok Bibit Indonesia 
+            <nav class="navbar-complex">
+                <a href="<?= url('') ?>" class="navbar-brand-complex">
+                    <img src="<?= asset('images/logo-kementerian.png') ?>" alt="Logo Kementerian" class="brand-logo-img">
+                    <div class="brand-text">
+                        <span class="brand-title">Dashboard Stok Bibit</span>
+                        <span class="brand-subtitle">Kementerian Kehutanan Republik Indonesia</span>
+                    </div>
                 </a>
-                <a>
+                
+                <ul class="nav-links-complex">
+                    <li>
+                        <a href="<?= url('') ?>" class="nav-link-item <?= $this->activeClass('') ?>">
+                            <i class="fas fa-home"></i> Beranda
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= url('home/search') ?>" class="nav-link-item <?= $this->activeClass('home/search') ?>">
+                            <i class="fas fa-search"></i> Cari Stok
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= url('home/distribution') ?>" class="nav-link-item <?= $this->activeClass('home/distribution') ?>">
+                            <i class="fas fa-map-marked-alt"></i> Peta Sebaran
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= url('home/howto') ?>" class="nav-link-item <?= $this->activeClass('home/howto') ?>">
+                            <i class="fas fa-info-circle"></i> Info Layanan
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= url('public/seed-source-directory') ?>" class="nav-link-item <?= $this->activeClass('public/seed-source-directory') ?>">
+                            <i class="fas fa-tree"></i> Direktori Sumber Benih
+                        </a>
+                    </li>
                     
-                </a>
-                <a> Direktorat Penghijauan dan Perbenihan Tanaman Hutan</a>
-                <ul class="navbar-menu">
-                    <li><a href="<?= url('') ?>" class="<?= $this->activeClass('') ?>">Beranda</a></li>
-                    <li><a href="<?= url('home/search') ?>" class="<?= $this->activeClass('home/search') ?>">Cari BPDAS</a></li>
-                    <li><a href="<?= url('home/howto') ?>" class="<?= $this->activeClass('home/howto') ?>">Cara Mendapatkan</a></li>
                     <?php if (isLoggedIn()): ?>
                         <?php $user = currentUser(); ?>
-                        <?php if ($user['role'] === 'admin'): ?>
-                            <li><a href="<?= url('admin/dashboard') ?>">Dashboard Admin</a></li>
-                        <?php elseif ($user['role'] === 'bpdas'): ?>
-                            <li><a href="<?= url('bpdas/dashboard') ?>">Dashboard BPDAS</a></li>
-                        <?php else: ?>
-                            <li><a href="<?= url('public/dashboard') ?>">Dashboard Saya</a></li>
-                        <?php endif; ?>
-                        <li><a href="<?= url('auth/logout') ?>">Logout</a></li>
+                         <li>
+                            <?php if ($user['role'] === 'admin'): ?>
+                                <a href="<?= url('admin/dashboard') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold;">
+                                    <i class="fas fa-tachometer-alt"></i> Dashboard Admin
+                                </a>
+                            <?php elseif ($user['role'] === 'bpdas'): ?>
+                                <a href="<?= url('bpdas/dashboard') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold;">
+                                    <i class="fas fa-tachometer-alt"></i> Dashboard BPDAS
+                                </a>
+                            <?php else: ?>
+                                <a href="<?= url('public/dashboard') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold;">
+                                    <i class="fas fa-user-circle"></i> Akun Saya
+                                </a>
+                            <?php endif; ?>
+                        </li>
+                        <li><a href="<?= url('auth/logout') ?>" class="nav-link-item"><i class="fas fa-sign-out-alt"></i></a></li>
                     <?php else: ?>
-                        <li><a href="<?= url('auth/login') ?>" class="btn btn-primary btn-sm">Login</a></li>
-                        <li><a href="<?= url('auth/register') ?>" class="btn btn-outline btn-sm">Daftar</a></li>
+                        <li><a href="<?= url('auth/login') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold; margin-left: 1rem;">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a></li>
                     <?php endif; ?>
                 </ul>
             </nav>
