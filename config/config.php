@@ -10,8 +10,19 @@ defined('APP_PATH') or define('APP_PATH', dirname(__DIR__));
 // Application Settings
 define('APP_NAME', 'Dashboard Stok Bibit Persemaian Indonesia');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://localhost/seedling-dashboard/seedling-dashboard');
-define('BASE_PATH', '/seedling-dashboard/seedling-dashboard/public');
+
+// Dynamic URL Detection
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
+$scriptDir = dirname($_SERVER['SCRIPT_NAME']); // e.g., /seedling-dashboard/public
+
+// Remove '/public' from the script dir to get the app root URL if it exists in the path
+$appPath = str_replace('/public', '', $scriptDir);
+
+// Define APP_URL dynamically
+// If running at root (bibitgratis.com), appPath might be empty or /
+define('APP_URL', $protocol . '://' . $host . rtrim($appPath, '/\\'));
+define('BASE_PATH', $scriptDir);
 
 // Database Configuration
 define('DB_HOST', 'localhost');
@@ -98,7 +109,6 @@ define('REQUEST_STATUS', [
     'pending' => 'Menunggu Persetujuan',
     'approved' => 'Disetujui',
     'rejected' => 'Ditolak',
-    'completed' => 'Selesai',
     'delivered' => 'Sudah Diserahkan'
 ]);
 
@@ -106,6 +116,7 @@ define('REQUEST_STATUS', [
 define('USER_ROLES', [
     'admin' => 'Administrator',
     'bpdas' => 'BPDAS',
+    'operator_persemaian' => 'Operator Persemaian',
     'public' => 'Masyarakat'
 ]);
 
@@ -156,7 +167,7 @@ function formatDate($date, $format = DATE_FORMAT) {
 
 // Helper function to format number
 function formatNumber($number) {
-    return number_format($number, 0, ',', '.');
+    return number_format((float)($number ?? 0), 0, ',', '.');
 }
 
 // Helper function to format land area (remove trailing zeros)

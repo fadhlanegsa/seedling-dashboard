@@ -70,12 +70,60 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">Bulan Update</label>
+                        <select name="month" class="form-control">
+                            <option value="">Semua Bulan</option>
+                            <?php 
+                            $months = [
+                                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 
+                                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 
+                                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                            ];
+                            foreach ($months as $num => $name): 
+                            ?>
+                                <option value="<?= $num ?>" <?= ($filters['month'] == $num) ? 'selected' : '' ?>>
+                                    <?= $name ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">Tahun</label>
+                        <select name="year" class="form-control">
+                            <option value="">Semua Tahun</option>
+                            <?php 
+                            $currentYear = date('Y');
+                            for ($y = $currentYear; $y >= $currentYear - 2; $y--): 
+                            ?>
+                                <option value="<?= $y ?>" <?= ($filters['year'] == $y) ? 'selected' : '' ?>>
+                                    <?= $y ?>
+                                </option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search"></i> Filter
                 </button>
                 <a href="<?= url('admin/stock') ?>" class="btn btn-secondary">
                     <i class="fas fa-redo"></i> Reset
+                </a>
+            </div>
+            
+            <div class="mt-3 border-top pt-3">
+                <strong>Export Data:</strong>
+                <a href="<?= url('export/stockExcel') . '?' . http_build_query($filters) ?>" class="btn btn-success btn-sm ml-2" target="_blank">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <a href="<?= url('export/stockPDF') . '?' . http_build_query($filters) ?>" class="btn btn-danger btn-sm ml-1" target="_blank">
+                    <i class="fas fa-file-pdf"></i> Export PDF
                 </a>
             </div>
         </form>
@@ -90,6 +138,7 @@
                 <tr>
                     <th>No</th>
                     <th>BPDAS</th>
+                    <th>Persemaian</th>
                     <th>Provinsi</th>
                     <th>Jenis Bibit</th>
                     <th>Kategori</th>
@@ -108,6 +157,7 @@
                         <tr>
                             <td><?= $index + 1 + (($currentPage - 1) * $perPage) ?></td>
                             <td><?= htmlspecialchars($item['bpdas_name'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars($item['nursery_name'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($item['province_name'] ?? '-') ?></td>
                             <td>
                                 <strong><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></strong>
@@ -122,7 +172,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" class="text-center">Tidak ada data stok</td>
+                        <td colspan="8" class="text-center">Tidak ada data stok</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -140,7 +190,9 @@ if (isset($pagination)) {
         'province_id' => $filters['province_id'] ?? null,
         'bpdas_id' => $filters['bpdas_id'] ?? null,
         'seedling_type_id' => $filters['seedling_type_id'] ?? null,
-        'category' => $filters['category'] ?? null
+        'category' => $filters['category'] ?? null,
+        'month' => $filters['month'] ?? null,
+        'year' => $filters['year'] ?? null
     ];
     
     renderPagination($pagination, 'admin/stock', $queryParams);

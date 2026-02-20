@@ -56,267 +56,253 @@
 <!-- Charts Section -->
 <div class="row mt-4">
     <!-- Chart 1: Stock per Province -->
-    <div class="col-lg-4 col-md-12 mb-4">
+    <!-- Chart 1: Stock per Province -->
+    <div class="col-lg-4 col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h3><i class="fas fa-map-marked-alt"></i> Stok per Provinsi</h3>
             </div>
             <div class="card-body">
-                <canvas id="stockByProvinceChart" height="300"></canvas>
+                <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="stockByProvinceChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Chart 2: Top 10 Seedlings -->
-    <div class="col-lg-4 col-md-6 mb-4">
+    <div class="col-lg-4 col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h3><i class="fas fa-chart-bar"></i> Top 10 Jenis Bibit</h3>
             </div>
             <div class="card-body">
-                <canvas id="topSeedlingsChart" height="300"></canvas>
+                <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="topSeedlingsChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
     
     <!-- Chart 3: Monthly Distribution -->
-    <div class="col-lg-4 col-md-6 mb-4">
+    <div class="col-lg-4 col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h3><i class="fas fa-chart-area"></i> Distribusi Bulanan</h3>
             </div>
             <div class="card-body">
-                <canvas id="distributionChart" height="300"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<!-- Quick Actions -->
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-bolt"></i> Aksi Cepat</h3>
-            </div>
-            <div class="card-body">
-                <div class="quick-actions">
-                    <a href="<?= url('admin/bpdas') ?>" class="btn btn-primary">
-                        <i class="fas fa-building"></i> Kelola BPDAS & BPTH
-                    </a>
-                    <a href="<?= url('admin/seedling-types') ?>" class="btn btn-success">
-                        <i class="fas fa-seedling"></i> Kelola Jenis Bibit
-                    </a>
-                    <a href="<?= url('admin/stock') ?>" class="btn btn-info">
-                        <i class="fas fa-boxes"></i> Lihat Stok Nasional
-                    </a>
-                    <a href="<?= url('admin/requests') ?>" class="btn btn-warning">
-                        <i class="fas fa-file-alt"></i> Kelola Permintaan
-                    </a>
-                    <a href="<?= url('admin/users') ?>" class="btn btn-secondary">
-                        <i class="fas fa-users"></i> Kelola Pengguna
-                    </a>
+                <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="distributionChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+
+
+
 <script>
-// Prepare data for charts
-const stockByProvinceData = <?= json_encode($stockByProvince ?? []) ?>;
-const topSeedlingsData = <?= json_encode($topSeedlings ?? []) ?>;
+document.addEventListener('DOMContentLoaded', function() {
+    // Prepare data for charts
+    const stockByProvinceData = <?= json_encode($stockByProvince ?? []) ?>;
+    const topSeedlingsData = <?= json_encode($topSeedlings ?? []) ?>;
 
-console.log('Stock by Province:', stockByProvinceData);
-console.log('Top Seedlings:', topSeedlingsData);
+    console.log('Stock by Province:', stockByProvinceData);
+    console.log('Top Seedlings:', topSeedlingsData);
 
-// Stock by Province Chart
-if (stockByProvinceData && stockByProvinceData.length > 0) {
-    const ctx1 = document.getElementById('stockByProvinceChart');
-    if (ctx1) {
-        new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: stockByProvinceData.map(item => item.province_name || 'Unknown'),
-                datasets: [{
-                    label: 'Total Stok',
-                    data: stockByProvinceData.map(item => parseInt(item.total_stock) || 0),
-                    backgroundColor: 'rgba(46, 125, 50, 0.7)',
-                    borderColor: 'rgba(46, 125, 50, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString();
+    // Stock by Province Chart
+    if (stockByProvinceData && stockByProvinceData.length > 0) {
+        const ctx1 = document.getElementById('stockByProvinceChart');
+        if (ctx1) {
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: stockByProvinceData.map(item => item.province_name || 'Unknown'),
+                    datasets: [{
+                        label: 'Total Stok',
+                        data: stockByProvinceData.map(item => parseInt(item.total_stock) || 0),
+                        backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                        borderColor: 'rgba(46, 125, 50, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
                             }
                         }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: true
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'Stok: ' + context.parsed.y.toLocaleString() + ' bibit';
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Stok: ' + context.parsed.y.toLocaleString() + ' bibit';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
+    } else {
+        const chartEl = document.getElementById('stockByProvinceChart');
+        if (chartEl) {
+            chartEl.parentElement.innerHTML = 
+            '<p class="text-center text-muted py-5">Belum ada data stok per provinsi</p>';
+        }
     }
-} else {
-    document.getElementById('stockByProvinceChart').parentElement.innerHTML = 
-        '<p class="text-center text-muted py-5">Belum ada data stok per provinsi</p>';
-}
 
-// Prepare Distribution Data
-const distributionStats = <?= json_encode($distributionStats ?? []) ?>;
+    // Prepare Distribution Data
+    const distributionStats = <?= json_encode($distributionStats ?? []) ?>;
 
-if (distributionStats && distributionStats.length > 0) {
-    // Process data for Stacked Bar Chart
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
-    // Get unique provinces
-    const provinces = [...new Set(distributionStats.map(item => item.province_name))];
-    
-    // Generate distinct colors for provinces
-    const colors = [
-        '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', 
-        '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
-        '#882d17', '#8175aa', '#6baa2c', '#d6a319', '#be514b'
-    ];
-    
-    // Create datasets
-    const datasets = provinces.map((province, index) => {
-        const data = months.map((_, monthIndex) => {
-            const monthNum = monthIndex + 1;
-            const record = distributionStats.find(item => 
-                item.province_name === province && parseInt(item.month) === monthNum
-            );
-            return record ? parseInt(record.total_distributed) : 0;
+    if (distributionStats && distributionStats.length > 0) {
+        // Process data for Stacked Bar Chart
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        
+        // Get unique provinces
+        const provinces = [...new Set(distributionStats.map(item => item.province_name))];
+        
+        // Generate distinct colors for provinces
+        const colors = [
+            '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', 
+            '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
+            '#882d17', '#8175aa', '#6baa2c', '#d6a319', '#be514b'
+        ];
+        
+        // Create datasets
+        const datasets = provinces.map((province, index) => {
+            const data = months.map((_, monthIndex) => {
+                const monthNum = monthIndex + 1;
+                const record = distributionStats.find(item => 
+                    item.province_name === province && parseInt(item.month) === monthNum
+                );
+                return record ? parseInt(record.total_distributed) : 0;
+            });
+            
+            return {
+                label: province,
+                data: data,
+                backgroundColor: colors[index % colors.length],
+                stack: 'Stack 0'
+            };
         });
         
-        return {
-            label: province,
-            data: data,
-            backgroundColor: colors[index % colors.length],
-            stack: 'Stack 0'
-        };
-    });
-    
-    const ctxDist = document.getElementById('distributionChart');
-    if (ctxDist) {
-        new Chart(ctxDist, {
-            type: 'bar',
-            data: {
-                labels: months,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            footer: (tooltipItems) => {
-                                let total = 0;
-                                tooltipItems.forEach((item) => {
-                                    total += item.parsed.y;
-                                });
-                                return 'Total Bulan Ini: ' + total.toLocaleString();
+        const ctxDist = document.getElementById('distributionChart');
+        if (ctxDist) {
+            new Chart(ctxDist, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                footer: (tooltipItems) => {
+                                    let total = 0;
+                                    tooltipItems.forEach((item) => {
+                                        total += item.parsed.y;
+                                    });
+                                    return 'Total Bulan Ini: ' + total.toLocaleString();
+                                }
                             }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Distribusi Bibit per Bulan (Tahun <?= date("Y") ?>)'
                         }
                     },
-                    title: {
-                        display: true,
-                        text: 'Distribusi Bibit per Bulan (Tahun <?= date("Y") ?>)'
-                    }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
+    } else {
+         const chartContainer = document.getElementById('distributionChart');
+         if(chartContainer) {
+            chartContainer.parentElement.innerHTML = 
+                '<p class="text-center text-muted py-5">Belum ada data distribusi (Requests Delivered) tahun ini</p>';
+         }
     }
-} else {
-     const chartContainer = document.getElementById('distributionChart');
-     if(chartContainer) {
-        chartContainer.parentElement.innerHTML = 
-            '<p class="text-center text-muted py-5">Belum ada data distribusi (Requests Delivered) tahun ini</p>';
-     }
-}
 
-// Top Seedlings Chart
-if (topSeedlingsData && topSeedlingsData.length > 0) {
-    const ctx2 = document.getElementById('topSeedlingsChart');
-    if (ctx2) {
-        new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: topSeedlingsData.map(item => item.seedling_name || 'Unknown'),
-                datasets: [{
-                    label: 'Total Stok',
-                    data: topSeedlingsData.map(item => parseInt(item.total_stock) || 0),
-                    backgroundColor: 'rgba(33, 150, 243, 0.7)',
-                    borderColor: 'rgba(33, 150, 243, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString();
+    // Top Seedlings Chart
+    if (topSeedlingsData && topSeedlingsData.length > 0) {
+        const ctx2 = document.getElementById('topSeedlingsChart');
+        if (ctx2) {
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: topSeedlingsData.map(item => item.seedling_name || 'Unknown'),
+                    datasets: [{
+                        label: 'Total Stok',
+                        data: topSeedlingsData.map(item => parseInt(item.total_stock) || 0),
+                        backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
                             }
                         }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: true
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'Stok: ' + context.parsed.x.toLocaleString() + ' bibit';
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Stok: ' + context.parsed.x.toLocaleString() + ' bibit';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
+    } else {
+        const topChartEl = document.getElementById('topSeedlingsChart');
+        if (topChartEl) {
+            topChartEl.parentElement.innerHTML = 
+            '<p class="text-center text-muted py-5">Belum ada data jenis bibit</p>';
+        }
     }
-} else {
-    document.getElementById('topSeedlingsChart').parentElement.innerHTML = 
-        '<p class="text-center text-muted py-5">Belum ada data jenis bibit</p>';
-}
+});
 
 // Update Trend Chart - REMOVED, replaced with Distribution Map
 

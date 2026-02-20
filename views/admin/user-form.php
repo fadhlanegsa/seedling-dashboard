@@ -25,11 +25,7 @@ $isEdit = isset($user);
                     <div class="form-group">
                         <label class="form-label required">Username</label>
                         <input type="text" name="username" class="form-control" 
-                               value="<?= $isEdit ? htmlspecialchars($user['username']) : '' ?>" 
-                               <?= $isEdit ? 'readonly' : '' ?> required>
-                        <?php if ($isEdit): ?>
-                            <small class="text-muted">Username tidak dapat diubah</small>
-                        <?php endif; ?>
+                               value="<?= $isEdit ? htmlspecialchars($user['username']) : '' ?>" required>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -73,7 +69,7 @@ $isEdit = isset($user);
 
             <div class="form-group" id="bpdasGroup" style="display: none;">
                 <label class="form-label">BPDAS</label>
-                <select name="bpdas_id" class="form-control">
+                <select name="bpdas_id" class="form-control" id="bpdasSelect">
                     <option value="">Pilih BPDAS</option>
                     <?php foreach ($bpdasList as $bpdas): ?>
                         <option value="<?= $bpdas['id'] ?>" 
@@ -83,6 +79,23 @@ $isEdit = isset($user);
                     <?php endforeach; ?>
                 </select>
                 <small class="text-muted">Hanya untuk role BPDAS</small>
+            </div>
+
+            <div class="form-group" id="nurseryGroup" style="display: none;">
+                <label class="form-label">Persemaian</label>
+                <select name="nursery_id" class="form-control" id="nurserySelect">
+                    <option value="">Pilih Persemaian</option>
+                    <?php if (isset($nurseries)): ?>
+                        <?php foreach ($nurseries as $nursery): ?>
+                            <option value="<?= $nursery['id'] ?>" 
+                                    data-bpdas="<?= $nursery['bpdas_id'] ?>"
+                                    <?= ($isEdit && isset($user['nursery_id']) && $user['nursery_id'] == $nursery['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($nursery['name']) ?> (<?= htmlspecialchars($nursery['bpdas_name']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+                <small class="text-muted">Hanya untuk role Operator Persemaian</small>
             </div>
 
             <div class="form-group">
@@ -119,10 +132,17 @@ $isEdit = isset($user);
 <script>
 document.getElementById('roleSelect').addEventListener('change', function() {
     const bpdasGroup = document.getElementById('bpdasGroup');
+    const nurseryGroup = document.getElementById('nurseryGroup');
+    
     if (this.value === 'bpdas') {
         bpdasGroup.style.display = 'block';
+        nurseryGroup.style.display = 'none';
+    } else if (this.value === 'operator_persemaian') {
+        bpdasGroup.style.display = 'none';
+        nurseryGroup.style.display = 'block';
     } else {
         bpdasGroup.style.display = 'none';
+        nurseryGroup.style.display = 'none';
     }
 });
 
@@ -131,6 +151,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const roleSelect = document.getElementById('roleSelect');
     if (roleSelect.value === 'bpdas') {
         document.getElementById('bpdasGroup').style.display = 'block';
+    } else if (roleSelect.value === 'operator_persemaian') {
+        document.getElementById('nurseryGroup').style.display = 'block';
     }
 });
 </script>

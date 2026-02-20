@@ -62,10 +62,22 @@ class PublicController extends Controller {
         // Get recent requests
         $recentRequests = array_slice($requests, 0, 5);
         
+        // Calculate quota
+        $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
+        $maxQuota = 2000;
+        $remainingQuota = $maxQuota - $approvedQuantity;
+        if ($remainingQuota < 0) $remainingQuota = 0;
+        
         $data = [
             'title' => 'Dashboard Saya',
             'stats' => $stats,
-            'recentRequests' => $recentRequests
+            'recentRequests' => $recentRequests,
+            'quota' => [
+                'max' => $maxQuota,
+                'used' => $approvedQuantity,
+                'remaining' => $remainingQuota,
+                'percentage' => min(100, round(($approvedQuantity / $maxQuota) * 100))
+            ]
         ];
         
         $this->render('public/dashboard', $data, 'dashboard');
@@ -80,9 +92,22 @@ class PublicController extends Controller {
         $provinceModel = $this->model('Province');
         $provinces = $provinceModel->getAllOrdered();
         
+        // Check quota
+        $user = currentUser();
+        $requestModel = $this->model('Request');
+        $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
+        $maxQuota = 2000;
+        $remainingQuota = $maxQuota - $approvedQuantity;
+        if ($remainingQuota < 0) $remainingQuota = 0;
+        
         $data = [
             'title' => 'Ajukan Permintaan Bibit',
-            'provinces' => $provinces
+            'provinces' => $provinces,
+            'quota' => [
+                'max' => $maxQuota,
+                'used' => $approvedQuantity,
+                'remaining' => $remainingQuota
+            ]
         ];
         
         $this->render('public/request-form', $data, 'dashboard');
@@ -142,23 +167,50 @@ class PublicController extends Controller {
             return;
         }
         
-        // Request metadata
-        $data = [
-            'user_id' => $user['id'],
-            'bpdas_id' => $this->post('bpdas_id'),
-            'purpose' => sanitize($this->post('purpose')),
-            'planting_address' => sanitize($this->post('planting_address')),
-            'land_area' => $this->post('land_area'),
-            'latitude' => $this->post('latitude'),
-            'longitude' => $this->post('longitude')
-        ];
+        // Validate Quota
+        $requestModel = $this->model('Request');
+        $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
+        $maxQuota = 2000;
+        $remainingQuota = $maxQuota - $approvedQuantity;
         
-        // Validate required fields
-        if (empty($data['bpdas_id']) || empty($data['purpose']) || empty($data['planting_address'])) {
-            $this->setFlash('error', 'Semua field harus diisi');
+        if ($totalQuantity > $remainingQuota) {
+            $this->setFlash('error', "Permintaan melebihi sisa kuota Anda. Sisa kuota: {$remainingQuota} batang.");
             $this->redirect('public/request-form');
             return;
         }
+        
+        // Request metadata
+        $provinceId = $this->post('province_id');
+        $bpdasId = $this->post('bpdas_id');
+        $nurseryId = $this->post('nursery_id'); // Capture Nursery ID
+        $purpose = $this->post('purpose');
+        $plantingAddress = $this->post('planting_address');
+        $landArea = $this->post('land_area');
+        $latitude = $this->post('latitude');
+        $longitude = $this->post('longitude');
+        
+        // Validate basic fields
+        if (empty($bpdasId) || empty($purpose) || empty($plantingAddress) || empty($landArea)) {
+            $this->setFlash('error', 'Mohon lengkapi semua field yang wajib diisi');
+            $this->redirect('public/request-form');
+            return;
+        }
+
+        // Validate nursery if bpdas selected (optional but good to have)
+        if (empty($nurseryId)) {
+            $nurseryId = null; // Allow null if user doesn't select one (though frontend should enforce)
+        }
+
+        $data = [
+            'user_id' => $user['id'],
+            'bpdas_id' => $bpdasId,
+            'nursery_id' => $nurseryId, // Add nursery_id to data
+            'purpose' => sanitize($purpose),
+            'planting_address' => sanitize($plantingAddress),
+            'land_area' => $landArea,
+            'latitude' => $latitude,
+            'longitude' => $longitude
+        ];
         
         // Validate coordinates
         if (empty($data['latitude']) || empty($data['longitude'])) {
@@ -286,6 +338,29 @@ class PublicController extends Controller {
     }
     
     /**
+     * Get nurseries by BPDAS ID (API)
+     */
+    public function getNurseries() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            exit;
+        }
+        
+        $bpdasId = $this->get('bpdas_id');
+        if (!$bpdasId) {
+            echo json_encode([]);
+            return;
+        }
+        
+        $nurseryModel = $this->model('Nursery');
+        $nurseries = $nurseryModel->getByBPDAS($bpdasId);
+        
+        header('Content-Type: application/json');
+        echo json_encode($nurseries);
+        exit;
+    }
+
+    /**
      * My requests page
      */
     public function myRequests() {
@@ -394,6 +469,15 @@ class PublicController extends Controller {
      */
     public function profile() {
         $user = currentUser();
+        
+        // If operator, get nursery info
+        if ($user['role'] === 'operator_persemaian') {
+            $userModel = $this->model('User');
+            $extendedUser = $userModel->getUserWithNursery($user['id']);
+            if ($extendedUser) {
+                $user = $extendedUser;
+            }
+        }
         
         $data = [
             'title' => 'Profil Saya',

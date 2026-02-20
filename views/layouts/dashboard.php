@@ -10,9 +10,10 @@ $user = currentUser();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'Dashboard' ?> - Dashboard Stok Bibit</title>
     <title><?= $title ?? 'Dashboard' ?> - Direktorat Penghijauan dan Perbenihan Tanaman Hutan</title>
-    <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
+    <!-- Bootstrap 4.6 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?= asset('css/style.css') ?>?v=<?= time() ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet CSS -->
@@ -34,6 +35,7 @@ $user = currentUser();
             flex: 1;
             padding: 2rem;
             background: var(--light-bg);
+            min-width: 0; /* Prevents flex items from overflowing */
         }
         .user-info {
             padding: 1rem 1.5rem;
@@ -122,6 +124,9 @@ $user = currentUser();
                         <li><a href="<?= url('admin/seed-sources') ?>" class="<?= $this->activeClass('admin/seed-sources') ?>">
                             <i class="fas fa-tree"></i> Direktori Sumber Benih
                         </a></li>
+                        <li><a href="<?= url('admin/nurseries') ?>" class="<?= $this->activeClass('admin/nurseries') ?>">
+                            <i class="fas fa-seedling"></i> Kelola Persemaian
+                        </a></li>
                     <?php elseif ($user['role'] === 'bpdas'): ?>
                         <li><a href="<?= url('bpdas/dashboard') ?>" class="<?= $this->activeClass('bpdas/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
@@ -138,8 +143,18 @@ $user = currentUser();
                         <li><a href="<?= url('bpdas/profile') ?>" class="<?= $this->activeClass('bpdas/profile') ?>">
                             <i class="fas fa-user"></i> Profil
                         </a></li>
-                        <li><a href="<?= url('bpdas/seed-sources') ?>" class="<?= $this->activeClass('bpdas/seed-sources') ?>">
-                            <i class="fas fa-tree"></i> Direktori Sumber Benih
+                    <?php elseif ($user['role'] === 'operator_persemaian'): ?>
+                        <li><a href="<?= url('operator/dashboard') ?>" class="<?= $this->activeClass('operator/dashboard') ?>">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a></li>
+                        <li><a href="<?= url('operator/stock') ?>" class="<?= $this->activeClass('operator/stock') ?>">
+                            <i class="fas fa-boxes"></i> Kelola Stok
+                        </a></li>
+                        <li><a href="<?= url('operator/requests') ?>" class="<?= $this->activeClass('operator/requests') ?>">
+                            <i class="fas fa-inbox"></i> Permintaan Masuk
+                        </a></li>
+                        <li><a href="<?= url('operator/map-distribution') ?>" class="<?= $this->activeClass('operator/map-distribution') ?>">
+                            <i class="fas fa-map-marked-alt"></i> Peta Distribusi
                         </a></li>
                     <?php else: ?>
                         <li><a href="<?= url('public/dashboard') ?>" class="<?= $this->activeClass('public/dashboard') ?>">
@@ -173,6 +188,7 @@ $user = currentUser();
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>

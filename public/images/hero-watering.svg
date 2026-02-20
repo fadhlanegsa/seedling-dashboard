@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0f7fa;stop-opacity:0" />
+      <stop offset="100%" style="stop-color:#b2ebf2;stop-opacity:0" />
+    </linearGradient>
+    <linearGradient id="treeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4caf50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2e7d32;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ground -->
+  <path d="M0,500 Q200,460 400,500 T800,500 L800,600 L0,600 Z" fill="#795548" opacity="0.8" />
+  
+  <!-- Trees (Growing) -->
+  <g transform="translate(150, 480) scale(1.1)">
+    <rect x="40" y="0" width="20" height="70" fill="#5d4037" />
+    <circle cx="50" cy="-30" r="60" fill="url(#treeGradient)" />
+    <circle cx="10" cy="-10" r="35" fill="#66bb6a" />
+  </g>
+  
+  <g transform="translate(600, 490) scale(1.2)">
+    <rect x="40" y="0" width="20" height="80" fill="#5d4037" />
+    <path d="M50,-90 L10,-10 L90,-10 Z" fill="url(#treeGradient)" />
+  </g>
+  
+  <!-- Person Watering -->
+  <g transform="translate(380, 480)">
+    <!-- Person Body -->
+    <path d="M0,0 Q10,-30 20,0 L20,40 L0,40 Z" fill="#ffb74d" />
+    <circle cx="10" cy="-15" r="10" fill="#ffb74d" />
+    <path d="M-5,0 Q10,-10 25,0 L25,30 L-5,30 Z" fill="#0288d1" />
+    
+    <!-- Watering Can -->
+    <path d="M25,10 L45,0 L50,15 L30,25 Z" fill="#90a4ae" />
+    <rect x="45" y="0" width="5" height="15" fill="#90a4ae" transform="rotate(-30)" />
+    
+    <!-- Water Drops -->
+    <g fill="#4fc3f7" opacity="0.8">
+       <circle cx="55" cy="25" r="3">
+         <animate attributeName="cy" from="25" to="50" dur="0.5s" repeatCount="indefinite" />
+         <animate attributeName="opacity" from="1" to="0" dur="0.5s" repeatCount="indefinite" />
+       </circle>
+       <circle cx="65" cy="30" r="3">
+         <animate attributeName="cy" from="30" to="55" dur="0.6s" repeatCount="indefinite" />
+         <animate attributeName="opacity" from="1" to="0" dur="0.6s" repeatCount="indefinite" />
+       </circle>
+    </g>
+  </g>
+  
+  <!-- Sun -->
+  <circle cx="100" cy="100" r="50" fill="#ffeb3b" opacity="0.8" />
+  
+  <!-- Birds -->
+  <path d="M500,100 Q510,90 520,100" stroke="#333" fill="none" />
+  <path d="M520,100 Q530,90 540,100" stroke="#333" fill="none" />
+</svg>

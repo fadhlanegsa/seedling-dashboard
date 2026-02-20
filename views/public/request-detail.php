@@ -90,8 +90,24 @@
                 
                 <?php if (!empty($request['land_area'])): ?>
                 <div class="mb-3">
-                    <strong><i class="fas fa-map"></i> Luas Lahan:</strong><br>
+                    <strong><i class="fas fa-ruler-combined"></i> Luas Lahan:</strong><br>
                     <?= number_format($request['land_area'], 3) ?> Ha
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($request['planting_address'])): ?>
+                <div class="mb-3">
+                    <strong><i class="fas fa-map-marker-alt"></i> Alamat Lokasi Tanam:</strong><br>
+                    <?= nl2br(htmlspecialchars($request['planting_address'])) ?>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($request['latitude']) && !empty($request['longitude'])): ?>
+                <div class="mb-3">
+                    <strong><i class="fas fa-location-arrow"></i> Titik Koordinat:</strong><br>
+                    <a href="https://www.google.com/maps?q=<?= $request['latitude'] ?>,<?= $request['longitude'] ?>" target="_blank">
+                        <?= $request['latitude'] ?>, <?= $request['longitude'] ?>
+                    </a>
                 </div>
                 <?php endif; ?>
                 

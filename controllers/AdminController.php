@@ -331,7 +331,9 @@ class AdminController extends Controller {
             'province_id' => $this->get('province_id'),
             'bpdas_id' => $this->get('bpdas_id'),
             'seedling_type_id' => $this->get('seedling_type_id'),
-            'category' => $this->get('category')
+            'category' => $this->get('category'),
+            'month' => $this->get('month'),
+            'year' => $this->get('year')
         ];
         
         $stockModel = $this->model('Stock');
@@ -453,12 +455,21 @@ class AdminController extends Controller {
         }
         
         $bpdasList = $bpdasModel->getAllWithProvince();
-        
-        $data = [
-            'title' => $id ? 'Edit Pengguna' : 'Tambah Pengguna',
-            'user' => $user,
-            'bpdasList' => $bpdasList
-        ];
+    
+    // Load nurseries for operator role
+    $nurseryModel = $this->model('Nursery');
+    $nurseries = $nurseryModel->query("SELECT n.*, b.name as bpdas_name 
+                                       FROM nurseries n 
+                                       JOIN bpdas b ON n.bpdas_id = b.id 
+                                       WHERE n.is_active = 1 
+                                       ORDER BY b.name ASC, n.name ASC");
+    
+    $data = [
+        'title' => $id ? 'Edit Pengguna' : 'Tambah Pengguna',
+        'user' => $user,
+        'bpdasList' => $bpdasList,
+        'nurseries' => $nurseries
+    ];
         
         $this->render('admin/user-form', $data, 'dashboard');
     }
@@ -483,8 +494,9 @@ class AdminController extends Controller {
             'full_name' => sanitize($this->post('full_name')),
             'phone' => sanitize($this->post('phone')),
             'role' => $this->post('role'),
-            'bpdas_id' => $this->post('bpdas_id') ?: null,
-            'is_active' => $this->post('is_active', 1)
+        'bpdas_id' => $this->post('bpdas_id') ?: null,
+        'nursery_id' => $this->post('nursery_id') ?: null,
+        'is_active' => $this->post('is_active', 1)
         ];
         
         $userModel = $this->model('User');
@@ -609,5 +621,195 @@ class AdminController extends Controller {
             'success' => true,
             'data' => $mapData
         ]);
+    }
+    /**
+     * Manage Nurseries
+     */
+    public function nurseries() {
+        $user = currentUser();
+        $userModel = $this->model('User');
+        $nurseryModel = $this->model('Nursery');
+        
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        // Basic pagination or list all? Let's list all for now as there aren't too many
+        // For better structure, we might want to paginate if many
+        
+        // Let's get all BPDAS to group nurseries or filter
+        $bpdasModel = $this->model('BPDAS');
+        $bpdasList = $bpdasModel->all(['is_active' => 1], 'name ASC');
+        
+        // If filter applied
+        $bpdasId = isset($_GET['bpdas_id']) ? (int)$_GET['bpdas_id'] : null;
+        
+        $nurseries = [];
+        if ($bpdasId) {
+            $nurseries = $nurseryModel->getByBPDAS($bpdasId);
+        } else {
+            // Get all with BPDAS info manually or add a method in model
+            // For now, let's just get all and enrich
+             $nurseries = $nurseryModel->query("SELECT n.*, b.name as bpdas_name 
+                                              FROM nurseries n 
+                                              JOIN bpdas b ON n.bpdas_id = b.id 
+                                              WHERE n.is_active = 1 
+                                              ORDER BY b.name ASC, n.name ASC");
+        }
+        
+        $data = [
+            'title' => 'Kelola Persemaian',
+            'nurseries' => $nurseries,
+            'bpdas_list' => $bpdasList,
+            'selected_bpdas' => $bpdasId
+        ];
+        
+        $this->render('admin/nurseries/index', $data, 'dashboard');
+    }
+
+    /**
+     * Create Nursery Form
+     */
+    public function createNursery() {
+        $bpdasModel = $this->model('BPDAS');
+        $bpdasList = $bpdasModel->all(['is_active' => 1], 'name ASC');
+        
+        $data = [
+            'title' => 'Tambah Persemaian',
+            'bpdas_list' => $bpdasList
+        ];
+        
+        $this->render('admin/nurseries/form', $data, 'dashboard');
+    }
+    
+    /**
+     * Store Nursery
+     */
+    public function storeNursery() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/nurseries');
+            return;
+        }
+        
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $name = sanitize($this->post('name'));
+        $bpdasId = (int)$this->post('bpdas_id');
+        $address = sanitize($this->post('address'));
+        
+        if (empty($name) || empty($bpdasId)) {
+            $this->setFlash('error', 'Nama dan BPDAS harus diisi');
+            $this->redirect('admin/nurseries/create');
+            return;
+        }
+        
+        try {
+            $nurseryModel = $this->model('Nursery');
+            $result = $nurseryModel->create([
+                'name' => $name,
+                'bpdas_id' => $bpdasId,
+                'address' => $address,
+                'is_active' => 1
+            ]);
+
+            if ($result) {
+                $this->setFlash('success', 'Persemaian berhasil ditambahkan');
+            } else {
+                $this->setFlash('error', 'Gagal menambahkan persemaian (Database Error)');
+            }
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+        
+        $this->redirect('admin/nurseries');
+    }
+    
+    /**
+     * Edit Nursery Form
+     */
+    public function editNursery($id) {
+        $nurseryModel = $this->model('Nursery');
+        $nursery = $nurseryModel->find($id);
+        
+        if (!$nursery) {
+            $this->setFlash('error', 'Persemaian tidak ditemukan');
+            $this->redirect('admin/nurseries');
+            return;
+        }
+        
+        $bpdasModel = $this->model('BPDAS');
+        $bpdasList = $bpdasModel->all(['is_active' => 1], 'name ASC');
+        
+        $data = [
+            'title' => 'Edit Persemaian',
+            'nursery' => $nursery,
+            'bpdas_list' => $bpdasList
+        ];
+        
+        $this->render('admin/nurseries/form', $data, 'dashboard');
+    }
+    
+    /**
+     * Update Nursery
+     */
+    public function updateNursery() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/nurseries');
+            return;
+        }
+        
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $id = (int)$this->post('id');
+        $name = sanitize($this->post('name'));
+        $bpdasId = (int)$this->post('bpdas_id');
+        $address = sanitize($this->post('address'));
+        $isActive = isset($_POST['is_active']) ? 1 : 0;
+        
+        try {
+            $nurseryModel = $this->model('Nursery');
+            $result = $nurseryModel->update($id, [
+                'name' => $name,
+                'bpdas_id' => $bpdasId,
+                'address' => $address,
+                'is_active' => $isActive
+            ]);
+
+            if ($result) {
+                $this->setFlash('success', 'Data persemaian berhasil diperbarui');
+            } else {
+                $this->setFlash('error', 'Gagal memperbarui data persemaian');
+            }
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+        
+        $this->redirect('admin/nurseries');
+    }
+    
+    /**
+     * Delete Nursery
+     */
+    public function deleteNursery($id) {
+        // Ideally we should soft delete or check for dependencies (stock/users)
+        // For now, let's check dependencies
+        $userModel = $this->model('User');
+        $users = $userModel->all(['nursery_id' => $id]);
+        
+        $stockModel = $this->model('Stock');
+        $stocks = $stockModel->all(['nursery_id' => $id]);
+        
+        if (!empty($users) || !empty($stocks)) {
+            $this->setFlash('error', 'Tidak dapat menghapus persemaian yang memiliki data User atau Stok. Nonaktifkan saja jika perlu.');
+            $this->redirect('admin/nurseries');
+            return;
+        }
+        
+        $nurseryModel = $this->model('Nursery');
+        $nurseryModel->delete($id);
+        
+        $this->setFlash('success', 'Persemaian berhasil dihapus');
+        $this->redirect('admin/nurseries');
     }
 }

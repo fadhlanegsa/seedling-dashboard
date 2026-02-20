@@ -35,6 +35,14 @@
                         </select>
                         <small class="form-text text-muted">Pilih BPDAS yang akan Anda ajukan permintaan</small>
                     </div>
+
+                    <div class="form-group" id="nurseryGroup" style="display: none;">
+                        <label class="form-label required">Persemaian (Opsional)</label>
+                        <select name="nursery_id" id="nursery_id" class="form-control">
+                            <option value="">-- Pilih Persemaian (Opsional) --</option>
+                        </select>
+                        <small class="form-text text-muted">Anda dapat memilih persemaian spesifik atau biarkan kosong</small>
+                    </div>
                     
                     <!-- Dynamic Items Section -->
                     <div class="form-group">
@@ -42,6 +50,15 @@
                         <small class="form-text text-muted mb-2 d-block">
                             <i class="fas fa-info-circle"></i> Anda dapat memilih beberapa jenis bibit sekaligus
                         </small>
+                        
+                        <!-- Quota Info -->
+                        <div class="alert alert-<?= $quota['remaining'] > 0 ? 'info' : 'danger' ?> mb-3">
+                            <i class="fas fa-chart-pie"></i> 
+                            Sisa Kuota Anda: <strong><?= formatNumber($quota['remaining']) ?></strong> batang.
+                            <?php if ($quota['remaining'] <= 0): ?>
+                                <br><strong>Mohon maaf, kuota permintaan bibit Anda sudah habis.</strong>
+                            <?php endif; ?>
+                        </div>
                         
                         <!-- Items Container -->
                         <div id="itemsContainer">
@@ -86,6 +103,21 @@
                             <i class="fas fa-file-pdf"></i> Format: PDF | Ukuran maksimal: 1 MB
                         </small>
                         <div id="proposalError" class="text-danger mt-2" style="display: none;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Alamat Lokasi Tanam</label>
+                        <div class="input-group">
+                            <input type="text" name="planting_address" id="planting_address" class="form-control" 
+                                   required placeholder="Masukkan alamat lengkap lokasi tanam"
+                                   autocomplete="off">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="searchLocationBtn">
+                                    <i class="fas fa-search"></i> Cari di Peta
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Ketik alamat lalu klik "Cari di Peta" atau tentukan manual pada peta di bawah.</small>
                     </div>
                     
                     <div class="form-group">
@@ -240,6 +272,51 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saat Ini';
         }
     });
+
+    // Address Search
+    document.getElementById('searchLocationBtn').addEventListener('click', function() {
+        const address = document.getElementById('planting_address').value;
+        const btn = this;
+        
+        if (!address) {
+            alert('Mohon masukkan alamat terlebih dahulu');
+            return;
+        }
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
+        
+        // Use Nominatim API for geocoding
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    
+                    updateCoordinates(lat, lon);
+                    map.setView([lat, lon], 16);
+                } else {
+                    alert('Lokasi tidak ditemukan. Silakan coba kata kunci lain atau tentukan manual pada peta.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Gagal mencari lokasi. Silakan coba lagi.');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search"></i> Cari di Peta';
+            });
+    });
+    
+    // Allow enter key in address field to trigger search
+    document.getElementById('planting_address').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            document.getElementById('searchLocationBtn').click();
+        }
+    });
     
     // Load BPDAS when province changes
     provinceSelect.addEventListener('change', function() {
@@ -253,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
         availableStocks = [];
         calculateTotal();
         
-        if (provinceId) {
+    
             fetch('<?= url('public/get-bpdas-by-province') ?>?province_id=' + provinceId)
                 .then(response => response.json())
                 .then(data => {
@@ -267,13 +344,43 @@ document.addEventListener('DOMContentLoaded', function() {
                         bpdasSelect.innerHTML = '<option value="">-- Tidak Ada BPDAS --</option>';
                     }
                 });
-        }
     });
     
-    // Load seedlings when BPDAS changes
+    // Load seedlings and nurseries when BPDAS changes
     bpdasSelect.addEventListener('change', function() {
         const bpdasId = this.value;
+        const nurseryGroup = document.getElementById('nurseryGroup');
+        const nurserySelect = document.getElementById('nursery_id');
         
+        // Reset and hide nursery first
+        if(nurseryGroup) nurseryGroup.style.display = 'none';
+        
+        if (bpdasId) {
+            // Fetch nurseries
+            if(nurserySelect) {
+                nurseryGroup.style.display = 'block';
+                nurserySelect.innerHTML = '<option value="">Loading...</option>';
+                
+                fetch('<?= url('public/get-nurseries') ?>?bpdas_id=' + bpdasId)
+                    .then(response => response.json())
+                    .then(data => {
+                        let options = '<option value="">-- Pilih Persemaian (Opsional) --</option>';
+                        if (data.length > 0) {
+                            data.forEach(item => {
+                                options += `<option value="${item.id}">${item.name}</option>`;
+                            });
+                        } else {
+                            options = '<option value="">Tidak ada data persemaian</option>';
+                        }
+                        nurserySelect.innerHTML = options;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        nurserySelect.innerHTML = '<option value="">Gagal memuat data</option>';
+                    });
+            }
+        }
+
         // Clear items
         itemsContainer.innerHTML = '';
         addItemBtn.disabled = true;
@@ -481,6 +588,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Form validation
     const requestForm = document.getElementById('requestForm');
+    const remainingQuota = <?= json_encode($quota['remaining']) ?>; // Pass from PHP
+    
+    // Disable form if quota is 0
+    if (remainingQuota <= 0) {
+        const inputs = requestForm.querySelectorAll('input, select, textarea, button[type="submit"]');
+        inputs.forEach(input => input.disabled = true);
+        addItemBtn.disabled = true;
+    }
+    
     requestForm.addEventListener('submit', function(e) {
         const total = calculateTotal();
         const latitude = document.getElementById('latitude').value;
@@ -491,6 +607,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (total === 0) {
             e.preventDefault();
             alert('Pilih minimal 1 jenis bibit dengan jumlah > 0');
+            return false;
+        }
+        
+        // Validate quota
+        if (total > remainingQuota) {
+            e.preventDefault();
+            alert(`Permintaan melebihi sisa kuota Anda. Sisa kuota: ${remainingQuota} batang.`);
             return false;
         }
         

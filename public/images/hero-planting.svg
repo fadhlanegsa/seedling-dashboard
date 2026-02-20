@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0f7fa;stop-opacity:0" />
+      <stop offset="100%" style="stop-color:#b2ebf2;stop-opacity:0" />
+    </linearGradient>
+    <linearGradient id="treeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4caf50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2e7d32;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ground (Abstract) -->
+  <path d="M0,500 Q200,450 400,500 T800,500 L800,600 L0,600 Z" fill="#795548" opacity="0.8" />
+  
+  <!-- Trees -->
+  <g transform="translate(100, 480) scale(0.8)">
+    <rect x="40" y="0" width="20" height="60" fill="#5d4037" />
+    <circle cx="50" cy="-20" r="50" fill="url(#treeGradient)" />
+    <circle cx="20" cy="-10" r="30" fill="#66bb6a" />
+    <circle cx="80" cy="-10" r="30" fill="#66bb6a" />
+  </g>
+  
+  <g transform="translate(300, 500) scale(1.0)">
+    <rect x="40" y="0" width="20" height="70" fill="#5d4037" />
+    <circle cx="50" cy="-30" r="60" fill="url(#treeGradient)" />
+    <circle cx="10" cy="-10" r="35" fill="#66bb6a" />
+    <circle cx="90" cy="-10" r="35" fill="#66bb6a" />
+  </g>
+  
+  <g transform="translate(550, 490) scale(0.9)">
+    <rect x="40" y="0" width="20" height="60" fill="#5d4037" />
+    <path d="M50,-80 L10,-10 L90,-10 Z" fill="url(#treeGradient)" />
+    <path d="M50,-50 L20,0 L80,0 Z" fill="#66bb6a" />
+  </g>
+  
+  <!-- People Planting (Styled) -->
+  <g transform="translate(450, 480)">
+    <!-- Person Body -->
+    <path d="M0,0 Q10,-30 20,0 L20,40 L0,40 Z" fill="#ffb74d" />
+    <!-- Head -->
+    <circle cx="10" cy="-15" r="10" fill="#ffb74d" />
+    <!-- Shirt -->
+    <path d="M-5,0 Q10,-10 25,0 L25,30 L-5,30 Z" fill="#0288d1" />
+    <!-- Holding plant -->
+    <rect x="20" y="10" width="5" height="20" fill="#388e3c" transform="rotate(-15)" />
+    <circle cx="25" cy="10" r="8" fill="#81c784" />
+  </g>
+  
+  <!-- Sun/Decor -->
+  <circle cx="700" cy="100" r="40" fill="#ffeb3b" opacity="0.8" />
+  
+  <!-- Abstract Leaves Floating -->
+  <circle cx="200" cy="200" r="5" fill="#81c784" opacity="0.6" />
+  <circle cx="250" cy="180" r="4" fill="#81c784" opacity="0.6" />
+  <circle cx="600" cy="250" r="6" fill="#81c784" opacity="0.6" />
+</svg>

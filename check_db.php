@@ -1,38 +1,19 @@
 <?php
-require_once 'config/config.php';
+require 'config/config.php';
+require 'core/Database.php';
 
-try {
-    echo "Checking database connection...\n";
+$db = Database::getInstance();
 
-    // Check if requests table exists and has data
-    $stmt = $db->query('SELECT COUNT(*) as count FROM requests');
-    $result = $stmt->fetch();
-    echo 'Total requests in database: ' . $result['count'] . "\n";
-
-    if ($result['count'] > 0) {
-        echo "Sample requests:\n";
-        $stmt = $db->query('SELECT id, request_number, user_id, bpdas_id FROM requests LIMIT 5');
-        $requests = $stmt->fetchAll();
-        foreach ($requests as $req) {
-            echo 'ID: ' . $req['id'] . ', Number: ' . $req['request_number'] . ', User: ' . $req['user_id'] . ', BPDAS: ' . $req['bpdas_id'] . "\n";
-        }
-
-        // Test getWithDetails method
-        echo "\nTesting getWithDetails method for request ID 1:\n";
-        $requestModel = new Request();
-        $request = $requestModel->getWithDetails(1);
-        if ($request) {
-            echo "Request found: " . $request['request_number'] . "\n";
-            echo "Requester: " . $request['requester_name'] . "\n";
-            echo "BPDAS: " . $request['bpdas_name'] . "\n";
-        } else {
-            echo "Request not found!\n";
-        }
-    } else {
-        echo "No requests found in database. Please run the sample data SQL.\n";
-    }
-
-} catch (Exception $e) {
-    echo 'Database error: ' . $e->getMessage() . "\n";
+echo "=== STOCK TABLE SCHEMA ===\n";
+$stmt = $db->query('DESCRIBE stock');
+$cols = $stmt->fetchAll(PDO::FETCH_ASSOC);
+foreach($cols as $c) {
+    echo $c['Field'] . ' | ' . $c['Type'] . ' | ' . $c['Null'] . "\n";
 }
-?>
+
+echo "\n=== STOCK DATA WITH NURSERY ===\n";
+$stmt2 = $db->query('SELECT s.id, s.bpdas_id, s.nursery_id, s.seedling_type_id, s.quantity, st.name as seedling_name, n.name as nursery_name FROM stock s LEFT JOIN seedling_types st ON s.seedling_type_id = st.id LEFT JOIN nurseries n ON s.nursery_id = n.id LIMIT 10');
+$data = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+foreach($data as $row) {
+    echo "ID:{$row['id']} | BPDAS:{$row['bpdas_id']} | Nursery:{$row['nursery_id']} | NurseryName:" . ($row['nursery_name'] ?? 'NULL') . " | {$row['seedling_name']} | Qty:{$row['quantity']}\n";
+}

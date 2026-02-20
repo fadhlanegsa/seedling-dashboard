@@ -11,6 +11,42 @@
 
 <div class="row">
     <div class="col-md-8">
+        <?php if (isset($user['nursery_id']) && $user['nursery_id']): ?>
+        <!-- Nursery Information -->
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-leaf"></i> Informasi Persemaian</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-0">
+                            <label class="text-muted mb-1">Nama Persemaian</label>
+                            <h5 class="font-weight-bold"><?= htmlspecialchars($user['nursery_name'] ?? '-') ?></h5>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-0">
+                            <label class="text-muted mb-1">BPDAS Pembina</label>
+                            <h5 class="font-weight-bold"><?= htmlspecialchars($user['bpdas_name'] ?? '-') ?></h5>
+                        </div>
+                    </div>
+                </div>
+                <?php if (isset($user['nursery_address'])): ?>
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="form-group mb-0">
+                            <label class="text-muted mb-1">Alamat</label>
+                            <p class="mb-0"><?= htmlspecialchars($user['nursery_address']) ?></p>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Profile Information -->
         <div class="card mb-4">
             <div class="card-header">

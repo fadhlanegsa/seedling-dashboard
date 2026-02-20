@@ -92,6 +92,23 @@ class User extends Model {
     }
     
     /**
+     * Get user with Nursery information
+     * 
+     * @param int $id User ID
+     * @return array|null
+     */
+    public function getUserWithNursery($id) {
+        $sql = "SELECT u.*, n.name as nursery_name, n.bpdas_id, b.name as bpdas_name
+                FROM {$this->table} u
+                LEFT JOIN nurseries n ON u.nursery_id = n.id
+                LEFT JOIN bpdas b ON n.bpdas_id = b.id
+                WHERE u.id = ?
+                LIMIT 1";
+        
+        return $this->queryOne($sql, [$id]);
+    }
+    
+    /**
      * Get all users with pagination
      * 
      * @param int $page Page number

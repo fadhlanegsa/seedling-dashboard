@@ -68,6 +68,22 @@
                         <td><?= formatLandArea($request['land_area']) ?> Ha</td>
                     </tr>
                     <?php endif; ?>
+                    <?php if (!empty($request['planting_address'])): ?>
+                    <tr>
+                        <th>Alamat Tanam:</th>
+                        <td><?= nl2br(htmlspecialchars($request['planting_address'])) ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if (!empty($request['latitude']) && !empty($request['longitude'])): ?>
+                    <tr>
+                        <th>Koordinat:</th>
+                        <td>
+                            <a href="https://www.google.com/maps?q=<?= $request['latitude'] ?>,<?= $request['longitude'] ?>" target="_blank">
+                                <?= $request['latitude'] ?>, <?= $request['longitude'] ?>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                     <?php if (!empty($request['proposal_file_path'])): ?>
                     <tr>
                         <th>Surat Pengajuan:</th>

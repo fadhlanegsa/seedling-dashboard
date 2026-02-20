@@ -16,9 +16,11 @@ class Stock extends Model {
      * @return array
      */
     public function getByBPDAS($bpdasId) {
-        $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category
+        $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category,
+                n.name as nursery_name
                 FROM {$this->table} s
                 INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+                LEFT JOIN nurseries n ON s.nursery_id = n.id
                 WHERE s.bpdas_id = ?
                 ORDER BY st.name ASC";
         
@@ -290,19 +292,21 @@ class Stock extends Model {
         $offset = ($page - 1) * $perPage;
         
         $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category,
-                b.name as bpdas_name, p.name as province_name
-                FROM {$this->table} s
-                INNER JOIN seedling_types st ON s.seedling_type_id = st.id
-                INNER JOIN bpdas b ON s.bpdas_id = b.id
-                INNER JOIN provinces p ON b.province_id = p.id
-                WHERE 1=1";
-        
-        $countSql = "SELECT COUNT(*) as total
-                     FROM {$this->table} s
-                     INNER JOIN seedling_types st ON s.seedling_type_id = st.id
-                     INNER JOIN bpdas b ON s.bpdas_id = b.id
-                     INNER JOIN provinces p ON b.province_id = p.id
-                     WHERE 1=1";
+            b.name as bpdas_name, p.name as province_name, n.name as nursery_name
+            FROM {$this->table} s
+            INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+            INNER JOIN bpdas b ON s.bpdas_id = b.id
+            INNER JOIN provinces p ON b.province_id = p.id
+            LEFT JOIN nurseries n ON s.nursery_id = n.id
+            WHERE 1=1";
+    
+    $countSql = "SELECT COUNT(*) as total
+                 FROM {$this->table} s
+                 INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+                 INNER JOIN bpdas b ON s.bpdas_id = b.id
+                 INNER JOIN provinces p ON b.province_id = p.id
+                 LEFT JOIN nurseries n ON s.nursery_id = n.id
+                 WHERE 1=1";
         
         $params = [];
         
@@ -329,6 +333,18 @@ class Stock extends Model {
             $countSql .= " AND st.category = ?";
             $params[] = $filters['category'];
         }
+
+        if (!empty($filters['month'])) {
+            $sql .= " AND MONTH(s.last_update_date) = ?";
+            $countSql .= " AND MONTH(s.last_update_date) = ?";
+            $params[] = $filters['month'];
+        }
+
+        if (!empty($filters['year'])) {
+            $sql .= " AND YEAR(s.last_update_date) = ?";
+            $countSql .= " AND YEAR(s.last_update_date) = ?";
+            $params[] = $filters['year'];
+        }
         
         $sql .= " ORDER BY b.name ASC, st.name ASC LIMIT ? OFFSET ?";
         
@@ -354,5 +370,132 @@ class Stock extends Model {
             'perPage' => $perPage,
             'totalPages' => ceil($total / $perPage)
         ];
+    }
+    /**
+     * Get stock by Nursery
+     * 
+     * @param int $nurseryId
+     * @param int $page
+     * @param int $perPage
+     * @return array
+     */
+    public function getByNurseryPaginated($nurseryId, $page = 1, $perPage = ITEMS_PER_PAGE) {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category
+                FROM {$this->table} s
+                INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+                WHERE s.nursery_id = ?
+                ORDER BY st.name ASC
+                LIMIT ? OFFSET ?";
+        
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} WHERE nursery_id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(1, $nurseryId, PDO::PARAM_INT);
+        $stmt->bindValue(2, (int)$perPage, PDO::PARAM_INT);
+        $stmt->bindValue(3, (int)$offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $data = $stmt->fetchAll();
+        
+        $countStmt = $this->db->prepare($countSql);
+        $countStmt->execute([$nurseryId]);
+        $total = $countStmt->fetch()['total'];
+        
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => ceil($total / $perPage)
+        ];
+    }
+
+    /**
+     * Check if stock exists for Nursery and seedling type
+     * 
+     * @param int $nurseryId
+     * @param int $seedlingTypeId
+     * @return array|null
+     */
+    public function findByNurseryAndSeedling($nurseryId, $seedlingTypeId) {
+        return $this->findBy([
+            'nursery_id' => $nurseryId,
+            'seedling_type_id' => $seedlingTypeId
+        ]);
+    }
+
+    /**
+     * Update or create stock for Nursery
+     * 
+     * @param int $nurseryId
+     * @param int $seedlingTypeId
+     * @param int $quantity
+     * @param string $notes
+     * @return bool
+     */
+    public function updateOrCreateNurseryStock($nurseryId, $seedlingTypeId, $quantity, $notes = null) {
+        $existing = $this->findByNurseryAndSeedling($nurseryId, $seedlingTypeId);
+        
+        // Get BPDAS ID from Nursery via direct query
+        $nurseryStmt = $this->db->prepare("SELECT bpdas_id FROM nurseries WHERE id = ? LIMIT 1");
+        $nurseryStmt->execute([$nurseryId]);
+        $nursery = $nurseryStmt->fetch();
+        $bpdasId = $nursery ? $nursery['bpdas_id'] : null;
+
+        $data = [
+            'quantity' => $quantity,
+            'last_update_date' => date('Y-m-d'),
+            'notes' => $notes,
+            'bpdas_id' => $bpdasId // Keep maintaining bpdas_id for easier aggregation for now
+        ];
+        
+        if ($existing) {
+            return $this->update($existing['id'], $data);
+        } else {
+            $data['nursery_id'] = $nurseryId;
+            $data['seedling_type_id'] = $seedlingTypeId;
+            return $this->create($data);
+        }
+    }
+
+    /**
+     * Get stock summary for a specific nursery
+     * 
+     * @param int $nurseryId
+     * @return array
+     */
+    public function getNurseryStockSummary($nurseryId) {
+        $sql = "SELECT 
+                COUNT(DISTINCT seedling_type_id) as total_types,
+                COALESCE(SUM(quantity), 0) as total_quantity,
+                MAX(last_update_date) as last_update
+                FROM {$this->table}
+                WHERE nursery_id = ?";
+        
+        return $this->queryOne($sql, [$nurseryId]);
+    }
+
+    /**
+     * Decrease stock quantity from specific nursery
+     * 
+     * @param int $nurseryId
+     * @param int $seedlingTypeId
+     * @param int $quantity
+     * @return bool
+     */
+    public function decreaseStockFromNursery($nurseryId, $seedlingTypeId, $quantity) {
+        $stock = $this->findByNurseryAndSeedling($nurseryId, $seedlingTypeId);
+        
+        if (!$stock || $stock['quantity'] < $quantity) {
+            return false;
+        }
+        
+        $newQuantity = $stock['quantity'] - $quantity;
+        
+        return $this->update($stock['id'], [
+            'quantity' => $newQuantity,
+            'last_update_date' => date('Y-m-d')
+        ]);
     }
 }

@@ -200,4 +200,50 @@ class HomeController extends Controller {
             ]);
         }
     }
+    /**
+     * Public Map Distribution
+     */
+    public function distribution() {
+        $provinceModel = $this->model('Province');
+        $bpdasModel = $this->model('BPDAS');
+        $seedlingTypeModel = $this->model('SeedlingType');
+        
+        $provinces = $provinceModel->getAllOrdered();
+        $bpdas_list = $bpdasModel->getAllWithProvince();
+        $seedling_types = $seedlingTypeModel->getAllActive();
+        
+        $data = [
+            'title' => 'Peta Sebaran Bibit',
+            'provinces' => $provinces,
+            'bpdas_list' => $bpdas_list,
+            'seedling_types' => $seedling_types
+        ];
+        
+        $this->render('public/distribution', $data, 'public');
+    }
+    
+    /**
+     * AJAX: Get map data for public visualization
+     */
+    public function getMapData() {
+        $filters = [
+            'province_id' => $this->get('province_id'),
+            'bpdas_id' => $this->get('bpdas_id'),
+            'seedling_type_id' => $this->get('seedling_type_id'),
+            'status' => 'delivered' // Only show distributed/completed seedlings for public
+        ];
+        
+        // Allow filtering by status if provided, but default to delivered/completed mostly
+        if ($this->get('status')) {
+            $filters['status'] = $this->get('status');
+        }
+        
+        $requestModel = $this->model('Request');
+        $mapData = $requestModel->getMapData($filters);
+        
+        $this->json([
+            'success' => true,
+            'data' => $mapData
+        ]);
+    }
 }

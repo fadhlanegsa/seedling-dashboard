@@ -6,9 +6,63 @@
 
 <div class="page-header">
     <h1><i class="fas fa-boxes"></i> Kelola Stok Bibit</h1>
-    <a href="<?= url('bpdas/stock-form') ?>" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Tambah Stok
-    </a>
+    <div class="card mb-3">
+        <div class="card-body py-3">
+            <form method="GET" action="<?= url('bpdas/stock') ?>" class="filter-form d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">
+                <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                    <select name="month" class="form-control form-control-sm" style="width: 120px;">
+                        <option value="">Semua Bulan</option>
+                        <?php 
+                        $months = [
+                            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 
+                            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 
+                            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                        ];
+                        foreach ($months as $num => $name): 
+                        ?>
+                            <option value="<?= $num ?>" <?= (isset($filters['month']) && $filters['month'] == $num) ? 'selected' : '' ?>>
+                                <?= $name ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    
+                    <select name="year" class="form-control form-control-sm" style="width: 100px;">
+                        <option value="">Semua Tahun</option>
+                        <?php 
+                        $currentYear = date('Y');
+                        for ($y = $currentYear; $y >= $currentYear - 2; $y--): 
+                        ?>
+                            <option value="<?= $y ?>" <?= (isset($filters['year']) && $filters['year'] == $y) ? 'selected' : '' ?>>
+                                <?= $y ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                    
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    
+                    <?php 
+                    // Prepare filter query for export
+                    $exportQuery = 'bpdas_id=' . currentUser()['bpdas_id'];
+                    if (!empty($filters['month'])) $exportQuery .= '&month=' . $filters['month'];
+                    if (!empty($filters['year'])) $exportQuery .= '&year=' . $filters['year'];
+                    ?>
+                    
+                    <a href="<?= url('export/stockExcel') . '?' . $exportQuery ?>" class="btn btn-success btn-sm" target="_blank">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </a>
+                    <a href="<?= url('export/stockPDF') . '?' . $exportQuery ?>" class="btn btn-danger btn-sm" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </a>
+                </div>
+                
+                <a href="<?= url('bpdas/stock-form') ?>" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Tambah Stok
+                </a>
+            </form>
+        </div>
+    </div>
 </div>
 
 <div class="card">
@@ -31,6 +85,7 @@
             <thead>
                 <tr>
                     <th>No</th>
+                    <th>Persemaian</th>
                     <th>Jenis Bibit</th>
                     <th>Nama Ilmiah</th>
                     <th>Kategori</th>
@@ -50,6 +105,7 @@
                     ?>
                         <tr>
                             <td><?= $rowNumber ?></td>
+                            <td><?= htmlspecialchars($item['nursery_name'] ?? '-') ?></td>
                             <td><strong><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></strong></td>
                             <td><em><?= htmlspecialchars($item['scientific_name'] ?? '-') ?></em></td>
                             <td><span class="badge badge-info"><?= htmlspecialchars($item['category'] ?? '-') ?></span></td>
@@ -68,7 +124,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8" class="text-center">Belum ada data stok</td>
+                        <td colspan="9" class="text-center">Belum ada data stok</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

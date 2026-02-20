@@ -15,7 +15,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -75,14 +75,14 @@
             width: 80px;
             height: 80px;
             margin: 0 auto 1.5rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2.5rem;
             color: white;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.3);
         }
 
         .login-header h1 {
@@ -135,8 +135,8 @@
 
         .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
         }
 
         .remember-me {
@@ -152,13 +152,13 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
-            accent-color: #667eea;
+            accent-color: #1B5E20;
         }
 
         .btn-login {
             width: 100%;
             padding: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
             color: white;
             border: none;
             border-radius: 12px;
@@ -175,7 +175,7 @@
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 25px rgba(217, 119, 6, 0.4);
         }
 
         .btn-login:active {
@@ -214,14 +214,14 @@
         }
 
         .register-link a {
-            color: #667eea;
+            color: #1B5E20;
             text-decoration: none;
             font-weight: 600;
             transition: color 0.2s;
         }
 
         .register-link a:hover {
-            color: #764ba2;
+            color: #4CAF50;
             text-decoration: underline;
         }
 

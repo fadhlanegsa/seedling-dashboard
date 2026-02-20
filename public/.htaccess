@@ -1,7 +1,11 @@
 # Enable Rewrite Engine
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /seedling-dashboard/seedling-dashboard/public/
+    # RewriteBase /
+    
+    # Allow passing HTTP Authorization header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     
     # Redirect to index.php if file/directory doesn't exist
     RewriteCond %{REQUEST_FILENAME} !-f

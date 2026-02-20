@@ -41,7 +41,66 @@ if ((($parts[0] === 'admin' || $parts[0] === 'bpdas') && isset($parts[1]) && $pa
     $controllerName = 'SeedSourceController';
     $action = isset($parts[2]) ? $parts[2] : 'index';
     $params = array_slice($parts, 3);
-} else {
+} 
+// Handle special routing for admin/nurseries/*
+elseif ($parts[0] === 'admin' && isset($parts[1]) && $parts[1] === 'nurseries') {
+    $controllerName = 'AdminController';
+    $subAction = isset($parts[2]) ? $parts[2] : null;
+    
+    if (!$subAction) {
+        $action = 'nurseries';
+        $params = [];
+    } elseif ($subAction === 'create') {
+        $action = 'createNursery';
+        $params = [];
+    } elseif ($subAction === 'store') {
+        $action = 'storeNursery';
+        $params = [];
+    } elseif ($subAction === 'edit') {
+        $action = 'editNursery';
+        $params = array_slice($parts, 3);
+    } elseif ($subAction === 'update') {
+        $action = 'updateNursery';
+        $params = [];
+    } elseif ($subAction === 'delete') {
+        $action = 'deleteNursery';
+        $params = array_slice($parts, 3);
+    } else {
+        $action = 'nurseries';
+        $params = [];
+    }
+}
+// Handle special routing for operator/*
+elseif ($parts[0] === 'operator') {
+    $controllerName = 'OperatorController';
+    $action = isset($parts[1]) ? $parts[1] : 'dashboard';
+    
+    if ($action === 'stock') {
+        $subAction = isset($parts[2]) ? $parts[2] : null;
+        if (!$subAction) {
+            $action = 'stock';
+            $params = [];
+        } elseif ($subAction === 'add' || $subAction === 'form') {
+            $action = 'stockForm';
+            $params = [];
+        } elseif ($subAction === 'edit') {
+            $action = 'stockForm';
+            $params = array_slice($parts, 3);
+        } elseif ($subAction === 'save') {
+            $action = 'saveStock';
+            $params = [];
+        } else {
+            $params = array_slice($parts, 2);
+        }
+    } else {
+        // Convert kebab-case to camelCase
+        if (strpos($action, '-') !== false) {
+            $action = lcfirst(str_replace('-', '', ucwords($action, '-')));
+        }
+        $params = array_slice($parts, 2);
+    }
+}
+else {
     // Handle special cases for acronyms
     $controller = $parts[0];
     if ($controller === 'bpdas') {

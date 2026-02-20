@@ -273,6 +273,9 @@ class AuthController extends Controller {
             case 'bpdas':
                 $this->redirect('bpdas/dashboard');
                 break;
+            case 'operator_persemaian':
+                $this->redirect('operator/dashboard');
+                break;
             case 'public':
                 $this->redirect('public/dashboard');
                 break;

@@ -34,13 +34,30 @@ class BPDASController extends Controller {
         
         // Get pending requests
         $pendingRequests = $requestModel->getByBPDAS($bpdasId, 'pending');
+
+        // Get Nurseries Data
+        $nurseryModel = $this->model('Nursery');
+        $nurseries = $nurseryModel->getByBPDAS($bpdasId);
+        
+        foreach ($nurseries as &$nursery) {
+            $nursery['stats'] = $stockModel->getNurseryStockSummary($nursery['id']);
+            // Get top 5 stock items for this nursery
+            $nurseryStock = $stockModel->getByNurseryPaginated($nursery['id'], 1, 5);
+            $nursery['stock_items'] = $nurseryStock['data'];
+        }
+        unset($nursery);
+
+        // Get recent deliveries (gallery)
+        $recentDeliveries = $requestModel->getRecentDeliveries($bpdasId, 8); // Limit 8 for 2 rows
         
         $data = [
             'title' => 'Dashboard BPDAS',
             'stockStats' => $stockStats,
             'requestStats' => $requestStats,
             'recentStock' => $recentStock,
-            'pendingRequests' => $pendingRequests
+            'pendingRequests' => $pendingRequests,
+            'nurseries' => $nurseries,
+            'recentDeliveries' => $recentDeliveries
         ];
         
         $this->render('bpdas/dashboard', $data, 'dashboard');
@@ -63,14 +80,22 @@ class BPDASController extends Controller {
             $perPage = (int)$perPage;
         }
         
+        $filters = [
+            'bpdas_id' => $bpdasId,
+            'month' => $this->get('month'),
+            'year' => $this->get('year')
+        ];
+        
         $stockModel = $this->model('Stock');
-        $result = $stockModel->getByBPDASPaginated($bpdasId, $page, $perPage);
+        // Using common search method to support date filtering
+        $result = $stockModel->searchStockPaginated($page, $perPage, $filters);
         
         $data = [
             'title' => 'Kelola Stok Bibit',
             'stock' => $result['data'],
             'pagination' => $result,
-            'currentPerPage' => $this->get('per_page', ITEMS_PER_PAGE)
+            'currentPerPage' => $this->get('per_page', ITEMS_PER_PAGE),
+            'filters' => $filters
         ];
         
         $this->render('bpdas/stock', $data, 'dashboard');
@@ -257,10 +282,15 @@ class BPDASController extends Controller {
         // Get request history
         $history = $requestModel->getHistory($id);
         
+        // Get Nurseries for assignment
+        $nurseryModel = $this->model('Nursery');
+        $nurseries = $nurseryModel->getByBPDAS($bpdasId);
+        
         $data = [
             'title' => 'Detail Permintaan',
             'request' => $request,
-            'history' => $history
+            'history' => $history,
+            'nurseries' => $nurseries
         ];
         
         $this->render('bpdas/request-detail', $data, 'dashboard');
@@ -284,6 +314,7 @@ class BPDASController extends Controller {
         
         $requestId = $this->post('request_id');
         $notes = $this->post('notes');
+        $nurseryIdInput = $this->post('nursery_id');
         
         $requestModel = $this->model('Request');
         $request = $requestModel->getWithDetails($requestId);
@@ -297,25 +328,33 @@ class BPDASController extends Controller {
             $this->json(['success' => false, 'message' => 'Permintaan sudah diproses']);
             return;
         }
+
+        // Determine Nursery ID
+        $nurseryId = $request['nursery_id'] ? $request['nursery_id'] : $nurseryIdInput;
+
+        if (empty($nurseryId)) {
+            $this->json(['success' => false, 'message' => 'Harap pilih persemaian untuk memproses permintaan ini']);
+            return;
+        }
         
-        // Check stock availability
+        // Check stock availability at specific nursery
         $stockModel = $this->model('Stock');
         $isMultiItem = !empty($request['items']);
         
         if ($isMultiItem) {
             foreach ($request['items'] as $item) {
-                $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $item['seedling_type_id']);
+                $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $item['seedling_type_id']);
                 if (!$stock || $stock['quantity'] < $item['quantity']) {
-                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi untuk salah satu jenis bibit']);
+                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi di persemaian terpilih untuk salah satu jenis bibit']);
                     return;
                 }
             }
         } else {
             // Legacy single item
-            $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $request['seedling_type_id']);
+            $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $request['seedling_type_id']);
             
             if (!$stock || $stock['quantity'] < $request['quantity']) {
-                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi']);
+                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi di persemaian terpilih']);
                 return;
             }
         }
@@ -327,16 +366,21 @@ class BPDASController extends Controller {
             // Start output buffering to catch any unwanted output
             ob_start();
             
+            // Assign nursery if not set
+            if (empty($request['nursery_id'])) {
+                $requestModel->update($requestId, ['nursery_id' => $nurseryId]);
+            }
+
             // Approve request
             $requestModel->approve($requestId, $user['id'], $notes);
             
-            // Decrease stock
+            // Decrease stock from nursery
             if ($isMultiItem) {
                 foreach ($request['items'] as $item) {
-                    $stockModel->decreaseStock($bpdasId, $item['seedling_type_id'], $item['quantity']);
+                    $stockModel->decreaseStockFromNursery($nurseryId, $item['seedling_type_id'], $item['quantity']);
                 }
             } else {
-                $stockModel->decreaseStock($bpdasId, $request['seedling_type_id'], $request['quantity']);
+                $stockModel->decreaseStockFromNursery($nurseryId, $request['seedling_type_id'], $request['quantity']);
             }
             
             // Add to history
@@ -355,19 +399,6 @@ class BPDASController extends Controller {
                 // Log PDF error but don't fail the approval
                 logError("PDF Generation Error: " . $pdfError->getMessage());
             }
-            
-            // Email notification DISABLED (causing errors on hosting)
-            /*
-            // Send email notification (wrapped in try-catch)
-            try {
-                require_once UTILS_PATH . 'EmailSender.php';
-                $emailSender = new EmailSender();
-                $emailSender->sendApprovalNotification($request, $pdfPath);
-            } catch (Exception $emailError) {
-                // Log email error but don't fail the approval
-                logError("Email Notification Error: " . $emailError->getMessage());
-            }
-            */
             
             // Clean output buffer
             ob_end_clean();
@@ -490,10 +521,18 @@ class BPDASController extends Controller {
         $userId = $user['id'];
         
         $data = [
+            'username' => sanitize($this->post('username')),
             'full_name' => sanitize($this->post('full_name')),
             'email' => sanitize($this->post('email')),
             'phone' => sanitize($this->post('phone'))
         ];
+        
+        // Validate required fields
+        if (empty($data['username']) || empty($data['full_name']) || empty($data['email'])) {
+            $this->setFlash('error', 'Username, Nama, dan Email wajib diisi');
+            $this->redirect('bpdas/profile');
+            return;
+        }
         
         // Validate email
         if (!$this->validateEmail($data['email'])) {
@@ -503,6 +542,13 @@ class BPDASController extends Controller {
         }
         
         $userModel = $this->model('User');
+        
+        // Check if username exists (excluding current user)
+        if ($userModel->usernameExists($data['username'], $userId)) {
+            $this->setFlash('error', 'Username sudah digunakan');
+            $this->redirect('bpdas/profile');
+            return;
+        }
         
         // Check if email exists (excluding current user)
         if ($userModel->emailExists($data['email'], $userId)) {

@@ -154,11 +154,13 @@ class Request extends Model {
                 b.name as bpdas_name, b.address as bpdas_address, 
                 b.phone as bpdas_phone, b.email as bpdas_email,
                 p.name as province_name,
+                n.name as nursery_name,
                 approver.full_name as approver_name
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id
+                LEFT JOIN nurseries n ON r.nursery_id = n.id
                 LEFT JOIN users approver ON r.approved_by = approver.id
                 WHERE r.id = ?
                 LIMIT 1";
@@ -263,6 +265,36 @@ class Request extends Model {
         return $this->query($sql, $params);
     }
     
+    /**
+     * Get requests by Nursery
+     * 
+     * @param int $nurseryId
+     * @param string $status Filter by status (optional)
+     * @return array
+     */
+    public function getByNursery($nurseryId, $status = null) {
+        $sql = "SELECT r.*, 
+                u.full_name as requester_name, u.email as requester_email,
+                u.phone as requester_phone, u.nik as requester_nik,
+                COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name, st.category,
+                (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id) as item_quantity
+                FROM {$this->table} r
+                INNER JOIN users u ON r.user_id = u.id
+                LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
+                WHERE r.nursery_id = ?";
+        
+        $params = [$nurseryId];
+        
+        if ($status) {
+            $sql .= " AND r.status = ?";
+            $params[] = $status;
+        }
+        
+        $sql .= " ORDER BY r.created_at DESC";
+        
+        return $this->query($sql, $params);
+    }
+
     /**
      * Get all requests with pagination
      * 
@@ -488,6 +520,11 @@ class Request extends Model {
             $sql .= " AND b.id = ?";
             $params[] = $filters['bpdas_id'];
         }
+
+        if (!empty($filters['nursery_id'])) {
+            $sql .= " AND r.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
         
         if (!empty($filters['seedling_type_id'])) {
             $sql .= " AND (st.id = ? OR EXISTS (SELECT 1 FROM request_items ri WHERE ri.request_id = r.id AND ri.seedling_type_id = ?))";
@@ -532,6 +569,25 @@ class Request extends Model {
     }
     
     /**
+     * Get total approved/distributed quantity for a user
+     * Used for quota calculation (Max 2000 per user)
+     * 
+     * @param int $userId
+     * @return int
+     */
+    public function getUserApprovedQuantity($userId) {
+        $sql = "SELECT SUM(
+                    COALESCE(r.quantity, (SELECT SUM(ri.quantity) FROM request_items ri WHERE ri.request_id = r.id))
+                ) as total
+                FROM requests r
+                WHERE r.user_id = ?
+                AND r.status IN ('approved', 'delivered', 'completed')";
+        
+        $result = $this->queryOne($sql, [$userId]);
+        return (int)($result['total'] ?? 0);
+    }
+
+    /**
      * Get total distributed seedlings (delivered + completed)
      * 
      * @return int
@@ -566,5 +622,33 @@ class Request extends Model {
         $stmt->execute([$year]);
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get recent delivery photos for a BPDAS
+     * 
+     * @param int $bpdasId
+     * @param int $limit
+     * @return array
+     */
+    public function getRecentDeliveries($bpdasId, $limit = 4) {
+        $sql = "SELECT r.id, r.request_number, r.delivery_photo_path, r.updated_at as delivery_date,
+                u.full_name as requester_name,
+                COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name
+                FROM {$this->table} r
+                INNER JOIN users u ON r.user_id = u.id
+                LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
+                WHERE r.bpdas_id = ? 
+                AND r.status = 'delivered'
+                AND r.delivery_photo_path IS NOT NULL
+                ORDER BY r.updated_at DESC
+                LIMIT ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(1, $bpdasId);
+        $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
     }
 }

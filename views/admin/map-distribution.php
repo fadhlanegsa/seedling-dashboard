@@ -57,7 +57,7 @@
                         <option value="pending">Pending</option>
                         <option value="approved">Disetujui</option>
                         <option value="delivered" selected>Sudah Diserahkan</option>
-                        <option value="completed">Selesai</option>
+
                         <option value="rejected">Ditolak</option>
                     </select>
                 </div>
@@ -106,13 +106,7 @@
                     <p>Disetujui</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-box">
-                    <i class="fas fa-check-double text-info"></i>
-                    <h3 id="completedCount">0</h3>
-                    <p>Selesai</p>
-                </div>
-            </div>
+
         </div>
     </div>
 </div>
@@ -215,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         total: 0,
                         pending: 0,
                         approved: 0,
-                        completed: 0
+
                     };
                     
                     data.data.forEach(item => {
@@ -263,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         stats.total++;
                         if (item.status === 'pending') stats.pending++;
                         if (item.status === 'approved') stats.approved++;
-                        if (item.status === 'completed') stats.completed++;
+                        if (item.status === 'approved') stats.approved;
                     });
                     
                     // Add markers to map
@@ -273,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('totalMarkers').textContent = stats.total;
                     document.getElementById('pendingCount').textContent = stats.pending;
                     document.getElementById('approvedCount').textContent = stats.approved;
-                    document.getElementById('completedCount').textContent = stats.completed;
                     
                     // Fit bounds if there are markers
                     if (stats.total > 0) {

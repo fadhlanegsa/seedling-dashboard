@@ -60,11 +60,7 @@
                 <form action="<?= url('bpdas/updateProfile') ?>" method="POST">
                     <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
 
-                    <div class="form-group">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" disabled>
-                        <small class="text-muted">Username tidak dapat diubah</small>
-                    </div>
+                        <input type="text" name="username" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" required>
 
                     <div class="form-group">
                         <label class="form-label required">Nama Lengkap</label>

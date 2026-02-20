@@ -24,6 +24,10 @@
                         <td><strong><?= htmlspecialchars($request['request_number'] ?? '-') ?></strong></td>
                     </tr>
                     <tr>
+                        <th>Persemaian:</th>
+                        <td><strong><?= htmlspecialchars($request['nursery_name'] ?? 'Belum Ditentukan') ?></strong></td>
+                    </tr>
+                    <tr>
                         <th>Status:</th>
                         <td>
                             <?php
@@ -90,6 +94,22 @@
                     <tr>
                         <th>Luas Lahan:</th>
                         <td><?= formatLandArea($request['land_area']) ?> Ha</td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if (!empty($request['planting_address'])): ?>
+                    <tr>
+                        <th>Alamat Tanam:</th>
+                        <td><?= nl2br(htmlspecialchars($request['planting_address'])) ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if (!empty($request['latitude']) && !empty($request['longitude'])): ?>
+                    <tr>
+                        <th>Koordinat:</th>
+                        <td>
+                            <a href="https://www.google.com/maps?q=<?= $request['latitude'] ?>,<?= $request['longitude'] ?>" target="_blank">
+                                <?= $request['latitude'] ?>, <?= $request['longitude'] ?>
+                            </a>
+                        </td>
                     </tr>
                     <?php endif; ?>
                     <?php if (!empty($request['proposal_file_path'])): ?>
@@ -251,6 +271,20 @@
         <form id="approveForm">
             <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
             <input type="hidden" name="request_id" value="<?= $request['id'] ?? '' ?>">
+            <div class="form-group">
+                <label class="required">Pilih Persemaian</label>
+                <select name="nursery_id" class="form-control" required>
+                    <option value="">-- Pilih Persemaian --</option>
+                    <?php if (isset($nurseries)): ?>
+                        <?php foreach ($nurseries as $nursery): ?>
+                            <option value="<?= $nursery['id'] ?>" <?= (isset($request['nursery_id']) && $request['nursery_id'] == $nursery['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($nursery['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+                <small class="form-text text-muted">Stok akan diambil dari persemaian ini.</small>
+            </div>
             <div class="form-group">
                 <label>Catatan (opsional)</label>
                 <textarea name="notes" class="form-control" rows="3" placeholder="Tambahkan catatan jika diperlukan..."></textarea>

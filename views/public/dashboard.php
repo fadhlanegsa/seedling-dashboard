@@ -10,7 +10,7 @@
 </div>
 
 <!-- Statistics Cards -->
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-md-3">
         <div class="stat-card">
             <div class="stat-icon bg-primary">
@@ -60,8 +60,44 @@
     </div>
 </div>
 
+<!-- Quota Information -->
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-chart-pie"></i> Kuota Permintaan Bibit</h5>
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="progress mb-2" style="height: 25px;">
+                    <div class="progress-bar bg-<?= $quota['percentage'] >= 90 ? 'danger' : ($quota['percentage'] >= 70 ? 'warning' : 'success') ?>" 
+                         role="progressbar" 
+                         style="width: <?= $quota['percentage'] ?>%;" 
+                         aria-valuenow="<?= $quota['percentage'] ?>" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        <?= $quota['percentage'] ?>%
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">Terpakai: <strong><?= formatNumber($quota['used']) ?></strong></small>
+                    <small class="text-muted">Maksimal: <strong><?= formatNumber($quota['max']) ?></strong></small>
+                </div>
+            </div>
+            <div class="col-md-4 text-right">
+                <div class="h4 mb-0 text-<?= $quota['remaining'] == 0 ? 'danger' : 'success' ?>">
+                    Sisa: <?= formatNumber($quota['remaining']) ?>
+                </div>
+                <small class="text-muted">Batang Bibit</small>
+            </div>
+        </div>
+        <?php if ($quota['remaining'] <= 0): ?>
+            <div class="alert alert-danger mt-3 mb-0">
+                <i class="fas fa-exclamation-circle"></i> Kuota Anda telah habis. Anda tidak dapat mengajukan permintaan baru saat ini.
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
 <!-- Quick Actions -->
-<div class="card mb-4">
+<div class="card mb-3">
     <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-bolt"></i> Aksi Cepat</h5>
     </div>

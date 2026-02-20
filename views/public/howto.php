@@ -6,8 +6,8 @@
 ?>
 
 <div class="container" style="padding: 3rem 0;">
-    <h1>Cara Mendapatkan Bibit Gratis</h1>
-    <p class="text-light">Panduan lengkap untuk mendapatkan bibit gratis dari BPDAS</p>
+    <h1 style="color: #fff !important; font-weight: 700;">Cara Mendapatkan Bibit Gratis</h1>
+    <p class="text-light" style="color: #f0f0f0 !important; font-size: 1.1rem;">Panduan lengkap untuk mendapatkan bibit gratis dari BPDAS</p>
 
     <!-- Steps -->
     <div class="row mt-4">
