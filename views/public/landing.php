@@ -134,6 +134,16 @@
                         <div class="stat-desc">Cakupan Provinsi</div>
                     </div>
                 </div>
+
+                <div class="stat-card-wide" data-delay="500">
+                    <div class="stat-icon-wrapper brown">
+                        <i class="fas fa-warehouse"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" data-target="<?= $stats['total_nurseries'] ?? 0 ?>">0</div>
+                        <div class="stat-desc">Persemaian Aktif</div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

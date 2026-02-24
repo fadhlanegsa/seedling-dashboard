@@ -138,17 +138,25 @@ class AuthController extends Controller {
             'password_confirm' => $this->post('password_confirm'),
             'full_name' => sanitize($this->post('full_name')),
             'phone' => sanitize($this->post('phone')),
-            'nik' => sanitize($this->post('nik'))
+            'nik' => sanitize($this->post('nik')),
+            'user_type' => $this->post('user_type')
         ];
         
         // Validate required fields
         $errors = $this->validateRequired($data, [
             'username', 'email', 'password', 'password_confirm', 
-            'full_name', 'phone', 'nik'
+            'full_name', 'phone', 'nik', 'user_type'
         ]);
         
         if (!empty($errors)) {
             $this->setFlash('error', 'Semua field harus diisi');
+            $this->redirect('auth/register');
+            return;
+        }
+
+        // Validate user_type
+        if (!in_array($data['user_type'], ['perorangan', 'kelompok'])) {
+            $this->setFlash('error', 'Jenis pemohon tidak valid');
             $this->redirect('auth/register');
             return;
         }

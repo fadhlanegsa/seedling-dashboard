@@ -388,21 +388,52 @@ document.addEventListener('DOMContentLoaded', function() {
         calculateTotal();
         
         if (bpdasId) {
-            fetch('<?= url('public/get-seedlings-by-bpdas') ?>?bpdas_id=' + bpdasId)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.data.length > 0) {
-                        availableStocks = data.data;
-                        addItemBtn.disabled = false;
-                        
-                        // Auto-add first item
-                        addItem();
-                    } else {
-                        alert('Tidak ada stok bibit tersedia di BPDAS ini');
-                    }
-                });
+            loadStock(bpdasId, '');
         }
     });
+    
+    // Add event listener for nursery change
+    const nurserySelect = document.getElementById('nursery_id');
+    if (nurserySelect) {
+        nurserySelect.addEventListener('change', function() {
+            const bpdasId = bpdasSelect.value;
+            const nurseryId = this.value;
+            
+            // Clear items
+            itemsContainer.innerHTML = '';
+            addItemBtn.disabled = true;
+            availableStocks = [];
+            calculateTotal();
+            
+            if (bpdasId) {
+                loadStock(bpdasId, nurseryId);
+            }
+        });
+    }
+
+    // Load Stock Data dynamically
+    function loadStock(bpdasId, nurseryId) {
+        let url = '<?= url('public/get-seedlings-by-bpdas') ?>?bpdas_id=' + bpdasId;
+        if (nurseryId) {
+            url += '&nursery_id=' + nurseryId;
+        }
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    availableStocks = data.data;
+                    addItemBtn.disabled = false;
+                    
+                    // Auto-add first item
+                    addItem();
+                } else {
+                    let locationName = nurseryId ? 'Persemaian terpilih' : 'BPDAS ini';
+                    alert(`Tidak ada stok bibit tersedia di ${locationName}`);
+                }
+            })
+            .catch(error => console.error('Error fetching stock:', error));
+    }
     
     // Add item function
     function addItem() {

@@ -5,13 +5,15 @@
  */
 ?>
 
-<div class="container" style="padding: 3rem 0;">
+<div class="container search-page-container">
     <h1>Hasil Pencarian BPDAS</h1>
     <p class="text-light">Temukan BPDAS terdekat dengan stok bibit yang Anda butuhkan</p>
 
-    <!-- Filter Sidebar -->
-    <div class="row mt-4">
-        <div class="col-3">
+    <!-- Search Layout: filter sidebar + results -->
+    <div class="search-layout">
+
+        <!-- Filter Panel -->
+        <aside class="search-filter-panel">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Filter Pencarian</h4>
@@ -44,29 +46,29 @@
 
                         <div class="form-group">
                             <label class="form-label">Stok Minimal</label>
-                            <input type="number" name="min_stock" class="form-control" 
-                                   value="<?= $filters['min_stock'] ?? '' ?>" 
+                            <input type="number" name="min_stock" class="form-control"
+                                   value="<?= $filters['min_stock'] ?? '' ?>"
                                    placeholder="Contoh: 100">
                         </div>
 
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <button type="submit" class="btn btn-primary" style="width:100%;">
                             <i class="fas fa-search"></i> Terapkan Filter
                         </button>
-                        
-                        <a href="<?= url('home/search') ?>" class="btn btn-outline mt-2" style="width: 100%;">
+
+                        <a href="<?= url('home/search') ?>" class="btn btn-outline mt-2" style="width:100%;">
                             Reset Filter
                         </a>
                     </form>
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <!-- Results -->
-        <div class="col-9">
+        <!-- Results Panel -->
+        <section class="search-results-panel">
             <?php if (empty($results['data'])): ?>
                 <div class="card">
                     <div class="card-body text-center">
-                        <i class="fas fa-search" style="font-size: 4rem; color: var(--text-light);"></i>
+                        <i class="fas fa-search" style="font-size:4rem; color:var(--text-light);"></i>
                         <h3>Tidak Ada Hasil</h3>
                         <p>Tidak ditemukan BPDAS yang sesuai dengan kriteria pencarian Anda.</p>
                         <a href="<?= url('home/search') ?>" class="btn btn-primary">Reset Pencarian</a>
@@ -77,38 +79,32 @@
                     <p>Menampilkan <strong><?= count($results['data']) ?></strong> dari <strong><?= $results['total'] ?></strong> BPDAS</p>
                 </div>
 
-                <div class="row">
+                <div class="search-results-grid">
                     <?php foreach ($results['data'] as $bpdas): ?>
-                        <div class="col-6 mb-3">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title"><?= htmlspecialchars($bpdas['name']) ?></h4>
-                                    <span class="badge badge-primary"><?= htmlspecialchars($bpdas['province_name']) ?></span>
-                                </div>
-                                <div class="card-body">
-                                    <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($bpdas['address']) ?></p>
-                                    <p><i class="fas fa-phone"></i> <?= htmlspecialchars($bpdas['phone'] ?? '-') ?></p>
-                                    
-                                    <div class="row mt-3">
-                                        <div class="col-6">
-                                            <div class="stats-card">
-                                                <span class="stats-number"><?= $bpdas['seedling_types_count'] ?? 0 ?></span>
-                                                <span class="stats-label">Jenis Bibit</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="stats-card success">
-                                                <span class="stats-number"><?= formatNumber($bpdas['total_stock'] ?? 0) ?></span>
-                                                <span class="stats-label">Total Stok</span>
-                                            </div>
-                                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title"><?= htmlspecialchars($bpdas['name']) ?></h4>
+                                <span class="badge badge-primary"><?= htmlspecialchars($bpdas['province_name']) ?></span>
+                            </div>
+                            <div class="card-body">
+                                <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($bpdas['address']) ?></p>
+                                <p><i class="fas fa-phone"></i> <?= htmlspecialchars($bpdas['phone'] ?? '-') ?></p>
+
+                                <div class="search-stat-row">
+                                    <div class="stats-card">
+                                        <span class="stats-number"><?= $bpdas['seedling_types_count'] ?? 0 ?></span>
+                                        <span class="stats-label">Jenis Bibit</span>
+                                    </div>
+                                    <div class="stats-card success">
+                                        <span class="stats-number"><?= formatNumber($bpdas['total_stock'] ?? 0) ?></span>
+                                        <span class="stats-label">Total Stok</span>
                                     </div>
                                 </div>
-                                <div class="card-footer">
-                                    <a href="<?= url('home/detail/' . $bpdas['id']) ?>" class="btn btn-primary" style="width: 100%;">
-                                        <i class="fas fa-eye"></i> Lihat Detail
-                                    </a>
-                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="<?= url('home/detail/' . $bpdas['id']) ?>" class="btn btn-primary" style="width:100%;">
+                                    <i class="fas fa-eye"></i> Lihat Detail
+                                </a>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -119,7 +115,7 @@
                     <ul class="pagination">
                         <?php for ($i = 1; $i <= $results['totalPages']; $i++): ?>
                             <li>
-                                <a href="<?= url('home/search?page=' . $i . '&' . http_build_query($filters)) ?>" 
+                                <a href="<?= url('home/search?page=' . $i . '&' . http_build_query($filters)) ?>"
                                    class="<?= ($i == $results['page']) ? 'active' : '' ?>">
                                     <?= $i ?>
                                 </a>
@@ -128,6 +124,7 @@
                     </ul>
                 <?php endif; ?>
             <?php endif; ?>
-        </div>
-    </div>
-</div>
+        </section>
+
+    </div><!-- /.search-layout -->
+</div><!-- /.container -->

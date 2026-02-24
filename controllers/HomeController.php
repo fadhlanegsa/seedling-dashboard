@@ -12,26 +12,30 @@ class HomeController extends Controller {
      * Landing page
      */
     public function index() {
-        $bpdasModel = $this->model('BPDAS');
+        $bpdasModel        = $this->model('BPDAS');
         $seedlingTypeModel = $this->model('SeedlingType');
-        $provinceModel = $this->model('Province');
-        
+        $provinceModel     = $this->model('Province');
+        $nurseryModel      = $this->model('Nursery');
+
         // Get statistics
         $stats = $bpdasModel->getStatistics();
-        
+
+        // Count active nurseries directly using dedicated model method
+        $stats['total_nurseries'] = $nurseryModel->getActiveCount();
+
         // Get provinces for dropdown
         $provinces = $provinceModel->getAllOrdered();
-        
+
         // Get seedling types for search
         $seedlingTypes = $seedlingTypeModel->getAllActive();
-        
+
         $data = [
-            'title' => 'Dashboard Stok Bibit Persemaian Indonesia',
-            'stats' => $stats,
-            'provinces' => $provinces,
+            'title'         => 'Dashboard Stok Bibit Persemaian Indonesia',
+            'stats'         => $stats,
+            'provinces'     => $provinces,
             'seedlingTypes' => $seedlingTypes
         ];
-        
+
         $this->render('public/landing', $data, 'public');
     }
     

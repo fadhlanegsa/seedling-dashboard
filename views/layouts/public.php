@@ -27,7 +27,14 @@
                     </div>
                 </a>
                 
-                <ul class="nav-links-complex">
+                <!-- Hamburger Button (Mobile Only) -->
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Buka Menu" aria-expanded="false">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+
+                <ul class="nav-links-complex" id="navLinksComplex">
                     <li>
                         <a href="<?= url('') ?>" class="nav-link-item <?= $this->activeClass('') ?>">
                             <i class="fas fa-home"></i> Beranda
@@ -82,6 +89,9 @@
         </div>
     </header>
 
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+
     <!-- Flash Messages -->
     <?php if (isset($flash)): ?>
         <div class="container mt-3">
@@ -108,5 +118,38 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="<?= asset('js/main.js') ?>"></script>
+    <script>
+        // Hamburger Menu Toggle
+        (function() {
+            var btn = document.getElementById('hamburgerBtn');
+            var nav = document.getElementById('navLinksComplex');
+            var overlay = document.getElementById('mobileNavOverlay');
+            if (btn && nav) {
+                btn.addEventListener('click', function() {
+                    var isOpen = nav.classList.toggle('nav-open');
+                    btn.classList.toggle('is-active', isOpen);
+                    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    if (overlay) overlay.classList.toggle('active', isOpen);
+                });
+                if (overlay) {
+                    overlay.addEventListener('click', function() {
+                        nav.classList.remove('nav-open');
+                        btn.classList.remove('is-active');
+                        btn.setAttribute('aria-expanded', 'false');
+                        overlay.classList.remove('active');
+                    });
+                }
+                // Close menu on nav link click (mobile)
+                nav.querySelectorAll('a').forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        nav.classList.remove('nav-open');
+                        btn.classList.remove('is-active');
+                        btn.setAttribute('aria-expanded', 'false');
+                        if (overlay) overlay.classList.remove('active');
+                    });
+                });
+            }
+        })();
+    </script>
 </body>
 </html>

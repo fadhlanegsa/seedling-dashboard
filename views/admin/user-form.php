@@ -14,7 +14,7 @@ $isEdit = isset($user);
 
 <div class="card">
     <div class="card-body">
-        <form action="<?= url('admin/saveUser') ?>" method="POST">
+        <form action="<?= url('admin/saveUser') ?>" method="POST" autocomplete="off">
             <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
             <?php if ($isEdit): ?>
                 <input type="hidden" name="id" value="<?= $user['id'] ?>">

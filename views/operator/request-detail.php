@@ -129,6 +129,28 @@
                 </table>
             </div>
         </div>
+
+        <?php if (($request['status'] ?? '') === 'pending' && isset($can_approve) && $can_approve): ?>
+        <div class="card mt-3">
+            <div class="card-header bg-primary text-white">
+                <h3><i class="fas fa-shield-alt"></i> Tindakan (Pendelegasian Wewenang)</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button onclick="showApproveModal()" class="btn btn-success btn-block">
+                            <i class="fas fa-check"></i> Setujui Permintaan
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button onclick="showRejectModal()" class="btn btn-danger btn-block">
+                            <i class="fas fa-times"></i> Tolak Permintaan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         
         <?php if (($request['status'] ?? '') === 'approved' || ($request['status'] ?? '') === 'delivered'): ?>
         <!-- Delivery Photo Upload -->
@@ -234,7 +256,157 @@
     </div>
 </div>
 
+<!-- Approve Modal -->
+<div id="approveModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Setujui Permintaan</h3>
+        <p class="text-muted">Dengan menyetujui, stok bibit di persemaian Anda akan otomatis berkurang.</p>
+        <form id="approveForm">
+            <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+            <input type="hidden" name="request_id" value="<?= $request['id'] ?? '' ?>">
+            
+            <div class="form-group">
+                <label>Catatan (opsional)</label>
+                <textarea name="notes" class="form-control" rows="3" placeholder="Tambahkan catatan jika diperlukan..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success" id="approveBtn">
+                    <i class="fas fa-check"></i> Setujui & Potong Stok
+                </button>
+                <button type="button" onclick="closeModal('approveModal')" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Batal
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Tolak Permintaan</h3>
+        <form id="rejectForm">
+            <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+            <input type="hidden" name="request_id" value="<?= $request['id'] ?? '' ?>">
+            <div class="form-group">
+                <label class="required">Alasan Penolakan</label>
+                <textarea name="reason" class="form-control" rows="3" required placeholder="Masukkan alasan penolakan..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger" id="rejectBtn">
+                    <i class="fas fa-times"></i> Tolak
+                </button>
+                <button type="button" onclick="closeModal('rejectModal')" class="btn btn-secondary">
+                    <i class="fas fa-ban"></i> Batal
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+// ===== APPROVAL LOGIC =====
+function showApproveModal() {
+    document.getElementById('approveModal').style.display = 'flex';
+}
+
+function showRejectModal() {
+    document.getElementById('rejectModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const approveModal = document.getElementById('approveModal');
+    const rejectModal = document.getElementById('rejectModal');
+    if (event.target == approveModal) {
+        approveModal.style.display = 'none';
+    }
+    if (event.target == rejectModal) {
+        rejectModal.style.display = 'none';
+    }
+}
+
+// Approve form submission
+if (document.getElementById('approveForm')) {
+    document.getElementById('approveForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const approveBtn = document.getElementById('approveBtn');
+        const originalText = approveBtn.innerHTML;
+        
+        // Disable button and show loading
+        approveBtn.disabled = true;
+        approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        
+        const formData = new FormData(this);
+        
+        fetch('<?= url('operator/approveRequest') ?>', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+                approveBtn.disabled = false;
+                approveBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan: ' + error.message);
+            approveBtn.disabled = false;
+            approveBtn.innerHTML = originalText;
+        });
+    });
+}
+
+// Reject form submission
+if (document.getElementById('rejectForm')) {
+    document.getElementById('rejectForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const rejectBtn = document.getElementById('rejectBtn');
+        const originalText = rejectBtn.innerHTML;
+        
+        // Disable button and show loading
+        rejectBtn.disabled = true;
+        rejectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        
+        const formData = new FormData(this);
+        
+        fetch('<?= url('operator/rejectRequest') ?>', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+                rejectBtn.disabled = false;
+                rejectBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan: ' + error.message);
+            rejectBtn.disabled = false;
+            rejectBtn.innerHTML = originalText;
+        });
+    });
+}
+
 // ===== PHOTO UPLOAD LOGIC =====
 const photoInput = document.getElementById('photoInput');
 const photoPreview = document.getElementById('photoPreview');
@@ -361,5 +533,73 @@ if (photoUploadForm) {
 .badge-purple {
     background-color: #9b59b6;
     color: white;
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--white);
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--primary-dark);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group label.required::after {
+    content: ' *';
+    color: red;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.form-actions button {
+    flex: 1;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>

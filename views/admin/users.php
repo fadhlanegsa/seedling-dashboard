@@ -93,10 +93,6 @@
                             </td>
                         </tr>
                     <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="9" class="text-center">Tidak ada data pengguna</td>
-                    </tr>
                 <?php endif; ?>
             </tbody>
         </table>

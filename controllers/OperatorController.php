@@ -105,10 +105,15 @@ class OperatorController extends Controller {
         
         $history = $requestModel->getHistory($id);
         
+        // Fetch BPDAS delegation status
+        $bpdasModel = $this->model('BPDAS');
+        $bpdas = $bpdasModel->find($userData['bpdas_id']);
+        
         $data = [
             'title' => 'Detail Permintaan',
             'request' => $request,
-            'history' => $history
+            'history' => $history,
+            'can_approve' => $bpdas['can_operator_approve']
         ];
         
         $this->render('operator/request-detail', $data, 'dashboard');
@@ -392,6 +397,164 @@ public function uploadDeliveryPhoto() {
         } catch (Exception $e) {
             $this->setFlash('error', 'Gagal menyimpan data: ' . $e->getMessage());
             $this->redirect('operator/stock');
+        }
+    }
+
+    /**
+     * Approve request (Delegated Authority)
+     */
+    public function approveRequest() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+        
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $user = currentUser();
+        $userModel = $this->model('User');
+        $userData = $userModel->getUserWithNursery($user['id']);
+        
+        // CHECK DELEGATION: Get BPDAS info
+        $bpdasModel = $this->model('BPDAS');
+        $bpdas = $bpdasModel->find($userData['bpdas_id']);
+        
+        if (!$bpdas['can_operator_approve']) {
+            $this->json(['success' => false, 'message' => 'Anda tidak memiliki wewenang untuk menyetujui permintaan. Harap hubungi BPDAS.']);
+            return;
+        }
+        
+        $requestId = $this->post('request_id');
+        $notes = $this->post('notes');
+        
+        $requestModel = $this->model('Request');
+        $request = $requestModel->getWithDetails($requestId);
+        
+        if (!$request || $request['nursery_id'] != $userData['nursery_id']) {
+            $this->json(['success' => false, 'message' => 'Permintaan tidak ditemukan']);
+            return;
+        }
+        
+        if ($request['status'] !== 'pending') {
+            $this->json(['success' => false, 'message' => 'Permintaan sudah diproses']);
+            return;
+        }
+
+        // Check stock availability
+        $stockModel = $this->model('Stock');
+        $isMultiItem = !empty($request['items']);
+        
+        if ($isMultiItem) {
+            foreach ($request['items'] as $item) {
+                $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $item['seedling_type_id']);
+                if (!$stock || $stock['quantity'] < $item['quantity']) {
+                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi untuk salah satu jenis bibit']);
+                    return;
+                }
+            }
+        } else {
+            $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $request['seedling_type_id']);
+            if (!$stock || $stock['quantity'] < $request['quantity']) {
+                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi']);
+                return;
+            }
+        }
+        
+        // Begin transaction
+        $requestModel->beginTransaction();
+        
+        try {
+            // Approve request
+            $requestModel->approve($requestId, $user['id'], $notes);
+            
+            // Decrease stock
+            if ($isMultiItem) {
+                foreach ($request['items'] as $item) {
+                    $stockModel->decreaseStockFromNursery($userData['nursery_id'], $item['seedling_type_id'], $item['quantity']);
+                }
+            } else {
+                $stockModel->decreaseStockFromNursery($userData['nursery_id'], $request['seedling_type_id'], $request['quantity']);
+            }
+            
+            // Add to history
+            $requestModel->addHistory($requestId, 'approved', $user['id'], $notes . ' (Disetujui oleh Operator Persemaian)');
+            
+            // Generate PDF approval letter (wrapped in try-catch)
+            try {
+                require_once UTILS_PATH . 'PDFGenerator.php';
+                $pdfGenerator = new PDFGenerator();
+                $pdfPath = $pdfGenerator->generateApprovalLetter($request);
+                $requestModel->update($requestId, ['approval_letter_path' => $pdfPath]);
+            } catch (Exception $pdfError) {
+                logError("PDF Generation Error (Operator): " . $pdfError->getMessage());
+            }
+            
+            $requestModel->commit();
+            $this->json(['success' => true, 'message' => 'Permintaan berhasil disetujui']);
+        } catch (Exception $e) {
+            $requestModel->rollback();
+            logError("Approve Request Error (Operator): " . $e->getMessage());
+            $this->json(['success' => false, 'message' => 'Gagal menyetujui permintaan']);
+        }
+    }
+
+    /**
+     * Reject request (Delegated Authority)
+     */
+    public function rejectRequest() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+        
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $user = currentUser();
+        $userModel = $this->model('User');
+        $userData = $userModel->getUserWithNursery($user['id']);
+        
+        // CHECK DELEGATION: Get BPDAS info
+        $bpdasModel = $this->model('BPDAS');
+        $bpdas = $bpdasModel->find($userData['bpdas_id']);
+        
+        if (!$bpdas['can_operator_approve']) {
+            $this->json(['success' => false, 'message' => 'Anda tidak memiliki wewenang untuk menolak permintaan.']);
+            return;
+        }
+        
+        $requestId = $this->post('request_id');
+        $reason = $this->post('reason');
+        
+        if (empty($reason)) {
+            $this->json(['success' => false, 'message' => 'Alasan penolakan harus diisi']);
+            return;
+        }
+        
+        $requestModel = $this->model('Request');
+        $request = $requestModel->getWithDetails($requestId);
+        
+        if (!$request || $request['nursery_id'] != $userData['nursery_id']) {
+            $this->json(['success' => false, 'message' => 'Permintaan tidak ditemukan']);
+            return;
+        }
+        
+        if ($request['status'] !== 'pending') {
+            $this->json(['success' => false, 'message' => 'Permintaan sudah diproses']);
+            return;
+        }
+        
+        // Reject request
+        $rejected = $requestModel->reject($requestId, $user['id'], $reason);
+        
+        if ($rejected) {
+            $requestModel->addHistory($requestId, 'rejected', $user['id'], $reason . ' (Ditolak oleh Operator Persemaian)');
+            $this->json(['success' => true, 'message' => 'Permintaan berhasil ditolak']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Gagal menolak permintaan']);
         }
     }
 }

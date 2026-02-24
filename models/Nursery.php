@@ -63,4 +63,16 @@ class Nursery extends Model {
             'is_active' => 1
         ]);
     }
+
+    /**
+     * Get total count of active nurseries
+     * 
+     * @return int
+     */
+    public function getActiveCount() {
+        $result = $this->queryOne(
+            "SELECT COUNT(*) as total FROM {$this->table} WHERE is_active = 1"
+        );
+        return $result ? (int)$result['total'] : 0;
+    }
 }

@@ -24,6 +24,7 @@ class PublicController extends Controller {
         $requestModel = $this->model('Request');
         $bpdasModel = $this->model('BPDAS');
         $provinceModel = $this->model('Province');
+        $nurseryModel = $this->model('Nursery');
         
         // Get aggregate statistics
         $stats = [
@@ -32,6 +33,7 @@ class PublicController extends Controller {
             'total_distributed' => $requestModel->getTotalDistributed(),
             'total_bpdas' => $bpdasModel->getActiveCount(),
             'total_provinces' => $provinceModel->count(),
+            'total_nurseries' => $nurseryModel->getActiveCount(),
             'approved_requests' => $requestModel->count(['status' => 'approved']),
             'completed_requests' => $requestModel->count(['status' => 'completed'])
         ];
@@ -64,7 +66,7 @@ class PublicController extends Controller {
         
         // Calculate quota
         $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
-        $maxQuota = 2000;
+        $maxQuota = isset($user['user_type']) && $user['user_type'] === 'kelompok' ? 10000 : 2000;
         $remainingQuota = $maxQuota - $approvedQuantity;
         if ($remainingQuota < 0) $remainingQuota = 0;
         
@@ -96,7 +98,7 @@ class PublicController extends Controller {
         $user = currentUser();
         $requestModel = $this->model('Request');
         $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
-        $maxQuota = 2000;
+        $maxQuota = isset($user['user_type']) && $user['user_type'] === 'kelompok' ? 10000 : 2000;
         $remainingQuota = $maxQuota - $approvedQuantity;
         if ($remainingQuota < 0) $remainingQuota = 0;
         
@@ -170,7 +172,7 @@ class PublicController extends Controller {
         // Validate Quota
         $requestModel = $this->model('Request');
         $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
-        $maxQuota = 2000;
+        $maxQuota = isset($user['user_type']) && $user['user_type'] === 'kelompok' ? 10000 : 2000;
         $remainingQuota = $maxQuota - $approvedQuantity;
         
         if ($totalQuantity > $remainingQuota) {
@@ -574,10 +576,11 @@ class PublicController extends Controller {
     }
     
     /**
-     * AJAX: Get seedling types by BPDAS
+     * AJAX: Get seedling types by BPDAS (and conditionally Nursery)
      */
     public function getSeedlingsByBPDAS() {
         $bpdasId = $this->get('bpdas_id');
+        $nurseryId = $this->get('nursery_id'); // Optional
         
         if (!$bpdasId) {
             $this->json(['success' => false, 'message' => 'BPDAS ID required']);
@@ -585,7 +588,12 @@ class PublicController extends Controller {
         }
         
         $stockModel = $this->model('Stock');
-        $stock = $stockModel->getByBPDAS($bpdasId);
+        
+        if (!empty($nurseryId)) {
+            $stock = $stockModel->getByNursery($nurseryId);
+        } else {
+            $stock = $stockModel->getAggregatedByBPDAS($bpdasId);
+        }
         
         // Filter only available stock
         $available = array_filter($stock, fn($s) => $s['quantity'] > 0);

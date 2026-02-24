@@ -623,6 +623,38 @@ class BPDASController extends Controller {
             'data' => $mapData
         ]);
     }
+
+    /**
+     * Update Approval Delegation Setting
+     */
+    public function updateDelegation() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('bpdas/profile');
+            return;
+        }
+        
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $user = currentUser();
+        $bpdasId = $user['bpdas_id'];
+        
+        $canApprove = $this->post('can_operator_approve') ? 1 : 0;
+        
+        $bpdasModel = $this->model('BPDAS');
+        $updated = $bpdasModel->update($bpdasId, [
+            'can_operator_approve' => $canApprove
+        ]);
+        
+        if ($updated) {
+            $this->setFlash('success', 'Pengaturan pendelegasian wewenang berhasil diupdate.');
+        } else {
+            $this->setFlash('error', 'Gagal mengupdate pengaturan.');
+        }
+        
+        $this->redirect('bpdas/profile');
+    }
     
     /**
      * Upload delivery proof photo

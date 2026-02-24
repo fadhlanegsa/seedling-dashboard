@@ -49,6 +49,34 @@
                 </table>
             </div>
         </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3><i class="fas fa-shield-alt"></i> Pengaturan Wewenang</h3>
+            </div>
+            <div class="card-body">
+                <form action="<?= url('bpdas/updateDelegation') ?>" method="POST">
+                    <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+                    <div class="form-group mb-3">
+                        <label class="form-label d-block">Pendelegasian ACC Bibit</label>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="can_operator_approve" 
+                                   name="can_operator_approve" value="1" <?= $bpdas['can_operator_approve'] ? 'checked' : '' ?>>
+                            <label class="custom-control-label" for="can_operator_approve">
+                                Izinkan Operator Persemaian mensetujui (ACC) permintaan bibit secara mandiri.
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            Jika <strong>AKTIF</strong>, Operator dapat melihat tombol ACC & Tolak di dashboard mereka. 
+                            Jika <strong>NONAKTIF</strong>, wewenang ACC kembali penuh ke BPDAS.
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-sync"></i> Update Wewenang
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="col-md-6">

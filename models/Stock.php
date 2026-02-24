@@ -10,7 +10,43 @@ class Stock extends Model {
     protected $table = 'stock';
     
     /**
-     * Get stock by BPDAS with seedling type information
+     * Get stock by BPDAS (Aggregated for multiple nurseries)
+     * 
+     * @param int $bpdasId
+     * @return array
+     */
+    public function getAggregatedByBPDAS($bpdasId) {
+        $sql = "SELECT s.seedling_type_id, SUM(s.quantity) as quantity, 
+                st.name as seedling_name, st.scientific_name, st.category
+                FROM {$this->table} s
+                INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+                WHERE s.bpdas_id = ?
+                GROUP BY s.seedling_type_id, st.name, st.scientific_name, st.category
+                ORDER BY st.name ASC";
+        
+        return $this->query($sql, [$bpdasId]);
+    }
+    
+    /**
+     * Get stock by Nursery
+     * 
+     * @param int $nurseryId
+     * @return array
+     */
+    public function getByNursery($nurseryId) {
+        $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category,
+                n.name as nursery_name
+                FROM {$this->table} s
+                INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+                LEFT JOIN nurseries n ON s.nursery_id = n.id
+                WHERE s.nursery_id = ?
+                ORDER BY st.name ASC";
+        
+        return $this->query($sql, [$nurseryId]);
+    }
+    
+    /**
+     * Legacy getter (kept for compatibility if needed, but beware of duplicate rows)
      * 
      * @param int $bpdasId
      * @return array

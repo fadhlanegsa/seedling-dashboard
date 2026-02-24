@@ -11,14 +11,23 @@
     <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
     
     <div class="form-group">
-        <label class="form-label">Nama Lengkap *</label>
-        <input type="text" name="full_name" class="form-control" required>
+        <label class="form-label">Jenis Pemohon *</label>
+        <select name="user_type" id="user_type" class="form-control" required>
+            <option value="perorangan">Perorangan (Individu)</option>
+            <option value="kelompok">Kelompok Masyarakat / Lembaga</option>
+        </select>
+        <small class="form-text text-muted">Batas kuota maksimal berbeda untuk tiap jenis pemohon.</small>
     </div>
 
     <div class="form-group">
-        <label class="form-label">NIK (16 digit) *</label>
-        <input type="text" name="nik" class="form-control" pattern="\d{16}" maxlength="16" required>
-        <small class="form-text">Masukkan 16 digit NIK sesuai KTP</small>
+        <label class="form-label" id="label_full_name">Nama Lengkap *</label>
+        <input type="text" name="full_name" id="full_name" class="form-control" required>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" id="label_nik">NIK (16 digit) *</label>
+        <input type="text" name="nik" id="nik" class="form-control" pattern="\d{16}" maxlength="16" required>
+        <small class="form-text" id="help_nik">Masukkan 16 digit NIK sesuai KTP</small>
     </div>
 
     <div class="form-group">
@@ -67,3 +76,32 @@
 <div class="text-center mt-3">
     <p>Sudah punya akun? <a href="<?= url('auth/login') ?>">Login di sini</a></p>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userTypeSelect = document.getElementById('user_type');
+    const labelFullName = document.getElementById('label_full_name');
+    const labelNik = document.getElementById('label_nik');
+    const helpNik = document.getElementById('help_nik');
+    const fullNameInput = document.getElementById('full_name');
+
+    function updateUserTypeLabels() {
+        if (userTypeSelect.value === 'kelompok') {
+            labelFullName.textContent = 'Nama Kelompok / Lembaga *';
+            labelNik.textContent = 'NIK Ketua Kelompok *';
+            helpNik.textContent = 'Masukkan 16 digit NIK Ketua Kelompok sesuai KTP';
+            fullNameInput.placeholder = 'Contoh: Kelompok Tani Sukamaju';
+        } else {
+            labelFullName.textContent = 'Nama Lengkap *';
+            labelNik.textContent = 'NIK (16 digit) *';
+            helpNik.textContent = 'Masukkan 16 digit NIK sesuai KTP';
+            fullNameInput.placeholder = '';
+        }
+    }
+
+    userTypeSelect.addEventListener('change', updateUserTypeLabels);
+    
+    // Initialize labels based on current selection
+    updateUserTypeLabels();
+});
+</script>

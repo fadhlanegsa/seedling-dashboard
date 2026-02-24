@@ -158,15 +158,19 @@ class BPDAS extends Model {
     public function getStatistics() {
         $sql = "SELECT 
                 COUNT(DISTINCT b.id) as total_bpdas,
-                COUNT(DISTINCT b.province_id) as provinces_with_bpdas,
+                COUNT(DISTINCT b.province_id) as total_provinces,
                 COUNT(DISTINCT s.seedling_type_id) as total_seedling_types,
-                SUM(s.quantity) as total_national_stock
+                COALESCE(SUM(s.quantity), 0) as total_stock,
+                (SELECT COUNT(*) FROM nurseries WHERE is_active = 1) as total_nurseries,
+                (SELECT COUNT(*) FROM requests) as total_requests,
+                (SELECT COUNT(*) FROM requests WHERE status = 'delivered') as total_distributed
                 FROM {$this->table} b
                 LEFT JOIN stock s ON b.id = s.bpdas_id
                 WHERE b.is_active = 1";
         
         return $this->queryOne($sql);
     }
+
     
     /**
      * Get stock by province for analytics
