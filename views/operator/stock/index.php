@@ -25,11 +25,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($stocks['data'])): ?>
-                        <tr>
-                            <td colspan="8" class="text-center py-4">Belum ada data stok</td>
-                        </tr>
-                    <?php else: ?>
+                    <?php if (!empty($stocks['data'])): ?>
                         <?php foreach ($stocks['data'] as $index => $stock): ?>
                             <tr>
                                 <td><?= $index + 1 + (($stocks['page'] - 1) * $stocks['perPage']) ?></td>

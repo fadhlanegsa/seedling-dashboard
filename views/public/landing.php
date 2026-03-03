@@ -36,21 +36,21 @@
             <div class="carousel-container">
                 <div class="carousel-wrapper">
                     <div class="carousel-slide active">
-                        <img src="<?= asset('images/carousel/slide1.jpg') ?>" alt="Slide 1" onerror="this.src='https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1200&q=80'">
+                        <img src="<?= asset('images/carousel/slide1.svg') ?>" alt="Slide 1">
                         <div class="carousel-caption">
                             <h3>Bibit Berkualitas untuk Indonesia Hijau</h3>
                             <p>Menyediakan berbagai jenis bibit tanaman berkualitas tinggi</p>
                         </div>
                     </div>
                     <div class="carousel-slide">
-                        <img src="<?= asset('images/carousel/slide2.jpg') ?>" alt="Slide 2" onerror="this.src='https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=80'">
+                        <img src="<?= asset('images/carousel/slide2.svg') ?>" alt="Slide 2">
                         <div class="carousel-caption">
                             <h3>Distribusi ke Seluruh Nusantara</h3>
                             <p>Jangkauan luas untuk mendukung penghijauan nasional</p>
                         </div>
                     </div>
                     <div class="carousel-slide">
-                        <img src="<?= asset('images/carousel/slide3.jpg') ?>" alt="Slide 3" onerror="this.src='https://images.unsplash.com/photo-1576085898323-218337e3e43c?auto=format&fit=crop&w=1200&q=80'">
+                        <img src="<?= asset('images/carousel/slide3.svg') ?>" alt="Slide 3">
                         <div class="carousel-caption">
                             <h3>Kolaborasi dengan BPDAS</h3>
                             <p>Bekerja sama dengan berbagai BPDAS di Indonesia</p>

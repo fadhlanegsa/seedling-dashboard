@@ -125,7 +125,7 @@
 
         .form-control {
             width: 100%;
-            padding: 0.875rem 1rem 0.875rem 3rem;
+            padding: 0.875rem 2.5rem 0.875rem 3rem;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             font-size: 1rem;
@@ -137,6 +137,21 @@
             outline: none;
             border-color: #4CAF50;
             box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-size: 1.1rem;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .toggle-password:hover {
+            color: #4CAF50;
         }
 
         .remember-me {
@@ -334,7 +349,8 @@
                     <label class="form-label">Password</label>
                     <div class="input-wrapper">
                         <i class="fas fa-lock input-icon"></i>
-                        <input type="password" name="password" class="form-control" required placeholder="Masukkan password">
+                        <input type="password" name="password" id="password" class="form-control" required placeholder="Masukkan password">
+                        <i class="fas fa-eye toggle-password" id="togglePassword"></i>
                     </div>
                 </div>
 
@@ -360,5 +376,15 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const password = document.getElementById('password');
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    </script>
 </body>
 </html>

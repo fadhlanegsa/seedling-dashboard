@@ -198,6 +198,14 @@ class PublicController extends Controller {
             return;
         }
 
+        // Validate integrity pact
+        $integrityPact = $this->post('integrity_pact');
+        if (empty($integrityPact) || $integrityPact !== '1') {
+            $this->setFlash('error', 'Anda harus menyetujui pakta integritas untuk mengajukan permintaan');
+            $this->redirect('public/request-form');
+            return;
+        }
+
         // Validate nursery if bpdas selected (optional but good to have)
         if (empty($nurseryId)) {
             $nurseryId = null; // Allow null if user doesn't select one (though frontend should enforce)

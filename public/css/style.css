@@ -1890,3 +1890,148 @@ select.form-control {
         padding-bottom: 1.5rem;
     }
 }
+/* --- Header Layout Overrides --- */
+.navbar-complex {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    width: 100%;
+}
+
+.navbar-brand-complex {
+    display: flex !important;
+    align-items: center !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    /* needed for flex truncation */
+    margin-right: 15px;
+}
+
+.brand-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.brand-logo-img {
+    height: 45px !important;
+    margin-right: 12px !important;
+    flex-shrink: 0;
+}
+
+.brand-title {
+    font-size: 1.15rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    word-wrap: break-word;
+}
+
+.brand-subtitle {
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    word-wrap: break-word;
+}
+
+.nav-links-complex {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-shrink: 0;
+    /* Nav links shouldn't shrink */
+}
+
+.nav-link-item {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.95rem !important;
+    white-space: nowrap !important;
+}
+
+.nav-btn-warning {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    font-weight: 700 !important;
+    padding: 0.5rem 1rem !important;
+    color: #333 !important;
+    border-radius: 6px !important;
+    text-transform: uppercase !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s ease !important;
+    background: var(--warning-color) !important;
+    white-space: nowrap !important;
+}
+
+.nav-btn-warning:hover {
+    background: #e09600 !important;
+    color: #111 !important;
+    text-decoration: none !important;
+}
+
+@media (max-width: 1150px) {
+    .hamburger-btn {
+        display: flex !important;
+        margin-left: auto;
+    }
+
+    .nav-links-complex {
+        display: none !important;
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        background: var(--primary-dark) !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+        padding: 80px 0 2rem !important;
+        z-index: 950 !important;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3) !important;
+        overflow-y: auto !important;
+        transform: translateX(100%) !important;
+        transition: transform 0.35s ease !important;
+    }
+
+    .nav-links-complex.nav-open {
+        display: flex !important;
+        transform: translateX(0) !important;
+    }
+
+    .nav-links-complex li {
+        width: 100% !important;
+    }
+
+    .nav-link-item {
+        padding: 0.85rem 1.5rem !important;
+        border-radius: 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+        width: 100% !important;
+        font-size: 1rem !important;
+        justify-content: flex-start !important;
+        white-space: normal !important;
+    }
+
+    .nav-btn-warning {
+        margin: 1rem 1.5rem !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .brand-logo-img {
+        height: 36px !important;
+        margin-right: 8px !important;
+    }
+
+    .brand-title {
+        font-size: 1rem !important;
+    }
+
+    .brand-subtitle {
+        font-size: 0.75rem !important;
+    }
+}

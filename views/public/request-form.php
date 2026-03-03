@@ -146,8 +146,17 @@
                         </div>
                     </div>
                     
+                    <div class="form-group mb-4">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="integrity_pact" name="integrity_pact" value="1" required>
+                            <label class="custom-control-label font-weight-bold text-danger" for="integrity_pact">
+                                <i class="fas fa-exclamation-circle"></i> Saya berjanji tidak akan memperjualbelikan bibit ini dan bersedia dikenakan sanksi jika melanggar.
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="submitRequestBtn" disabled>
                             <i class="fas fa-paper-plane"></i> Ajukan Permintaan
                         </button>
                         <a href="<?= url('public/dashboard') ?>" class="btn btn-secondary">
@@ -200,6 +209,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const addItemBtn = document.getElementById('addItemBtn');
     const totalDisplay = document.getElementById('totalDisplay');
     const totalQuantitySpan = document.getElementById('totalQuantity');
+    const submitBtn = document.getElementById('submitRequestBtn');
+    const integrityPactCheckbox = document.getElementById('integrity_pact');
     
     let itemCounter = 0;
     let availableStocks = []; // Store available stock data
@@ -627,6 +638,16 @@ document.addEventListener('DOMContentLoaded', function() {
         inputs.forEach(input => input.disabled = true);
         addItemBtn.disabled = true;
     }
+
+    // Toggle submit button based on integrity pact checkbox
+    if (integrityPactCheckbox && submitBtn) {
+        integrityPactCheckbox.addEventListener('change', function() {
+            // Only enable if quota is > 0
+            if (remainingQuota > 0) {
+                submitBtn.disabled = !this.checked;
+            }
+        });
+    }
     
     requestForm.addEventListener('submit', function(e) {
         const total = calculateTotal();
@@ -666,6 +687,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (total > 25 && !proposalInput.files[0]) {
             e.preventDefault();
             alert('Permintaan bibit lebih dari 25 batang wajib melampirkan surat pengajuan/proposal');
+            return false;
+        }
+
+        // Validate integrity pact
+        if (!integrityPactCheckbox.checked) {
+            e.preventDefault();
+            alert('Anda harus menyetujui pakta integritas untuk mengajukan permintaan');
             return false;
         }
     });

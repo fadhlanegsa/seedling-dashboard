@@ -65,24 +65,30 @@
                         <?php $user = currentUser(); ?>
                          <li>
                             <?php if ($user['role'] === 'admin'): ?>
-                                <a href="<?= url('admin/dashboard') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold;">
+                                <a href="<?= url('admin/dashboard') ?>" class="btn btn-warning nav-btn-warning">
                                     <i class="fas fa-tachometer-alt"></i> Dashboard Admin
                                 </a>
                             <?php elseif ($user['role'] === 'bpdas'): ?>
-                                <a href="<?= url('bpdas/dashboard') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold;">
+                                <a href="<?= url('bpdas/dashboard') ?>" class="btn btn-warning nav-btn-warning">
                                     <i class="fas fa-tachometer-alt"></i> Dashboard BPDAS
                                 </a>
                             <?php else: ?>
-                                <a href="<?= url('public/dashboard') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold;">
+                                <a href="<?= url('public/dashboard') ?>" class="btn btn-warning nav-btn-warning">
                                     <i class="fas fa-user-circle"></i> Akun Saya
                                 </a>
                             <?php endif; ?>
                         </li>
-                        <li><a href="<?= url('auth/logout') ?>" class="nav-link-item"><i class="fas fa-sign-out-alt"></i></a></li>
+                        <li>
+                            <a href="<?= url('auth/logout') ?>" class="nav-link-item text-danger" title="Logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </a>
+                        </li>
                     <?php else: ?>
-                        <li><a href="<?= url('auth/login') ?>" class="btn btn-warning btn-sm" style="color: #333; font-weight: bold; margin-left: 1rem;">
-                            <i class="fas fa-sign-in-alt"></i> Login
-                        </a></li>
+                        <li>
+                            <a href="<?= url('auth/login') ?>" class="btn btn-warning nav-btn-warning">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
                     <?php endif; ?>
                 </ul>
             </nav>
