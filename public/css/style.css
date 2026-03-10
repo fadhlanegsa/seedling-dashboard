@@ -789,17 +789,23 @@ select.form-control {
     gap: 1rem;
     text-decoration: none;
     color: var(--white);
+    flex-shrink: 0;
+    min-width: max-content;
 }
 
 .brand-logo-img {
     height: 50px;
     width: auto;
     margin-right: 10px;
+    flex-shrink: 0;
 }
 
 .brand-text {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    /* Prevent width collapse to 0px */
 }
 
 .brand-title {
@@ -807,13 +813,21 @@ select.form-control {
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    /* Prevent vertical character stacking */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .brand-subtitle {
     font-size: 0.85rem;
     font-weight: 400;
     opacity: 0.9;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    /* Prevent vertical character stacking */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .nav-links-complex {
@@ -847,12 +861,12 @@ select.form-control {
 /* Split Hero Section */
 .hero-split {
     background: var(--light-bg);
-    /* Solid light background */
-    min-height: 85vh;
+    min-height: 55vh;
     display: flex;
     align-items: center;
     position: relative;
-    padding-top: 2rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
 .hero-grid {
@@ -1065,6 +1079,180 @@ select.form-control {
     gap: 0.8rem;
     color: var(--primary-dark);
 }
+
+/* Dynamic news additions */
+.news-image-placeholder {
+    width: 100%;
+    height: 200px;
+    background: #e8f5e9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #a5d6a7;
+}
+
+.news-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.news-source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.news-source-pusat {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.news-source-bpdas {
+    background: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.news-empty-landing {
+    text-align: center;
+    padding: 3rem;
+    color: #aaa;
+    margin-top: 2rem;
+}
+
+.news-empty-landing i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    color: #c8e6c9;
+}
+
+.news-empty-landing p {
+    margin-bottom: 1.5rem;
+}
+
+/* ===== Landing News Tab Filter ===== */
+.nl-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: #fff;
+    padding: 0.4rem;
+    border-radius: 50px;
+    width: -moz-fit-content;
+    width: fit-content;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.nl-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.25rem;
+    border: none;
+    background: transparent;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.nl-tab:hover {
+    color: var(--primary-color);
+}
+
+.nl-tab.active {
+    background: var(--primary-color);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 155, 76, 0.3);
+}
+
+.nl-tab-count {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    font-size: 0.72rem;
+    padding: 0.05rem 0.45rem;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+}
+
+.nl-tab:not(.active) .nl-tab-count {
+    background: #f0f0f0;
+    color: #888;
+}
+
+.nl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 0;
+}
+
+.nl-empty {
+    text-align: center;
+    padding: 3rem;
+    color: #aaa;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.nl-empty i {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 1rem;
+    color: #c8e6c9;
+}
+
+/* Global news source badges (also used in landing) */
+.news-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.news-source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.news-source-pusat {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.news-source-bpdas {
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+
+.news-source-bpth {
+    background: #f1f8e9;
+    color: #33691e;
+}
+
 
 @media (max-width: 992px) {
     .hero-grid {
@@ -1485,6 +1673,7 @@ select.form-control {
         justify-content: center !important;
     }
 }
+
 /* Fix for Select Inputs - Prevent Cutoff */
 select.form-control {
     -webkit-appearance: none;
@@ -1497,6 +1686,7 @@ select.form-control {
     background-size: 12px 12px;
     background-position: right 1rem center;
 }
+
 /* ============================================
    Hamburger Button
    ============================================ */
@@ -1786,6 +1976,7 @@ select.form-control {
         display: none;
     }
 }
+
 /* ============================================
    Search Page Layout
    ============================================ */
@@ -1890,6 +2081,7 @@ select.form-control {
         padding-bottom: 1.5rem;
     }
 }
+
 /* --- Header Layout Overrides --- */
 .navbar-complex {
     display: flex !important;
@@ -1925,15 +2117,17 @@ select.form-control {
 .brand-title {
     font-size: 1.15rem !important;
     line-height: 1.2 !important;
-    white-space: normal !important;
-    word-wrap: break-word;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .brand-subtitle {
     font-size: 0.85rem !important;
     line-height: 1.2 !important;
-    white-space: normal !important;
-    word-wrap: break-word;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .nav-links-complex {

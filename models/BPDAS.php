@@ -59,7 +59,7 @@ class BPDAS extends Model {
     /**
      * Search BPDAS
      * 
-     * @param array $filters Search filters
+     * @param array $filters Search filters (province_id, seedling_type_id, min_stock, nursery_id)
      * @param int $page Page number
      * @param int $perPage Items per page
      * @return array
@@ -102,6 +102,20 @@ class BPDAS extends Model {
             $sql .= " AND s.quantity >= ?";
             $countSql .= " AND s.quantity >= ?";
             $params[] = $filters['min_stock'];
+        }
+        
+        // Filter by specific BPDAS
+        if (!empty($filters['bpdas_id'])) {
+            $sql .= " AND b.id = ?";
+            $countSql .= " AND b.id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+        
+        // Filter by specific Nursery
+        if (!empty($filters['nursery_id'])) {
+            $sql .= " AND s.nursery_id = ?";
+            $countSql .= " AND s.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
         }
         
         $sql .= " GROUP BY b.id, p.name

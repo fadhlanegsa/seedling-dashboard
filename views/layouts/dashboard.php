@@ -127,6 +127,9 @@ $user = currentUser();
                         <li><a href="<?= url('admin/nurseries') ?>" class="<?= $this->activeClass('admin/nurseries') ?>">
                             <i class="fas fa-seedling"></i> Kelola Persemaian
                         </a></li>
+                        <li><a href="<?= url('admin/kabar-kehutanan') ?>" class="<?= $this->activeClass('admin/kabar-kehutanan') ?>">
+                            <i class="fas fa-newspaper"></i> Kabar Kehutanan
+                        </a></li>
                     <?php elseif ($user['role'] === 'bpdas'): ?>
                         <li><a href="<?= url('bpdas/dashboard') ?>" class="<?= $this->activeClass('bpdas/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
@@ -143,6 +146,9 @@ $user = currentUser();
                         <li><a href="<?= url('bpdas/profile') ?>" class="<?= $this->activeClass('bpdas/profile') ?>">
                             <i class="fas fa-user"></i> Profil
                         </a></li>
+                        <li><a href="<?= url('bpdas/kabar-kehutanan') ?>" class="<?= $this->activeClass('bpdas/kabar-kehutanan') ?>">
+                            <i class="fas fa-newspaper"></i> Kabar Kehutanan
+                        </a></li>
                     <?php elseif ($user['role'] === 'operator_persemaian'): ?>
                         <li><a href="<?= url('operator/dashboard') ?>" class="<?= $this->activeClass('operator/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
@@ -155,6 +161,9 @@ $user = currentUser();
                         </a></li>
                         <li><a href="<?= url('operator/map-distribution') ?>" class="<?= $this->activeClass('operator/map-distribution') ?>">
                             <i class="fas fa-map-marked-alt"></i> Peta Distribusi
+                        </a></li>
+                        <li><a href="<?= url('operator/profile') ?>" class="<?= $this->activeClass('operator/profile') ?>">
+                            <i class="fas fa-user"></i> Profil
                         </a></li>
                     <?php else: ?>
                         <li><a href="<?= url('public/dashboard') ?>" class="<?= $this->activeClass('public/dashboard') ?>">

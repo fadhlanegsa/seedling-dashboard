@@ -98,10 +98,11 @@ class User extends Model {
      * @return array|null
      */
     public function getUserWithNursery($id) {
-        $sql = "SELECT u.*, n.name as nursery_name, n.bpdas_id, b.name as bpdas_name
+        $sql = "SELECT u.*, n.name as nursery_name, n.bpdas_id, b.name as bpdas_name, p.name as province_name
                 FROM {$this->table} u
                 LEFT JOIN nurseries n ON u.nursery_id = n.id
                 LEFT JOIN bpdas b ON n.bpdas_id = b.id
+                LEFT JOIN provinces p ON b.province_id = p.id
                 WHERE u.id = ?
                 LIMIT 1";
         

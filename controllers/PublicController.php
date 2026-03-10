@@ -37,8 +37,12 @@ class PublicController extends Controller {
             'approved_requests' => $requestModel->count(['status' => 'approved']),
             'completed_requests' => $requestModel->count(['status' => 'completed'])
         ];
+
+        // Get latest news (up to 9) for Pusat/BPDAS/BPTH tab filter on landing
+        $newsModel = $this->model('News');
+        $latestNews = $newsModel->getAll(null, 9);
         
-        $this->render('public/landing', ['stats' => $stats], 'public');
+        $this->render('public/landing', ['stats' => $stats, 'latestNews' => $latestNews], 'public');
     }
     
     /**
@@ -810,4 +814,34 @@ class PublicController extends Controller {
             'data' => $seedSources
         ]);
     }
+
+    /**
+     * Kabar Kehutanan - public news page (no auth required)
+     */
+    public function kabarKehutanan() {
+        $newsModel = $this->model('News');
+
+        // Default to 'pusat', allow switching via GET param
+        $source  = $this->get('source', 'pusat');
+        if (!in_array($source, ['pusat', 'bpdas', 'bpth'])) {
+            $source = 'pusat';
+        }
+
+        $newsList   = $newsModel->getBySourceType($source);
+        $countPusat = $newsModel->countBySource('pusat');
+        $countBPDAS = $newsModel->countBySource('bpdas');
+        $countBPTH  = $newsModel->countBySource('bpth');
+
+        $data = [
+            'title'        => 'Kabar Kehutanan',
+            'newsList'     => $newsList,
+            'activeSource' => $source,
+            'countPusat'   => $countPusat,
+            'countBPDAS'   => $countBPDAS,
+            'countBPTH'    => $countBPTH
+        ];
+
+        $this->render('public/kabar-kehutanan', $data, 'public');
+    }
 }
+

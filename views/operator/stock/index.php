@@ -36,9 +36,12 @@
                                 <td><?= $stock['notes'] ?? '-' ?></td>
                                 <td><?= date('d/m/Y', strtotime($stock['last_update_date'])) ?></td>
                                 <td>
-                                    <a href="<?= url('operator/stock/edit/' . $stock['id']) ?>" class="btn btn-sm btn-warning">
+                                    <a href="<?= url('operator/stock/edit/' . $stock['id']) ?>" class="btn btn-sm btn-warning mb-1" title="Edit">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
+                                    <button onclick="deleteStock(<?= $stock['id'] ?>)" class="btn btn-sm btn-danger mb-1" title="Hapus">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -61,3 +64,25 @@
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+function deleteStock(id) {
+    if (confirm('Yakin ingin menghapus stok ini?')) {
+        fetch('<?= url('operator/delete-stock/') ?>' + id, {
+            method: 'POST'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Terjadi kesalahan: ' + error);
+            });
+    }
+}
+</script>

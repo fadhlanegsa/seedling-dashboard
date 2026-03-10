@@ -805,4 +805,111 @@ class AdminController extends Controller {
         $this->setFlash('success', 'Persemaian berhasil dihapus');
         $this->redirect('admin/nurseries');
     }
+
+    /**
+     * Kabar Kehutanan - news management (admin sees all news)
+     */
+    public function kabarKehutanan() {
+        $newsModel = $this->model('News');
+        $allNews   = $newsModel->getAll();
+
+        $data = [
+            'title'   => 'Kabar Kehutanan',
+            'newsList' => $allNews
+        ];
+
+        $this->render('admin/kabar-kehutanan', $data, 'dashboard');
+    }
+
+    /**
+     * Store news article (admin can post as 'pusat' or 'bpdas')
+     */
+    public function storeNews() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/kabar-kehutanan');
+            return;
+        }
+
+        if (!$this->validateCSRF()) {
+            return;
+        }
+
+        $title      = sanitize($this->post('title'));
+        $content    = sanitize($this->post('content'));
+        $sourceType = $this->post('source_type', 'pusat');
+        $user       = currentUser();
+
+        if (empty($title) || empty($content)) {
+            $this->setFlash('error', 'Judul dan konten berita harus diisi');
+            $this->redirect('admin/kabar-kehutanan');
+            return;
+        }
+
+        // Handle image upload
+        $imageFilename = null;
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $file      = $_FILES['image'];
+            $finfo     = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType  = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                $this->setFlash('error', 'File gambar harus berformat JPG, PNG, GIF, atau WebP');
+                $this->redirect('admin/kabar-kehutanan');
+                return;
+            }
+
+            if ($file['size'] > 5242880) { // 5MB
+                $this->setFlash('error', 'Ukuran gambar maksimal 5 MB');
+                $this->redirect('admin/kabar-kehutanan');
+                return;
+            }
+
+            $ext           = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $imageFilename = 'news_' . uniqid() . '_' . time() . '.' . $ext;
+            $uploadDir     = UPLOAD_PATH . 'news/';
+
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            if (!move_uploaded_file($file['tmp_name'], $uploadDir . $imageFilename)) {
+                $this->setFlash('error', 'Gagal mengupload gambar');
+                $this->redirect('admin/kabar-kehutanan');
+                return;
+            }
+        }
+
+        $newsModel = $this->model('News');
+        $result    = $newsModel->createNews([
+            'title'          => $title,
+            'content'        => $content,
+            'image_filename' => $imageFilename,
+            'source_type'    => $sourceType,
+            'bpdas_id'       => null,
+            'author_name'    => $user['full_name'] ?? 'Admin',
+        ]);
+
+        if ($result) {
+            $this->setFlash('success', 'Berita berhasil ditambahkan');
+        } else {
+            $this->setFlash('error', 'Gagal menambahkan berita');
+        }
+
+        $this->redirect('admin/kabar-kehutanan');
+    }
+
+    /**
+     * Delete news article
+     */
+    public function deleteNews($id) {
+        $newsModel = $this->model('News');
+
+        if ($newsModel->deleteNews($id)) {
+            $this->json(['success' => true, 'message' => 'Berita berhasil dihapus']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Gagal menghapus berita']);
+        }
+    }
 }

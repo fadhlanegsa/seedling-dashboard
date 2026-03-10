@@ -60,6 +60,11 @@
                             <i class="fas fa-tree"></i> Direktori Sumber Benih
                         </a>
                     </li>
+                    <li>
+                        <a href="<?= url('public/kabar-kehutanan') ?>" class="nav-link-item <?= $this->activeClass('public/kabar-kehutanan') ?>">
+                            <i class="fas fa-newspaper"></i> Kabar Kehutanan
+                        </a>
+                    </li>
                     
                     <?php if (isLoggedIn()): ?>
                         <?php $user = currentUser(); ?>

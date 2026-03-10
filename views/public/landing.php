@@ -151,47 +151,122 @@
     <!-- News / Highlight Section -->
     <section class="news-section">
         <div class="container">
-            <div class="section-title text-center">
+            <div class="section-title text-center" style="margin-bottom: 1.5rem;">
                 <h2>Kabar Kehutanan</h2>
-                <p>Program unggulan dan berita terbaru seputar penghijauan</p>
+                <p>Informasi dan berita terbaru seputar penghijauan dari Pusat, BPDAS, dan BPTH</p>
             </div>
 
-            <div class="news-grid">
-                <!-- News Item 1 -->
-                <div class="news-card">
-                    <img src="https://images.unsplash.com/photo-1576085898323-218337e3e43c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="News 1" class="news-image">
-                    <div class="news-content">
-                        <div class="news-date">8 Februari 2026</div>
-                        <h3 class="news-title">Program 'Satu Juta Pohon' untuk IKN Nusantara</h3>
-                        <p class="news-excerpt">Kementerian Kehutanan meluncurkan program percepatan penghijauan di kawasan Ibu Kota Nusantara dengan fokus pada tanaman endemik...</p>
-                        <a href="#" class="news-link">Baca Selengkapnya <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-
-                <!-- News Item 2 -->
-                <div class="news-card">
-                    <img src="https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="News 2" class="news-image">
-                    <div class="news-content">
-                        <div class="news-date">5 Februari 2026</div>
-                        <h3 class="news-title">Distribusi Bibit Buah Gratis Periode Q1 2026</h3>
-                        <p class="news-excerpt">Masyarakat kini dapat mengajukan permintaan bibit buah produktif melalui dashboard BPDAS terdekat mulai bulan ini...</p>
-                        <a href="#" class="news-link">Baca Selengkapnya <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-
-                <!-- News Item 3 -->
-                <div class="news-card">
-                    <img src="https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="News 3" class="news-image">
-                    <div class="news-content">
-                        <div class="news-date">28 Januari 2026</div>
-                        <h3 class="news-title">Modernisasi Persemaian Rumpin Bogor</h3>
-                        <p class="news-excerpt">Peningkatan fasilitas di Persemaian Rumpin diharapkan dapat meningkatkan kapasitas produksi bibit hingga 20% tahun ini...</p>
-                        <a href="#" class="news-link">Baca Selengkapnya <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
+            <!-- Tab Filter -->
+            <div class="nl-tabs" id="nlTabs">
+                <button class="nl-tab active" data-filter="all">
+                    <i class="fas fa-list"></i> Semua
+                    <span class="nl-tab-count" id="cnt-all"><?= count($latestNews ?? []) ?></span>
+                </button>
+                <button class="nl-tab" data-filter="pusat">
+                    <i class="fas fa-landmark"></i> Pusat
+                    <span class="nl-tab-count" id="cnt-pusat">0</span>
+                </button>
+                <button class="nl-tab" data-filter="bpdas">
+                    <i class="fas fa-water"></i> BPDAS
+                    <span class="nl-tab-count" id="cnt-bpdas">0</span>
+                </button>
+                <button class="nl-tab" data-filter="bpth">
+                    <i class="fas fa-tree"></i> BPTH
+                    <span class="nl-tab-count" id="cnt-bpth">0</span>
+                </button>
             </div>
+
+            <?php if (!empty($latestNews)): ?>
+                <div class="nl-grid" id="nlGrid">
+                    <?php foreach ($latestNews as $news): ?>
+                        <?php
+                            $src = htmlspecialchars($news['source_type']);
+                            $bpdasName = htmlspecialchars($news['bpdas_name'] ?? '');
+                        ?>
+                        <div class="news-card" data-source="<?= $src ?>">
+                            <?php if (!empty($news['image_filename'])): ?>
+                                <img src="<?= asset('uploads/news/' . htmlspecialchars($news['image_filename'])) ?>"
+                                     alt="<?= htmlspecialchars($news['title']) ?>"
+                                     class="news-image"
+                                     onerror="this.outerHTML='<div class=\'news-image-placeholder\'><i class=\'fas fa-leaf\'></i></div>'">
+                            <?php else: ?>
+                                <div class="news-image-placeholder"><i class="fas fa-leaf"></i></div>
+                            <?php endif; ?>
+                            <div class="news-content">
+                                <div class="news-meta-row">
+                                    <?php if ($news['source_type'] === 'pusat'): ?>
+                                        <span class="news-source-pill news-source-pusat"><i class="fas fa-landmark"></i> Pusat</span>
+                                    <?php elseif ($news['source_type'] === 'bpth'): ?>
+                                        <span class="news-source-pill news-source-bpth"><i class="fas fa-tree"></i> <?= $bpdasName ?: 'BPTH' ?></span>
+                                    <?php else: ?>
+                                        <span class="news-source-pill news-source-bpdas"><i class="fas fa-water"></i> <?= $bpdasName ?: 'BPDAS' ?></span>
+                                    <?php endif; ?>
+                                    <div class="news-date"><?= formatDate($news['published_at'], 'j M Y') ?></div>
+                                </div>
+                                <h3 class="news-title"><?= htmlspecialchars($news['title']) ?></h3>
+                                <p class="news-excerpt"><?= htmlspecialchars(mb_strimwidth(strip_tags($news['content']), 0, 110, '...')) ?></p>
+                                <a href="<?= url('public/kabar-kehutanan') ?>" class="news-link">
+                                    Baca Selengkapnya <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="nl-empty" id="nlEmpty" style="display:none">
+                    <i class="fas fa-newspaper"></i>
+                    <p>Belum ada berita dari kategori ini.</p>
+                </div>
+                <div class="text-center" style="margin-top: 2.5rem;">
+                    <a href="<?= url('public/kabar-kehutanan') ?>" class="btn btn-outline btn-lg">
+                        <i class="fas fa-newspaper"></i> Lihat Semua Berita
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="news-empty-landing">
+                    <i class="fas fa-newspaper"></i>
+                    <p>Belum ada berita yang dipublikasikan.</p>
+                    <a href="<?= url('public/kabar-kehutanan') ?>" class="btn btn-outline">
+                        <i class="fas fa-newspaper"></i> Buka Kabar Kehutanan
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
     </section>
+    <script>
+    (function() {
+        var tabs   = document.querySelectorAll('#nlTabs .nl-tab');
+        var cards  = document.querySelectorAll('#nlGrid .news-card');
+        var empty  = document.getElementById('nlEmpty');
+
+        // Count per tab
+        var counts = {pusat: 0, bpdas: 0, bpth: 0};
+        cards.forEach(function(c) {
+            var s = c.dataset.source;
+            if (counts[s] !== undefined) counts[s]++;
+        });
+        document.getElementById('cnt-pusat').textContent = counts.pusat;
+        document.getElementById('cnt-bpdas').textContent = counts.bpdas;
+        document.getElementById('cnt-bpth').textContent  = counts.bpth;
+
+        function filterCards(filter) {
+            var visible = 0;
+            cards.forEach(function(c) {
+                var show = filter === 'all' || c.dataset.source === filter;
+                c.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+        }
+
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                tabs.forEach(function(t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                filterCards(tab.dataset.filter);
+            });
+        });
+    })();
+    </script>
 
     <script>
         // Counter Animation

@@ -75,4 +75,19 @@ class Nursery extends Model {
         );
         return $result ? (int)$result['total'] : 0;
     }
+
+    /**
+     * Get all active nurseries
+     * 
+     * @return array
+     */
+    public function getAllActive() {
+        $sql = "SELECT n.*, b.name as bpdas_name 
+                FROM {$this->table} n
+                INNER JOIN bpdas b ON n.bpdas_id = b.id
+                WHERE n.is_active = 1
+                ORDER BY n.name ASC";
+        
+        return $this->query($sql);
+    }
 }

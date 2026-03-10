@@ -401,6 +401,39 @@ public function uploadDeliveryPhoto() {
     }
 
     /**
+     * Delete Stock
+     */
+    public function deleteStock($id) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+
+        $user = currentUser();
+        $userModel = $this->model('User');
+        $userData = $userModel->getUserWithNursery($user['id']);
+        
+        if (!$userData['nursery_id']) {
+            $this->json(['success' => false, 'message' => 'Akses ditolak']);
+            return;
+        }
+        
+        $stockModel = $this->model('Stock');
+        $stock = $stockModel->find($id);
+        
+        if (!$stock || $stock['nursery_id'] != $userData['nursery_id']) {
+            $this->json(['success' => false, 'message' => 'Stok tidak ditemukan atau Anda tidak memiliki akses']);
+            return;
+        }
+        
+        if ($stockModel->delete($id)) {
+            $this->json(['success' => true, 'message' => 'Stok berhasil dihapus']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Gagal menghapus stok']);
+        }
+    }
+
+    /**
      * Approve request (Delegated Authority)
      */
     public function approveRequest() {
@@ -556,5 +589,92 @@ public function uploadDeliveryPhoto() {
         } else {
             $this->json(['success' => false, 'message' => 'Gagal menolak permintaan']);
         }
+    }
+
+    /**
+     * Operator Profile
+     */
+    public function profile() {
+        $userSession = currentUser();
+        $userModel = $this->model('User');
+        $userData = $userModel->getUserWithNursery($userSession['id']);
+        
+        $data = [
+            'title' => 'Profil Operator Persemaian',
+            'user' => $userData
+        ];
+        
+        $this->render('operator/profile', $data, 'dashboard');
+    }
+
+    /**
+     * Update Operator Profile
+     */
+    public function updateProfile() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('operator/profile');
+            return;
+        }
+
+        if (!$this->validateCSRF()) {
+            return;
+        }
+
+        $userSession = currentUser();
+        $userModel = $this->model('User');
+        $id = $userSession['id'];
+
+        $updateData = [
+            'username' => sanitizeInput($this->post('username')),
+            'full_name' => sanitizeInput($this->post('full_name')),
+            'email' => filter_var($this->post('email'), FILTER_SANITIZE_EMAIL),
+            'phone' => sanitizeInput($this->post('phone'))
+        ];
+
+        // Validations
+        if (empty($updateData['username']) || empty($updateData['full_name']) || empty($updateData['email'])) {
+            $this->setFlash('error', 'Username, Nama Lengkap, dan Email wajib diisi.');
+            $this->redirect('operator/profile');
+            return;
+        }
+
+        if (!filter_var($updateData['email'], FILTER_VALIDATE_EMAIL)) {
+            $this->setFlash('error', 'Format email tidak valid.');
+            $this->redirect('operator/profile');
+            return;
+        }
+
+        // Check if username/email exists for OTHER users
+        $existingUser = $userModel->findByUsernameOrEmail($updateData['username'], $updateData['email']);
+        if ($existingUser && $existingUser['id'] != $id) {
+            $this->setFlash('error', 'Username atau Email sudah digunakan oleh pengguna lain.');
+            $this->redirect('operator/profile');
+            return;
+        }
+
+        // Handle password update if provided
+        $newPassword = $this->post('new_password');
+        if (!empty($newPassword)) {
+            if (strlen($newPassword) < 6) {
+                $this->setFlash('error', 'Password baru minimal 6 karakter.');
+                $this->redirect('operator/profile');
+                return;
+            }
+            $updateData['password'] = password_hash($newPassword, PASSWORD_DEFAULT);
+        }
+
+        // Update process
+        if ($userModel->update($id, $updateData)) {
+            // Update session data
+            $_SESSION['user']['username'] = $updateData['username'];
+            $_SESSION['user']['full_name'] = $updateData['full_name'];
+            $_SESSION['user']['email'] = $updateData['email'];
+            
+            $this->setFlash('success', 'Profil berhasil diperbarui.');
+        } else {
+            $this->setFlash('error', 'Gagal memperbarui profil.');
+        }
+
+        $this->redirect('operator/profile');
     }
 }

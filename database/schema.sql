@@ -106,7 +106,7 @@ CREATE TABLE stock (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (bpdas_id) REFERENCES bpdas(id) ON DELETE CASCADE,
     FOREIGN KEY (seedling_type_id) REFERENCES seedling_types(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_stock (bpdas_id, seedling_type_id),
+    UNIQUE KEY unique_stock (nursery_id, seedling_type_id),
     INDEX idx_bpdas (bpdas_id),
     INDEX idx_seedling (seedling_type_id),
     INDEX idx_quantity (quantity)

@@ -849,4 +849,123 @@ class BPDASController extends Controller {
             ]);
         }
     }
+
+    /**
+     * Kabar Kehutanan - BPDAS sees only their own news
+     */
+    public function kabarKehutanan() {
+        $user    = currentUser();
+        $bpdasId = $user['bpdas_id'];
+
+        $newsModel = $this->model('News');
+        $newsList  = $newsModel->getByBPDAS($bpdasId);
+
+        $data = [
+            'title'    => 'Kabar Kehutanan',
+            'newsList' => $newsList
+        ];
+
+        $this->render('bpdas/kabar-kehutanan', $data, 'dashboard');
+    }
+
+    /**
+     * Store news article for BPDAS (source_type = bpdas, bpdas_id = current)
+     */
+    public function storeNews() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('bpdas/kabar-kehutanan');
+            return;
+        }
+
+        if (!$this->validateCSRF()) {
+            return;
+        }
+
+        $user    = currentUser();
+        $bpdasId = $user['bpdas_id'];
+        $title   = sanitize($this->post('title'));
+        $content = sanitize($this->post('content'));
+
+        if (empty($title) || empty($content)) {
+            $this->setFlash('error', 'Judul dan konten berita harus diisi');
+            $this->redirect('bpdas/kabar-kehutanan');
+            return;
+        }
+
+        // Handle image upload
+        $imageFilename = null;
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $file     = $_FILES['image'];
+            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                $this->setFlash('error', 'File gambar harus berformat JPG, PNG, GIF, atau WebP');
+                $this->redirect('bpdas/kabar-kehutanan');
+                return;
+            }
+
+            if ($file['size'] > 5242880) {
+                $this->setFlash('error', 'Ukuran gambar maksimal 5 MB');
+                $this->redirect('bpdas/kabar-kehutanan');
+                return;
+            }
+
+            $ext           = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $imageFilename = 'news_' . uniqid() . '_' . time() . '.' . $ext;
+            $uploadDir     = UPLOAD_PATH . 'news/';
+
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            if (!move_uploaded_file($file['tmp_name'], $uploadDir . $imageFilename)) {
+                $this->setFlash('error', 'Gagal mengupload gambar');
+                $this->redirect('bpdas/kabar-kehutanan');
+                return;
+            }
+        }
+
+        $newsModel = $this->model('News');
+        $result    = $newsModel->createNews([
+            'title'          => $title,
+            'content'        => $content,
+            'image_filename' => $imageFilename,
+            'source_type'    => 'bpdas',
+            'bpdas_id'       => $bpdasId,
+            'author_name'    => $user['full_name'] ?? 'BPDAS',
+        ]);
+
+        if ($result) {
+            $this->setFlash('success', 'Berita berhasil ditambahkan');
+        } else {
+            $this->setFlash('error', 'Gagal menambahkan berita');
+        }
+
+        $this->redirect('bpdas/kabar-kehutanan');
+    }
+
+    /**
+     * Delete news (BPDAS can only delete their own)
+     */
+    public function deleteNews($id) {
+        $user      = currentUser();
+        $bpdasId   = $user['bpdas_id'];
+        $newsModel = $this->model('News');
+        $news      = $newsModel->find($id);
+
+        if (!$news || $news['bpdas_id'] != $bpdasId) {
+            $this->json(['success' => false, 'message' => 'Berita tidak ditemukan atau bukan milik BPDAS Anda']);
+            return;
+        }
+
+        if ($newsModel->deleteNews($id)) {
+            $this->json(['success' => true, 'message' => 'Berita berhasil dihapus']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Gagal menghapus berita']);
+        }
+    }
 }
+

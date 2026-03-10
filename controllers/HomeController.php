@@ -50,6 +50,8 @@ class HomeController extends Controller {
         // Get search filters
         $filters = [
             'province_id' => $this->get('province_id'),
+            'bpdas_id' => $this->get('bpdas_id'),
+            'nursery_id' => $this->get('nursery_id'),
             'seedling_type_id' => $this->get('seedling_type_id'),
             'min_stock' => $this->get('min_stock')
         ];
@@ -59,16 +61,22 @@ class HomeController extends Controller {
         // Search BPDAS
         $results = $bpdasModel->search($filters, $page);
         
-        // Get provinces and seedling types for filters
+        // Get provinces, bpdas, seedling types, and nurseries for filters
         $provinces = $provinceModel->getAllOrdered();
+        $bpdasList = $bpdasModel->getAllWithProvince();
         $seedlingTypes = $seedlingTypeModel->getAllActive();
+        
+        $nurseryModel = $this->model('Nursery');
+        $nurseries = $nurseryModel->getAllActive();
         
         $data = [
             'title' => 'Hasil Pencarian BPDAS',
             'results' => $results,
             'filters' => $filters,
             'provinces' => $provinces,
-            'seedlingTypes' => $seedlingTypes
+            'bpdasList' => $bpdasList,
+            'seedlingTypes' => $seedlingTypes,
+            'nurseries' => $nurseries
         ];
         
         $this->render('public/search', $data, 'public');

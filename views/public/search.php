@@ -33,6 +33,30 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="form-label">BPDAS</label>
+                            <select name="bpdas_id" class="form-control">
+                                <option value="">-- Semua BPDAS --</option>
+                                <?php foreach ($bpdasList as $bpdas): ?>
+                                    <option value="<?= $bpdas['id'] ?>" <?= ($filters['bpdas_id'] == $bpdas['id']) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($bpdas['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Persemaian</label>
+                            <select name="nursery_id" class="form-control">
+                                <option value="">-- Semua Persemaian --</option>
+                                <?php foreach ($nurseries as $nursery): ?>
+                                    <option value="<?= $nursery['id'] ?>" <?= ($filters['nursery_id'] == $nursery['id']) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($nursery['name']) ?> (<?= htmlspecialchars($nursery['bpdas_name']) ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label class="form-label">Jenis Bibit</label>
                             <select name="seedling_type_id" class="form-control">
                                 <option value="">-- Semua Jenis --</option>
