@@ -13,6 +13,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 
 require_once CORE_PATH . 'Controller.php';
+require_once VIEWS_PATH . 'helpers/view_helpers.php'; // Required for status_text()
 
 class ExportController extends Controller {
     
@@ -176,6 +177,201 @@ class ExportController extends Controller {
         
         // Stream PDF
         $filename = 'Laporan_Stok_Bibit_' . date('Y-m-d_H-i-s') . '.pdf';
+        $dompdf->stream($filename, ["Attachment" => true]);
+        exit;
+    }
+    
+    /**
+     * Export Requests to Excel
+     */
+    public function requestsExcel() {
+        $user = currentUser();
+        // Cek hanya bisa diakses BPDAS/Admin
+        if ($user['role'] !== 'bpdas' && $user['role'] !== 'admin') {
+             $this->redirect('dashboard');
+             return;
+        }
+
+        $bpdasId = $user['bpdas_id'];
+        $status = $this->get('status');
+        
+        $requestModel = $this->model('Request');
+        // Ambil data (tidak peduli pagination, ambil semua karena export)
+        // Kita bisa panggil getByBPDAS yang ada di Request Model yg unpaginated
+        // Note: kalau data terlalu besar, mungkin butuh chunking
+        $requests = $requestModel->getByBPDAS($bpdasId, $status);
+        
+        // Create Spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set Properties
+        $spreadsheet->getProperties()
+            ->setCreator($user['full_name'])
+            ->setLastModifiedBy($user['full_name'])
+            ->setTitle("Daftar Permintaan Bibit")
+            ->setSubject("Data Permintaan Bibit")
+            ->setDescription("Export Data Permintaan Bibit System");
+            
+        // Add Metadata Header Before Table
+        $sheet->setCellValue('A1', 'LAPORAN DATA PERMINTAAN BIBIT');
+        $sheet->mergeCells('A1:J1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->setCellValue('A2', 'Dicetak Oleh : ' . $user['full_name'] . ' (' . ucfirst($user['role']) . ')');
+        $sheet->mergeCells('A2:E2');
+        $sheet->setCellValue('A3', 'BPDAS : ' . ($user['bpdas_name'] ?? 'Seluruh BPDAS'));
+        $sheet->mergeCells('A3:E3');
+        $sheet->setCellValue('A4', 'Status Filter : ' . ($status ? status_text($status) : 'Semua Status'));
+        $sheet->mergeCells('A4:E4');
+        $sheet->setCellValue('A5', 'Tanggal Cetak : ' . date('d F Y H:i'));
+        $sheet->mergeCells('A5:E5');
+
+        // Header Row
+        $headers = [
+            'No', 'No. Permintaan', 'Tanggal', 'Pemohon', 'Email', 
+            'NIK', 'No. HP', 'Tujuan Penggunaan', 'Detail Bibit (Jenis & Jumlah)', 'Total Jumlah', 
+            'Luas Lahan', 'Alamat Tanam', 'Koordinat', 'Status'
+        ];
+        $col = 'A';
+        $startRow = 7;
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . $startRow, $header);
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+            $col++;
+        }
+        
+        // Style Header
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2C3E50']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ];
+        // J is no longer the end, now we have N columns
+        $sheet->getStyle('A'.$startRow.':N'.$startRow)->applyFromArray($headerStyle);
+        
+        // Fill Data
+        $row = $startRow + 1;
+        foreach ($requests as $index => $req) {
+            // Ambil detail items jika ada
+            $items = $requestModel->getRequestItems($req['id']);
+            $detailBibit = '';
+            
+            if (!empty($items)) {
+                $itemStrings = [];
+                foreach ($items as $item) {
+                     $itemStrings[] = $item['seedling_name'] . ' (' . number_format($item['quantity'], 0, ',', '.') . ')';
+                }
+                $detailBibit = implode(", \n", $itemStrings);
+            } else {
+                 $detailBibit = ($req['seedling_name'] ?? '-') . ' (' . number_format($req['quantity'] ?? 0, 0, ',', '.') . ')';
+            }
+
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, $req['request_number'] ?? '-');
+            $sheet->setCellValue('C' . $row, isset($req['created_at']) ? date('d-m-Y', strtotime($req['created_at'])) : '-');
+            $sheet->setCellValue('D' . $row, $req['requester_name'] ?? '-');
+            $sheet->setCellValue('E' . $row, $req['requester_email'] ?? '-');
+            // Supaya excel tak ubah NIK jadi angka sci notation 
+            $sheet->setCellValueExplicit('F' . $row, $req['requester_nik'] ?? '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('G' . $row, $req['requester_phone'] ?? '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('H' . $row, $req['purpose'] ?? '-');
+            
+            $sheet->setCellValue('I' . $row, $detailBibit);
+            // Tambahkan newline style agar text terwrap
+            $sheet->getStyle('I' . $row)->getAlignment()->setWrapText(true);
+            
+            $sheet->setCellValue('J' . $row, $req['item_quantity'] ?? $req['quantity'] ?? 0);
+            
+            // Kolom Tambahan Detail
+            // Luas Lahan (biasanya tersimpan sebagai land_area)
+            $sheet->setCellValue('K' . $row, ($req['land_area'] ?? '-') . ' Ha');
+            $sheet->setCellValue('L' . $row, $req['planting_address'] ?? '-');
+            $koordinat = (isset($req['latitude']) && isset($req['longitude'])) ? $req['latitude'].', '.$req['longitude'] : '-';
+            $sheet->setCellValue('M' . $row, $koordinat);
+            
+            $sheet->setCellValue('N' . $row, status_text($req['status'] ?? 'pending'));
+            $row++;
+        }
+        
+        // Border Style
+        $borderStyle = [
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+        ];
+        $sheet->getStyle('A'.$startRow.':N' . ($row - 1))->applyFromArray($borderStyle);
+        
+        // Alignments
+        $sheet->getStyle('A'.($startRow+1).':A' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('J'.($startRow+1).':J' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Filename
+        $filename = 'Permintaan_Bibit_' . date('Y-m-d_H-i-s') . '.xlsx';
+        
+        // Redirect Output
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * Export Requests to PDF
+     */
+    public function requestsPDF() {
+        $user = currentUser();
+        if ($user['role'] !== 'bpdas' && $user['role'] !== 'admin') {
+             $this->redirect('dashboard');
+             return;
+        }
+
+        $bpdasId = $user['bpdas_id'];
+        $status = $this->get('status');
+        
+        $requestModel = $this->model('Request');
+        $requests = $requestModel->getByBPDAS($bpdasId, $status);
+        
+        // Get details per request
+        foreach($requests as &$req) {
+            $req['items'] = $requestModel->getRequestItems($req['id']);
+        }
+        unset($req);
+
+        // Fetch BPDAS Name if available
+        if (!isset($user['bpdas_name']) && isset($bpdasId)) {
+            $bpdasModel = $this->model('BPDAS');
+            $bpdas = $bpdasModel->find($bpdasId);
+            $user['bpdas_name'] = $bpdas ? $bpdas['name'] : 'Seluruh BPDAS';
+        }
+
+        // View Data
+        $data = [
+            'requests' => $requests,
+            'status' => $status,
+            'download_time' => date('d F Y H:i'),
+            'user' => $user
+        ];
+        
+        // Load HTML content
+        ob_start();
+        $this->render('exports/requests_pdf', $data);
+        $html = ob_get_clean();
+        
+        // Init DomPDF
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true); 
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+        
+        // Stream PDF
+        $filename = 'Permintaan_Bibit_' . date('Y-m-d_H-i-s') . '.pdf';
         $dompdf->stream($filename, ["Attachment" => true]);
         exit;
     }

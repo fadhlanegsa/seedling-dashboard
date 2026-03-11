@@ -534,4 +534,37 @@ class Stock extends Model {
             'last_update_date' => date('Y-m-d')
         ]);
     }
+
+    /**
+     * Upsert stock from API Push
+     * 
+     * @param int $bpdasId
+     * @param int $nurseryId
+     * @param int $seedlingTypeId
+     * @param int $quantity
+     * @param string|null $notes
+     * @param string|null $lastSyncTimestamp
+     * @return bool|int
+     */
+    public function upsertApiStock($bpdasId, $nurseryId, $seedlingTypeId, $quantity, $notes = null, $lastSyncTimestamp = null) {
+        // Default update date is current time
+        $updateDate = $lastSyncTimestamp ? date('Y-m-d H:i:s', strtotime($lastSyncTimestamp)) : date('Y-m-d H:i:s');
+        
+        $data = [
+            'quantity' => (int)$quantity,
+            'last_update_date' => $updateDate,
+            'notes' => $notes
+        ];
+        
+        $existing = $this->findByNurseryAndSeedling($nurseryId, $seedlingTypeId);
+        
+        if ($existing) {
+            return $this->update($existing['id'], $data);
+        } else {
+            $data['nursery_id'] = $nurseryId;
+            $data['bpdas_id'] = $bpdasId;
+            $data['seedling_type_id'] = $seedlingTypeId;
+            return $this->create($data);
+        }
+    }
 }

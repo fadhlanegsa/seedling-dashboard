@@ -11,17 +11,28 @@
 <!-- Status Filter -->
 <div class="card mb-3">
     <div class="card-body">
-        <div class="filter-buttons">
-            <a href="<?= url('bpdas/requests') ?>" 
-               class="btn btn-sm <?= !$currentStatus ? 'btn-primary' : 'btn-outline-primary' ?>">
-                Semua
-            </a>
-            <?php foreach (REQUEST_STATUS as $statusKey => $statusLabel): ?>
-                <a href="<?= url('bpdas/requests?status=' . $statusKey) ?>" 
-                   class="btn btn-sm <?= $currentStatus == $statusKey ? 'btn-primary' : 'btn-outline-primary' ?>">
-                    <?= htmlspecialchars($statusLabel) ?>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="filter-buttons">
+                <a href="<?= url('bpdas/requests') ?>" 
+                   class="btn btn-sm <?= !$currentStatus ? 'btn-primary' : 'btn-outline-primary' ?>">
+                    Semua
                 </a>
-            <?php endforeach; ?>
+                <?php foreach (REQUEST_STATUS as $statusKey => $statusLabel): ?>
+                    <a href="<?= url('bpdas/requests?status=' . $statusKey) ?>" 
+                       class="btn btn-sm <?= $currentStatus == $statusKey ? 'btn-primary' : 'btn-outline-primary' ?>">
+                        <?= htmlspecialchars($statusLabel) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+            <div class="export-buttons">
+                <?php $exportQuery = $currentStatus ? '?status=' . $currentStatus : ''; ?>
+                <a href="<?= url('export/requestsExcel' . $exportQuery) ?>" class="btn btn-sm btn-success">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <a href="<?= url('export/requestsPDF' . $exportQuery) ?>" class="btn btn-sm btn-danger" target="_blank">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </a>
+            </div>
         </div>
     </div>
 </div>

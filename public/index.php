@@ -100,6 +100,23 @@ elseif ($parts[0] === 'operator') {
         $params = array_slice($parts, 2);
     }
 }
+// Handle special routing for api/*
+elseif ($parts[0] === 'api') {
+    $subModule = isset($parts[1]) ? $parts[1] : '';
+    
+    // Disable CSRF for API routes generally or handle via headers
+    // Actually, in our ApiController, we don't enforce CSRF, we enforce x-api-key
+    
+    if ($subModule === 'stock') {
+        $controllerName = 'ApiStockController';
+        $action = isset($parts[2]) ? $parts[2] : 'index';
+        $params = array_slice($parts, 3);
+    } else {
+        $controllerName = 'ApiController';
+        $action = 'index';
+        $params = [];
+    }
+}
 else {
     // Handle special cases for acronyms
     $controller = $parts[0];
