@@ -85,7 +85,7 @@ if (isset($pagination)) {
 }
 ?>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
   function createAccount(id) {
     if (confirm('Yakin ingin membuat akun untuk BPDAS ini?')) {
       window.location.href = '<?= url('admin/create-account/') ?>' + id;

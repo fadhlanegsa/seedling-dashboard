@@ -1,7 +1,21 @@
-<div class="page-header">
-    <h1><i class="fas fa-home"></i> Dashboard Operator</h1>
-    <p>Selamat datang, <strong><?= $user['full_name'] ?></strong></p>
-    <p class="text-muted"><i class="fas fa-building"></i> <?= $bpdas_name ?> - <i class="fas fa-leaf"></i> <?= $nursery_name ?></p>
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-home"></i> Dashboard Operator</h1>
+        <p>Selamat datang, <strong><?= $user['full_name'] ?></strong></p>
+        <p class="text-muted"><i class="fas fa-building"></i> <?= $bpdas_name ?> - <i class="fas fa-leaf"></i> <?= $nursery_name ?></p>
+    </div>
+    
+    <!-- Global Program Filter -->
+    <div class="program-filter">
+        <form action="<?= url('operator/dashboard') ?>" method="GET" class="form-inline">
+            <label for="program_type" class="mr-2 font-weight-bold">Filter Program:</label>
+            <select name="program_type" id="program_type" class="form-control" onchange="this.form.submit()">
+                <option value="">Semua Program</option>
+                <option value="Reguler" <?= ($currentProgram === 'Reguler') ? 'selected' : '' ?>>Reguler</option>
+                <option value="FOLU" <?= ($currentProgram === 'FOLU') ? 'selected' : '' ?>>FOLU Net Sink 2030</option>
+            </select>
+        </form>
+    </div>
 </div>
 
 <!-- Stats -->
@@ -50,8 +64,7 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>Jenis Bibit</th>
-                        <th>Nama Ilmiah</th>
+                        <th>Jenis/Program Bibit</th>
                         <th>Kategori</th>
                         <th>Jumlah Stok</th>
                         <th>Terakhir Update</th>
@@ -65,9 +78,15 @@
                     <?php else: ?>
                         <?php foreach ($stocks['data'] as $stock): ?>
                             <tr>
-                                <td><?= $stock['seedling_name'] ?></td>
-                                <td><em><?= $stock['scientific_name'] ?></em></td>
-                                <td><span class="badge badge-info"><?= $stock['category'] ?></span></td>
+                                <td>
+                                    <?= $stock['seedling_name'] ?><br><small class="text-muted"><em><?= $stock['scientific_name'] ?></em></small><br>
+                                    <?php if(($stock['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                        <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-primary">Reguler</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span class="badge badge-secondary"><?= $stock['category'] ?></span></td>
                                 <td class="font-weight-bold"><?= number_format($stock['quantity']) ?></td>
                                 <td><?= date('d M Y', strtotime($stock['last_update_date'])) ?></td>
                             </tr>

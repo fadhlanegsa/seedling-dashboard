@@ -144,7 +144,7 @@ class AuthController extends Controller {
         
         // Validate required fields
         $errors = $this->validateRequired($data, [
-            'username', 'email', 'password', 'password_confirm', 
+            'username', 'password', 'password_confirm', 
             'full_name', 'phone', 'nik', 'user_type'
         ]);
         
@@ -162,7 +162,7 @@ class AuthController extends Controller {
         }
         
         // Validate email
-        if (!$this->validateEmail($data['email'])) {
+        if (!empty($data['email']) && !$this->validateEmail($data['email'])) {
             $this->setFlash('error', 'Format email tidak valid');
             $this->redirect('auth/register');
             return;
@@ -199,7 +199,7 @@ class AuthController extends Controller {
         }
         
         // Check if email exists
-        if ($userModel->emailExists($data['email'])) {
+        if (!empty($data['email']) && $userModel->emailExists($data['email'])) {
             $this->setFlash('error', 'Email sudah terdaftar');
             $this->redirect('auth/register');
             return;

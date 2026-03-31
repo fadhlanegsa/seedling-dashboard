@@ -64,6 +64,22 @@ class EmailSender {
     }
     
     /**
+     * Send cancellation notification to requester
+     * 
+     * @param array $request Request data
+     * @param string $reason Cancellation reason
+     * @return bool
+     */
+    public function sendCancellationNotification($request, $reason) {
+        $to = $request['requester_email'];
+        $subject = 'Permintaan Bibit Dibatalkan - ' . $request['request_number'];
+        
+        $message = $this->getCancellationEmailTemplate($request, $reason);
+        
+        return $this->send($to, $subject, $message);
+    }
+    
+    /**
      * Send email using PHP mail() function
      * 
      * @param string $to Recipient email
@@ -309,6 +325,73 @@ class EmailSender {
                     <p><?= nl2br(htmlspecialchars($reason)) ?></p>
                     
                     <p>Anda dapat mengajukan permintaan baru dengan menyesuaikan jumlah atau jenis bibit yang tersedia.</p>
+                    
+                    <a href="<?= url('public/request-form') ?>" class="button">Ajukan Permintaan Baru</a>
+                </div>
+                <div class="footer">
+                    <p>Email ini dikirim secara otomatis oleh sistem Dashboard Stok Bibit Persemaian Indonesia.</p>
+                    <p>Jangan balas email ini.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Get cancellation email template
+     * 
+     * @param array $request
+     * @param string $reason
+     * @return string
+     */
+    private function getCancellationEmailTemplate($request, $reason) {
+        ob_start();
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #c0392b; color: white; padding: 20px; text-align: center; }
+                .content { background: #f9f9f9; padding: 20px; }
+                .danger { background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                .detail { margin: 10px 0; }
+                .label { font-weight: bold; display: inline-block; width: 150px; }
+                .button { display: inline-block; padding: 10px 20px; background: #2d5016; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+                .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2>Permintaan Bibit Dibatalkan</h2>
+                </div>
+                <div class="content">
+                    <p>Yth. <?= $request['requester_name'] ?>,</p>
+                    
+                    <div class="danger">
+                        Mohon maaf, permintaan bibit Anda telah <strong>dibatalkan</strong> karena tidak ada pengambilan.
+                    </div>
+                    
+                    <p>Detail permintaan:</p>
+                    
+                    <div class="detail">
+                        <span class="label">Nomor Permintaan:</span>
+                        <span><?= $request['request_number'] ?></span>
+                    </div>
+                    <div class="detail">
+                        <span class="label">BPDAS:</span>
+                        <span><?= $request['bpdas_name'] ?></span>
+                    </div>
+                    
+                    <p><strong>Alasan Pembatalan:</strong></p>
+                    <p><?= nl2br(htmlspecialchars($reason)) ?></p>
+                    
+                    <p>Jika Anda masih membutuhkan bibit, silakan ajukan permintaan baru dan pastikan hadir pada waktu yang telah ditentukan.</p>
                     
                     <a href="<?= url('public/request-form') ?>" class="button">Ajukan Permintaan Baru</a>
                 </div>

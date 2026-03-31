@@ -114,7 +114,7 @@ if (isset($pagination)) {
 }
 ?>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 function deleteUser(id) {
     if (confirm('Yakin ingin menghapus pengguna ini?')) {
         fetch('<?= url('admin/delete-user/') ?>' + id, {

@@ -109,7 +109,8 @@ define('REQUEST_STATUS', [
     'pending' => 'Menunggu Persetujuan',
     'approved' => 'Disetujui',
     'rejected' => 'Ditolak',
-    'delivered' => 'Sudah Diserahkan'
+    'delivered' => 'Sudah Diserahkan',
+    'cancelled' => 'Dibatalkan'
 ]);
 
 // User Roles
@@ -124,6 +125,11 @@ define('USER_ROLES', [
 function url($path = '') {
     $base = APP_URL . '/public';
     return $base . '/' . ltrim($path, '/');
+}
+
+// Helper function to get CSP nonce for inline scripts
+function cspNonce() {
+    return $GLOBALS['csp_nonce'] ?? '';
 }
 
 // Helper function to get asset URL

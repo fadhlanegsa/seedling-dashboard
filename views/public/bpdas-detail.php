@@ -66,7 +66,12 @@
                         <?php foreach ($stock as $index => $item): ?>
                             <tr>
                                 <td><?= $index + 1 ?></td>
-                                <td><strong><?= htmlspecialchars($item['seedling_name']) ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($item['seedling_name']) ?></strong>
+                                    <?php if(($item['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                        <br><span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><em><?= htmlspecialchars($item['scientific_name'] ?? '-') ?></em></td>
                                 <td><span class="badge badge-info"><?= htmlspecialchars($item['category']) ?></span></td>
                                 <td><strong><?= formatNumber($item['quantity']) ?></strong></td>
@@ -91,7 +96,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 $(document).ready(function() {
     $('#stockTable').DataTable({
         language: {

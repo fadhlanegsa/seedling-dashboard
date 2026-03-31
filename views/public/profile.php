@@ -208,7 +208,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 document.addEventListener('DOMContentLoaded', function() {
     const passwordForm = document.getElementById('passwordForm');
     const newPassword = document.getElementById('new_password');

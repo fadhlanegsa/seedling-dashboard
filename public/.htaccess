@@ -1,7 +1,9 @@
 # Enable Rewrite Engine
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # RewriteBase /
+    # PENTING: Sesuaikan RewriteBase dengan path folder public di hosting jika diperlukan
+    # Untuk localhost, biasanya biarkan otomatis atau sesuaikan dengan path subdirektori
+    # RewriteBase /seedling-dashboard/public/
     
     # Allow passing HTTP Authorization header
     RewriteCond %{HTTP:Authorization} .
@@ -13,8 +15,19 @@
     RewriteRule ^(.*)$ index.php [QSA,L]
 </IfModule>
 
+
 # Set default charset
 AddDefaultCharset UTF-8
+
+# Hide server info
+ServerSignature Off
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+<IfModule mod_php.c>
+    php_flag expose_php Off
+</IfModule>
 
 # Enable compression
 <IfModule mod_deflate.c>

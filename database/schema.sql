@@ -98,6 +98,7 @@ CREATE TABLE seedling_types (
 CREATE TABLE stock (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bpdas_id INT NOT NULL,
+    nursery_id INT DEFAULT NULL,
     seedling_type_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT 0,
     last_update_date DATE NOT NULL,
@@ -105,9 +106,11 @@ CREATE TABLE stock (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (bpdas_id) REFERENCES bpdas(id) ON DELETE CASCADE,
+    FOREIGN KEY (nursery_id) REFERENCES nurseries(id) ON DELETE SET NULL,
     FOREIGN KEY (seedling_type_id) REFERENCES seedling_types(id) ON DELETE CASCADE,
     UNIQUE KEY unique_stock (nursery_id, seedling_type_id),
     INDEX idx_bpdas (bpdas_id),
+    INDEX idx_nursery (nursery_id),
     INDEX idx_seedling (seedling_type_id),
     INDEX idx_quantity (quantity)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -2,7 +2,8 @@
     RewriteEngine On
     # RewriteBase /
 
-    RewriteCond %{REQUEST_URI} !^/public/
+    # Redirect to public folder if not already there
+    RewriteCond %{REQUEST_URI} !/public/
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 

@@ -31,8 +31,8 @@
     </div>
 
     <div class="form-group">
-        <label class="form-label">Email *</label>
-        <input type="email" name="email" class="form-control" required>
+        <label class="form-label">Email (Opsional)</label>
+        <input type="email" name="email" class="form-control">
     </div>
 
     <div class="form-group">
@@ -77,7 +77,7 @@
     <p>Sudah punya akun? <a href="<?= url('auth/login') ?>">Login di sini</a></p>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 document.addEventListener('DOMContentLoaded', function() {
     const userTypeSelect = document.getElementById('user_type');
     const labelFullName = document.getElementById('label_full_name');

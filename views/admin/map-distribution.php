@@ -147,7 +147,7 @@
 }
 </style>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map centered on Indonesia
     const map = L.map('distributionMap').setView([-2.5489, 118.0149], 5);

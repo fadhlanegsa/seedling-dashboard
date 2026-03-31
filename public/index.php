@@ -4,6 +4,40 @@
  * Dashboard Stok Bibit Persemaian Indonesia
  */
 
+// ─── Security Headers ──────────────────────────────────────────────────────
+// Hide PHP version from response headers
+header_remove('X-Powered-By');
+@ini_set('expose_php', 'Off');
+
+
+header('X-XSS-Protection: 1; mode=block');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+}
+header("Content-Security-Policy: default-src 'self'; "
+    . "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
+    . "style-src 'self' 'unsafe-inline' https:; "
+    . "img-src 'self' data: blob: https:; "
+    . "font-src 'self' data: https:; "
+    . "connect-src 'self' https:; "
+    . "frame-src 'self' https:; "
+    . "object-src 'none';"
+);
+// ───────────────────────────────────────────────────────────────────────────
+
+// Configure session cookies for security before starting session
+session_set_cookie_params([
+    'lifetime' => 7200,
+    'path' => '/',
+    'domain' => '',
+    'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
 // Start session
 session_start();
 
@@ -21,11 +55,22 @@ require_once CORE_PATH . 'View.php';
 require_once CORE_PATH . 'Controller.php';
 
 // Simple router
-$request = $_SERVER['REQUEST_URI'];
-$basePath = BASE_PATH;
+$request = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$scriptName = $_SERVER['SCRIPT_NAME'];
+$basePath = dirname($scriptName); // e.g., /seedling-dashboard/seedling-dashboard/public
+$appRoot = str_replace('/public', '', $basePath); // e.g., /seedling-dashboard/seedling-dashboard
 
-// Remove base path and query string
-$path = str_replace($basePath, '', parse_url($request, PHP_URL_PATH));
+// The path we want is everything after the appRoot, minus the potential /public prefix
+$path = $request;
+if ($appRoot !== '/' && strpos($path, $appRoot) === 0) {
+    $path = substr($path, strlen($appRoot));
+}
+$path = ltrim($path, '/');
+if (strpos($path, 'public/') === 0) {
+    $path = substr($path, 7);
+} elseif ($path === 'public') {
+    $path = '';
+}
 $path = trim($path, '/');
 
 // Default route - landing page

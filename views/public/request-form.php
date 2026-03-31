@@ -201,7 +201,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 document.addEventListener('DOMContentLoaded', function() {
     const provinceSelect = document.getElementById('province_id');
     const bpdasSelect = document.getElementById('bpdas_id');
@@ -459,14 +459,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="row">
                     <div class="col-md-6">
                         <label class="form-label required">Jenis Bibit #${itemCounter}</label>
-                        <select name="items[${itemCounter}][seedling_type_id]" class="form-control item-seedling" data-item-id="${itemId}" required>
+                        <select class="form-control item-seedling-select" data-item-id="${itemId}" required>
                             <option value="">-- Pilih Jenis Bibit --</option>
-                            ${availableStocks.map(stock => 
-                                `<option value="${stock.seedling_type_id}" data-stock="${stock.quantity}">
-                                    ${stock.seedling_name} (Stok: ${stock.quantity})
+                            ${availableStocks.map((stock, idx) => 
+                                `<option value="${idx}" data-stock="${stock.quantity}">
+                                    ${stock.seedling_name} [${stock.program_type || 'Reguler'}] (Stok: ${stock.quantity})
                                 </option>`
                             ).join('')}
                         </select>
+                        <input type="hidden" name="items[${itemCounter}][seedling_type_id]" class="item-seedling-id" required>
+                        <input type="hidden" name="items[${itemCounter}][program_type]" class="item-program" required>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label required">Jumlah</label>
@@ -487,11 +489,21 @@ document.addEventListener('DOMContentLoaded', function() {
         itemsContainer.appendChild(itemDiv);
         
         // Attach event listeners
-        const seedlingSelect = itemDiv.querySelector('.item-seedling');
+        const seedlingSelect = itemDiv.querySelector('.item-seedling-select');
+        const seedlingIdInput = itemDiv.querySelector('.item-seedling-id');
+        const programInput = itemDiv.querySelector('.item-program');
         const quantityInput = itemDiv.querySelector('.item-quantity');
         const removeBtn = itemDiv.querySelector('.remove-item-btn');
         
         seedlingSelect.addEventListener('change', function() {
+            if (this.value !== "") {
+                const stock = availableStocks[parseInt(this.value)];
+                seedlingIdInput.value = stock.seedling_type_id;
+                programInput.value = stock.program_type || 'Reguler';
+            } else {
+                seedlingIdInput.value = "";
+                programInput.value = "";
+            }
             validateItemStock(itemId);
             calculateTotal();
         });
@@ -538,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const itemDiv = document.getElementById(itemId);
         if (!itemDiv) return;
         
-        const seedlingSelect = itemDiv.querySelector('.item-seedling');
+        const seedlingSelect = itemDiv.querySelector('.item-seedling-select');
         const quantityInput = itemDiv.querySelector('.item-quantity');
         const stockInfo = itemDiv.querySelector(`.stock-info-${itemId}`);
         

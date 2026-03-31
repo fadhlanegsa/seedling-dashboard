@@ -1,0 +1,57 @@
+{
+	"info": {
+		"name": "Dashboard Stok Bibit - Push API",
+		"description": "API Integration for sending (pushing) Nursery Stock data updates to the Central Dashboard from 3rd-party systems.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Push (Upsert) Nursery Stock",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "ENTER_YOUR_API_KEY_HERE",
+						"type": "text",
+						"description": "The unique API Key provided for your BPDAS / Nursery."
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"nursery_id\": 1,\r\n    \"seedling_type_id\": 5,\r\n    \"quantity\": 1500,\r\n    \"notes\": \"Update stock reguler API\",\r\n    \"last_sync_timestamp\": \"2026-03-11 10:00:00\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/stock/push",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"stock",
+						"push"
+					]
+				},
+				"description": "Updates or Inserts Seedling Stock for a specific Nursery.\n\n**Payload Info:**\n- `nursery_id` (Integer) - (Wajib) Mengunci logik ke titik persemaian. Harus berada di bawah wewenang API Key (BPDAS) Anda.\n- `seedling_type_id` (Integer) - (Wajib) Merujuk pada ID Master Jenis Bibit di dashboard pusat.\n- `quantity` (Integer) - (Wajib) Sisa sediaan stok.\n- `notes` (String) - (Opsional) Keterangan tambahan.\n- `last_sync_timestamp` (String) - (Opsional) Timestap spesifik data diperbarui. (Lebih dianjurkan daripada membiarkan server mengeset timestamp waktu masuk/delay)."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://bibitgratis.com/seedling-dashboard/public",
+			"type": "string"
+		}
+	]
+}

@@ -99,7 +99,7 @@ if (isset($pagination)) {
 }
 ?>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 function deleteSeedlingType(id) {
     if (confirm('Yakin ingin menghapus jenis bibit ini?')) {
         fetch('<?= url('admin/delete-seedling-type/') ?>' + id, {

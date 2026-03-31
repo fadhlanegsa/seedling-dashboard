@@ -23,24 +23,27 @@ class AdminController extends Controller {
         $stockModel = $this->model('Stock');
         $requestModel = $this->model('Request');
 
+        $programType = $this->get('program_type');
+
         // Get statistics
         $stats = [
             'total_bpdas'           => $bpdasModel->getActiveCount(),
             'total_seedling_types'  => $seedlingTypeModel->getActiveCount(),
-            'total_national_stock'  => $stockModel->getTotalNationalStock(),
-            'pending_requests'      => $requestModel->getPendingCount()
+            'total_national_stock'  => $stockModel->getTotalNationalStock($programType),
+            'pending_requests'      => $requestModel->getPendingCount(null, $programType)
         ];
 
         // Get data for charts
-        $stockByProvince = $bpdasModel->getStockByProvince();
-        $topSeedlings    = $stockModel->getTopSeedlingTypes(10);
+        $stockByProvince = $bpdasModel->getStockByProvince($programType);
+        $topSeedlings    = $stockModel->getTopSeedlingTypes(10, $programType);
 
         $data = [
             'title'             => 'Dashboard Admin',
             'stats'             => $stats,
             'stockByProvince'   => $stockByProvince,
             'topSeedlings'      => $topSeedlings,
-            'distributionStats' => $requestModel->getMonthlyDistributionStats(date('Y'))
+            'distributionStats' => $requestModel->getMonthlyDistributionStats(date('Y')),
+            'currentProgram'    => $programType
         ];
 
         $this->render('admin/dashboard', $data, 'dashboard');

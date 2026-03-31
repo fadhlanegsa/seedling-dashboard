@@ -129,7 +129,7 @@ $isEdit = isset($user);
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 document.getElementById('roleSelect').addEventListener('change', function() {
     const bpdasGroup = document.getElementById('bpdasGroup');
     const nurseryGroup = document.getElementById('nurseryGroup');

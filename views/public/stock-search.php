@@ -317,7 +317,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="<?= cspNonce() ?>">
         const searchForm = document.getElementById('searchForm');
         const loading = document.getElementById('loading');
         const results = document.getElementById('results');

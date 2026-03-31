@@ -216,7 +216,7 @@
 
 <?php if ($seedSource['latitude'] && $seedSource['longitude']): ?>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<script nonce="<?= cspNonce() ?>">
 const detailMap = L.map('detailMap').setView([<?= $seedSource['latitude'] ?>, <?= $seedSource['longitude'] ?>], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

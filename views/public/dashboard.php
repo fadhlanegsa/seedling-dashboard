@@ -155,9 +155,13 @@
                             <tr>
                                 <td><strong><?= htmlspecialchars($request['request_number'] ?? 'N/A') ?></strong></td>
                                 <td><?= htmlspecialchars($request['bpdas_name'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($request['seedling_name'] ?? 'N/A') ?></td>
-                                <td><?= formatNumber($request['quantity'] ?? 0) ?> bibit</td>
                                 <td>
+                                    <?= htmlspecialchars($request['seedling_name'] ?? 'N/A') ?>
+                                    <?php if(($request['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                        <br><span class="badge" style="background-color: #39FF14; color: #000; font-size: 0.7rem;">FOLU</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= formatNumber($request['quantity'] ?? 0) ?> bibit</td>
                                     <?php $status = $request['status'] ?? 'pending'; ?>
                                     <span class="badge badge-<?= status_badge_class($status) ?>">
                                         <?= status_text($status) ?>

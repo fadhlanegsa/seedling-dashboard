@@ -68,7 +68,14 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h3>Daftar Stok Bibit</h3>
+            <div class="d-flex align-items-center" style="gap: 15px;">
+                <h3 class="mb-0">Daftar Stok Bibit</h3>
+                <div class="total-stock-badge shadow-sm">
+                    <span class="label">TOTAL STOK:</span>
+                    <span class="value"><?= formatNumber($pagination['total_quantity'] ?? 0) ?></span>
+                    <span class="unit">bibit</span>
+                </div>
+            </div>
             <div class="filter-group">
                 <label>Tampilkan:</label>
                 <select id="perPageSelect" class="form-control form-control-sm" style="width: auto; display: inline-block;">
@@ -86,7 +93,7 @@
                 <tr>
                     <th>No</th>
                     <th>Persemaian</th>
-                    <th>Jenis Bibit</th>
+                    <th>Jenis/Program Bibit</th>
                     <th>Nama Ilmiah</th>
                     <th>Kategori</th>
                     <th>Jumlah Stok</th>
@@ -106,7 +113,14 @@
                         <tr>
                             <td><?= $rowNumber ?></td>
                             <td><?= htmlspecialchars($item['nursery_name'] ?? '-') ?></td>
-                            <td><strong><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></strong></td>
+                            <td>
+                                <strong><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></strong><br>
+                                <?php if(($item['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                    <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                <?php else: ?>
+                                    <span class="badge badge-primary">Reguler</span>
+                                <?php endif; ?>
+                            </td>
                             <td><em><?= htmlspecialchars($item['scientific_name'] ?? '-') ?></em></td>
                             <td><span class="badge badge-info"><?= htmlspecialchars($item['category'] ?? '-') ?></span></td>
                             <td><strong><?= formatNumber($item['quantity'] ?? 0) ?></strong> bibit</td>
@@ -195,7 +209,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 // Per page filter
 document.getElementById('perPageSelect').addEventListener('change', function() {
     const perPage = this.value;
@@ -227,6 +241,36 @@ function deleteStock(id) {
 </script>
 
 <style>
+.total-stock-badge {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    padding: 6px 15px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+
+.total-stock-badge .label {
+    opacity: 0.8;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.total-stock-badge .value {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+.total-stock-badge .unit {
+    opacity: 0.8;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
 .filter-group {
     display: flex;
     align-items: center;

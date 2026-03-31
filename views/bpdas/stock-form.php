@@ -41,6 +41,17 @@ $isEdit = isset($stock);
             </div>
 
             <div class="form-group">
+                <label class="form-label required">Program</label>
+                <select name="program_type" class="form-control" <?= $isEdit ? 'disabled' : '' ?> required>
+                    <option value="Reguler" <?= ($isEdit && isset($stock['program_type']) && $stock['program_type'] == 'Reguler') ? 'selected' : '' ?>>Reguler</option>
+                    <option value="FOLU" <?= ($isEdit && isset($stock['program_type']) && $stock['program_type'] == 'FOLU') ? 'selected' : '' ?>>FOLU Net Sink 2030</option>
+                </select>
+                <?php if ($isEdit): ?>
+                    <input type="hidden" name="program_type" value="<?= $stock['program_type'] ?>">
+                <?php endif; ?>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label required">Jumlah Stok</label>
                 <input type="number" name="quantity" class="form-control" 
                        value="<?= $isEdit ? $stock['quantity'] : '' ?>" 

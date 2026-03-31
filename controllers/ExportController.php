@@ -45,6 +45,11 @@ class ExportController extends Controller {
             $filters['bpdas_id'] = $this->get('bpdas_id');
             $filters['seedling_type_id'] = $this->get('seedling_type_id');
             $filters['category'] = $this->get('category');
+        } elseif ($user['role'] === 'operator_persemaian') {
+            $userModel = $this->model('User');
+            $userData = $userModel->getUserWithNursery($user['id']);
+            $filters['nursery_id'] = $userData['nursery_id'];
+            $filters['seedling_type_id'] = $this->get('seedling_type_id');
         } else {
             // BPDAS User - Locked to their BPDAS
             $filters['bpdas_id'] = $user['bpdas_id'];
@@ -75,7 +80,7 @@ class ExportController extends Controller {
             ->setDescription("Export Data Stok Bibit System");
             
         // Header Row
-        $headers = ['No', 'BPDAS', 'Provinsi', 'Jenis Bibit', 'Nama Ilmiah', 'Kategori', 'Jumlah Stok', 'Terakhir Update'];
+        $headers = ['No', 'BPDAS', 'Provinsi', 'Jenis Bibit', 'Nama Ilmiah', 'Kategori', 'Sumber Program', 'Jumlah Stok', 'Terakhir Update'];
         $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col . '1', $header);
@@ -89,7 +94,7 @@ class ExportController extends Controller {
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2C3E50']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
-        $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
         
         // Fill Data
         $row = 2;
@@ -100,8 +105,9 @@ class ExportController extends Controller {
             $sheet->setCellValue('D' . $row, $item['seedling_name'] ?? '-');
             $sheet->setCellValue('E' . $row, $item['scientific_name'] ?? '-');
             $sheet->setCellValue('F' . $row, $item['category'] ?? '-');
-            $sheet->setCellValue('G' . $row, $item['quantity'] ?? 0);
-            $sheet->setCellValue('H' . $row, isset($item['last_update_date']) ? date('d-m-Y', strtotime($item['last_update_date'])) : '-');
+            $sheet->setCellValue('G' . $row, $item['program_type'] ?? 'Reguler');
+            $sheet->setCellValue('H' . $row, $item['quantity'] ?? 0);
+            $sheet->setCellValue('I' . $row, isset($item['last_update_date']) ? date('d-m-Y', strtotime($item['last_update_date'])) : '-');
             $row++;
         }
         
@@ -109,7 +115,7 @@ class ExportController extends Controller {
         $borderStyle = [
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
         ];
-        $sheet->getStyle('A1:H' . ($row - 1))->applyFromArray($borderStyle);
+        $sheet->getStyle('A1:I' . ($row - 1))->applyFromArray($borderStyle);
         
         // Filename
         $filename = 'Laporan_Stok_Bibit_' . date('Y-m-d_H-i-s') . '.xlsx';
@@ -138,6 +144,11 @@ class ExportController extends Controller {
             $filters['bpdas_id'] = $this->get('bpdas_id');
             $filters['seedling_type_id'] = $this->get('seedling_type_id');
             $filters['category'] = $this->get('category');
+        } elseif ($user['role'] === 'operator_persemaian') {
+            $userModel = $this->model('User');
+            $userData = $userModel->getUserWithNursery($user['id']);
+            $filters['nursery_id'] = $userData['nursery_id'];
+            $filters['seedling_type_id'] = $this->get('seedling_type_id');
         } else {
             $filters['bpdas_id'] = $user['bpdas_id'];
             $filters['seedling_type_id'] = $this->get('seedling_type_id');
@@ -231,7 +242,7 @@ class ExportController extends Controller {
         // Header Row
         $headers = [
             'No', 'No. Permintaan', 'Tanggal', 'Pemohon', 'Email', 
-            'NIK', 'No. HP', 'Tujuan Penggunaan', 'Detail Bibit (Jenis & Jumlah)', 'Total Jumlah', 
+            'NIK', 'No. HP', 'Tujuan Penggunaan', 'Sumber Program', 'Detail Bibit (Jenis & Jumlah)', 'Total Jumlah', 
             'Luas Lahan', 'Alamat Tanam', 'Koordinat', 'Status'
         ];
         $col = 'A';
@@ -248,8 +259,8 @@ class ExportController extends Controller {
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2C3E50']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
-        // J is no longer the end, now we have N columns
-        $sheet->getStyle('A'.$startRow.':N'.$startRow)->applyFromArray($headerStyle);
+        // J is no longer the end, now we have O columns
+        $sheet->getStyle('A'.$startRow.':O'.$startRow)->applyFromArray($headerStyle);
         
         // Fill Data
         $row = $startRow + 1;
@@ -261,7 +272,8 @@ class ExportController extends Controller {
             if (!empty($items)) {
                 $itemStrings = [];
                 foreach ($items as $item) {
-                     $itemStrings[] = $item['seedling_name'] . ' (' . number_format($item['quantity'], 0, ',', '.') . ')';
+                     $pt = $item['program_type'] ?? 'Reguler';
+                     $itemStrings[] = $item['seedling_name'] . " ($pt) - " . number_format($item['quantity'], 0, ',', '.');
                 }
                 $detailBibit = implode(", \n", $itemStrings);
             } else {
@@ -278,20 +290,21 @@ class ExportController extends Controller {
             $sheet->setCellValueExplicit('G' . $row, $req['requester_phone'] ?? '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             $sheet->setCellValue('H' . $row, $req['purpose'] ?? '-');
             
-            $sheet->setCellValue('I' . $row, $detailBibit);
+            $sheet->setCellValue('I' . $row, $req['program_type'] ?? 'Reguler');
+            $sheet->setCellValue('J' . $row, $detailBibit);
             // Tambahkan newline style agar text terwrap
-            $sheet->getStyle('I' . $row)->getAlignment()->setWrapText(true);
+            $sheet->getStyle('J' . $row)->getAlignment()->setWrapText(true);
             
-            $sheet->setCellValue('J' . $row, $req['item_quantity'] ?? $req['quantity'] ?? 0);
+            $sheet->setCellValue('K' . $row, $req['item_quantity'] ?? $req['quantity'] ?? 0);
             
             // Kolom Tambahan Detail
             // Luas Lahan (biasanya tersimpan sebagai land_area)
-            $sheet->setCellValue('K' . $row, ($req['land_area'] ?? '-') . ' Ha');
-            $sheet->setCellValue('L' . $row, $req['planting_address'] ?? '-');
+            $sheet->setCellValue('L' . $row, ($req['land_area'] ?? '-') . ' Ha');
+            $sheet->setCellValue('M' . $row, $req['planting_address'] ?? '-');
             $koordinat = (isset($req['latitude']) && isset($req['longitude'])) ? $req['latitude'].', '.$req['longitude'] : '-';
-            $sheet->setCellValue('M' . $row, $koordinat);
+            $sheet->setCellValue('N' . $row, $koordinat);
             
-            $sheet->setCellValue('N' . $row, status_text($req['status'] ?? 'pending'));
+            $sheet->setCellValue('O' . $row, status_text($req['status'] ?? 'pending'));
             $row++;
         }
         
@@ -299,11 +312,11 @@ class ExportController extends Controller {
         $borderStyle = [
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
         ];
-        $sheet->getStyle('A'.$startRow.':N' . ($row - 1))->applyFromArray($borderStyle);
+        $sheet->getStyle('A'.$startRow.':O' . ($row - 1))->applyFromArray($borderStyle);
         
         // Alignments
         $sheet->getStyle('A'.($startRow+1).':A' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('J'.($startRow+1).':J' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('K'.($startRow+1).':K' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         // Filename
         $filename = 'Permintaan_Bibit_' . date('Y-m-d_H-i-s') . '.xlsx';

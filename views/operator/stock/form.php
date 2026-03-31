@@ -29,6 +29,17 @@
                     </div>
                     
                     <div class="form-group">
+                        <label for="program_type">Program <span class="text-danger">*</span></label>
+                        <select name="program_type" id="program_type" class="form-control" required <?= isset($stock) ? 'disabled' : '' ?>>
+                            <option value="Reguler" <?= (isset($stock) && isset($stock['program_type']) && $stock['program_type'] == 'Reguler') ? 'selected' : '' ?>>Reguler</option>
+                            <option value="FOLU" <?= (isset($stock) && isset($stock['program_type']) && $stock['program_type'] == 'FOLU') ? 'selected' : '' ?>>FOLU Net Sink 2030</option>
+                        </select>
+                        <?php if (isset($stock)): ?>
+                            <input type="hidden" name="program_type" value="<?= $stock['program_type'] ?>">
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="form-group">
                         <label for="quantity">Jumlah Stok <span class="text-danger">*</span></label>
                         <input type="number" name="quantity" id="quantity" class="form-control" 
                                value="<?= $stock['quantity'] ?? '' ?>" min="0" required>
@@ -51,7 +62,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 $(document).ready(function() {
     $('.select2').select2({
         theme: 'bootstrap4',

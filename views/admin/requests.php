@@ -78,7 +78,7 @@
                     <th>No. Permintaan</th>
                     <th>Pemohon</th>
                     <th>BPDAS Tujuan</th>
-                    <th>Jenis Bibit</th>
+                    <th>Jenis/Program Bibit</th>
                     <th>Jumlah</th>
                     <th>Status</th>
                     <th>Tanggal</th>
@@ -101,7 +101,14 @@
                                 <small class="text-muted"><?= htmlspecialchars($item['requester_email'] ?? '-') ?></small>
                             </td>
                             <td><?= htmlspecialchars($item['bpdas_name'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($item['seedling_name'] ?? '-') ?><br>
+                                <?php if(($item['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                    <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                <?php else: ?>
+                                    <span class="badge badge-primary">Reguler</span>
+                                <?php endif; ?>
+                            </td>
                             <td><strong><?= formatNumber($item['quantity'] ?? 0) ?></strong></td>
                             <td>
                                 <?php $status = $item['status'] ?? 'pending'; ?>

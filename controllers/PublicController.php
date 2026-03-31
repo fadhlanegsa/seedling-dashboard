@@ -159,9 +159,12 @@ class PublicController extends Controller {
                 continue; // Skip invalid quantities
             }
             
+            $programType = isset($item['program_type']) ? $item['program_type'] : 'Reguler';
+            
             $validItems[] = [
                 'seedling_type_id' => $seedlingTypeId,
-                'quantity' => $quantity
+                'quantity' => $quantity,
+                'program_type' => $programType
             ];
             
             $totalQuantity += $quantity;
@@ -310,7 +313,7 @@ class PublicController extends Controller {
         $stockModel = $this->model('Stock');
         
         foreach ($validItems as $item) {
-            $stock = $stockModel->findByBPDASAndSeedling($data['bpdas_id'], $item['seedling_type_id']);
+            $stock = $stockModel->findByBPDASAndSeedling($data['bpdas_id'], $item['seedling_type_id'], $item['program_type']);
             
             if (!$stock || $stock['quantity'] < $item['quantity']) {
                 $this->setFlash('error', 'Stok bibit tidak mencukupi untuk salah satu jenis bibit. Silakan periksa kembali.');
@@ -619,6 +622,7 @@ class PublicController extends Controller {
     public function checkStockAvailability() {
         $bpdasId = $this->get('bpdas_id');
         $seedlingTypeId = $this->get('seedling_type_id');
+        $programType = $this->get('program_type') ?: 'Reguler';
         
         if (!$bpdasId || !$seedlingTypeId) {
             $this->json(['success' => false, 'message' => 'Missing parameters']);
@@ -626,7 +630,7 @@ class PublicController extends Controller {
         }
         
         $stockModel = $this->model('Stock');
-        $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $seedlingTypeId);
+        $stock = $stockModel->findByBPDASAndSeedling($bpdasId, $seedlingTypeId, $programType);
         
         if ($stock) {
             $this->json([

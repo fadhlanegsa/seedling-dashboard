@@ -58,7 +58,12 @@
                             <tbody>
                                 <?php foreach ($request['items'] as $item): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></td>
+                                    <td>
+                                        <?= htmlspecialchars($item['seedling_name'] ?? '-') ?>
+                                        <?php if(($item['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                            <span class="badge" style="background-color: #39FF14; color: #000; font-size: 0.7rem; margin-left: 5px;">FOLU</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-right"><?= formatNumber($item['quantity']) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -73,7 +78,11 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <strong><i class="fas fa-seedling"></i> Jenis Bibit:</strong><br>
-                            <?= htmlspecialchars($request['seedling_name']) ?><br>
+                            <?= htmlspecialchars($request['seedling_name']) ?>
+                            <?php if(($request['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                <span class="badge" style="background-color: #39FF14; color: #000; font-size: 0.7rem; margin-left: 5px;">FOLU</span>
+                            <?php endif; ?>
+                            <br>
                             <small class="text-muted"><?= htmlspecialchars($request['scientific_name'] ?? '') ?></small>
                         </div>
                         <div class="col-md-6 mb-3">

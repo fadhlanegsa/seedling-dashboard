@@ -232,7 +232,7 @@
             <?php endif; ?>
         </div>
     </section>
-    <script>
+    <script nonce="<?= cspNonce() ?>">
     (function() {
         var tabs   = document.querySelectorAll('#nlTabs .nl-tab');
         var cards  = document.querySelectorAll('#nlGrid .news-card');
@@ -268,7 +268,7 @@
     })();
     </script>
 
-    <script>
+    <script nonce="<?= cspNonce() ?>">
         // Counter Animation
         function animateCounter(element, target, duration = 2000) {
             const start = 0;

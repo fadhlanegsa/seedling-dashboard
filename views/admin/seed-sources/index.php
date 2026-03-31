@@ -57,7 +57,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 $(document).ready(function() {
     $('#seedSourcesTable').DataTable({
         order: [[0, 'asc']],

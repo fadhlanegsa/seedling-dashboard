@@ -31,7 +31,7 @@
                 <tr>
                     <th>No</th>
                     <th>No. Permintaan</th>
-                    <th>Jenis Bibit</th>
+                    <th>Jenis/Program Bibit</th>
                     <th>Jumlah</th>
                     <th>Status</th>
                     <th>Tanggal</th>
@@ -44,7 +44,14 @@
                         <tr>
                             <td><?= $index + 1 ?></td>
                             <td><strong><?= htmlspecialchars($request['request_number'] ?? '-') ?></strong></td>
-                            <td><?= htmlspecialchars($request['seedling_name'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($request['seedling_name'] ?? '-') ?><br>
+                                <?php if(($request['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                    <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                <?php else: ?>
+                                    <span class="badge badge-primary">Reguler</span>
+                                <?php endif; ?>
+                            </td>
                             <td><strong><?= formatNumber($request['quantity'] ?? $request['item_quantity'] ?? 0) ?></strong> bibit</td>
                             <td>
                                 <?php $status = $request['status'] ?? 'pending'; ?>

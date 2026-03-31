@@ -33,7 +33,8 @@
                                 'approved' => 'success',
                                 'rejected' => 'danger',
                                 'completed' => 'info',
-                                'delivered' => 'purple'
+                                'delivered' => 'purple',
+                                'cancelled' => 'secondary'
                             ];
                             $class = $statusClass[$status] ?? 'secondary';
                             ?>
@@ -208,6 +209,24 @@
         </div>
         <?php endif; ?>
 
+        <?php if (($request['status'] ?? '') === 'approved' && isset($can_approve) && $can_approve): ?>
+        <!-- Cancel Request Card (Operator) -->
+        <div class="card mt-3" style="border-color: #e67e22;">
+            <div class="card-header" style="background: #e67e22; color: white;">
+                <h3><i class="fas fa-ban"></i> Batalkan Permintaan</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <i class="fas fa-info-circle"></i>
+                    Gunakan jika pemohon <strong>tidak datang mengambil bibit</strong>. Stok akan dikembalikan dan pemohon mendapat notifikasi email.
+                </p>
+                <button onclick="showCancelModal()" class="btn btn-warning">
+                    <i class="fas fa-ban"></i> Batalkan Permintaan Ini
+                </button>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php if (!empty($history)): ?>
         <div class="card mt-3">
             <div class="card-header">
@@ -253,6 +272,30 @@
                 <?php endif; ?>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+<div id="cancelModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3><i class="fas fa-ban"></i> Batalkan Permintaan</h3>
+        <p class="text-muted">Pembatalan akan mengembalikan stok ke persemaian Anda dan mengirim notifikasi ke pemohon.</p>
+        <form id="cancelForm">
+            <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+            <input type="hidden" name="request_id" value="<?= $request['id'] ?? '' ?>">
+            <div class="form-group">
+                <label class="required">Alasan Pembatalan</label>
+                <textarea name="reason" class="form-control" rows="3" required placeholder="Contoh: Pemohon tidak hadir setelah 7 hari menunggu..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-warning" id="cancelBtn">
+                    <i class="fas fa-ban"></i> Batalkan Sekarang
+                </button>
+                <button type="button" onclick="closeModal('cancelModal')" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Kembali
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -305,8 +348,12 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= cspNonce() ?>">
 // ===== APPROVAL LOGIC =====
+function showCancelModal() {
+    document.getElementById('cancelModal').style.display = 'flex';
+}
+
 function showApproveModal() {
     document.getElementById('approveModal').style.display = 'flex';
 }
@@ -323,12 +370,45 @@ function closeModal(modalId) {
 window.onclick = function(event) {
     const approveModal = document.getElementById('approveModal');
     const rejectModal = document.getElementById('rejectModal');
+    const cancelModal = document.getElementById('cancelModal');
     if (event.target == approveModal) {
         approveModal.style.display = 'none';
     }
     if (event.target == rejectModal) {
         rejectModal.style.display = 'none';
     }
+    if (cancelModal && event.target == cancelModal) {
+        cancelModal.style.display = 'none';
+    }
+}
+
+// Cancel form submission
+if (document.getElementById('cancelForm')) {
+    document.getElementById('cancelForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const cancelBtn = document.getElementById('cancelBtn');
+        const originalText = cancelBtn.innerHTML;
+        cancelBtn.disabled = true;
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        const formData = new FormData(this);
+        fetch('<?= url('operator/cancelRequest') ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+                cancelBtn.disabled = false;
+                cancelBtn.innerHTML = originalText;
+            }
+        })
+        .catch(err => {
+            alert('Terjadi kesalahan: ' + err.message);
+            cancelBtn.disabled = false;
+            cancelBtn.innerHTML = originalText;
+        });
+    });
 }
 
 // Approve form submission

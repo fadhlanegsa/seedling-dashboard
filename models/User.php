@@ -38,10 +38,10 @@ class User extends Model {
      */
     public function authenticate($username, $password) {
         $sql = "SELECT * FROM {$this->table} 
-                WHERE (username = ? OR email = ?) AND is_active = 1 
+                WHERE (username = ? OR email = ? OR phone = ? OR nik = ?) AND is_active = 1 
                 LIMIT 1";
         
-        $user = $this->queryOne($sql, [$username, $username]);
+        $user = $this->queryOne($sql, [$username, $username, $username, $username]);
         
         if ($user && password_verify($password, $user['password'])) {
             // Update last login

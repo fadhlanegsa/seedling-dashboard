@@ -30,14 +30,16 @@ class OperatorController extends Controller {
         }
 
         $stockModel = $this->model('Stock');
-        $stocks = $stockModel->getByNurseryPaginated($userData['nursery_id'], 1, 100); // Get all for now or paginate
+        $programType = $this->get('program_type');
+        $stocks = $stockModel->getByNurseryPaginated($userData['nursery_id'], 1, 100, $programType);
         
         $data = [
             'title' => 'Dashboard Operator Persemaian',
             'user' => $userData,
             'stocks' => $stocks,
             'nursery_name' => $userData['nursery_name'],
-            'bpdas_name' => $userData['bpdas_name']
+            'bpdas_name' => $userData['bpdas_name'],
+            'currentProgram' => $programType
         ];
         
         $this->render('operator/dashboard', $data, 'dashboard');
@@ -117,6 +119,97 @@ class OperatorController extends Controller {
         ];
         
         $this->render('operator/request-detail', $data, 'dashboard');
+    }
+
+    /**
+     * Cancel an approved request (requester did not show up)
+     * Only available when can_operator_approve is enabled
+     */
+    public function cancelRequest() {
+        ob_start();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+
+        if (!$this->validateCSRF()) {
+            ob_end_clean();
+            return;
+        }
+
+        $user = currentUser();
+        $userModel = $this->model('User');
+        $userData = $userModel->getUserWithNursery($user['id']);
+        $nurseryId = $userData['nursery_id'];
+
+        // Check delegation permission
+        $bpdasModel = $this->model('BPDAS');
+        $bpdas = $bpdasModel->find($userData['bpdas_id']);
+        if (empty($bpdas['can_operator_approve'])) {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Anda tidak memiliki wewenang membatalkan permintaan']);
+            return;
+        }
+
+        $requestId = $this->post('request_id');
+        $reason    = $this->post('reason');
+
+        if (empty($reason)) {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Alasan pembatalan harus diisi']);
+            return;
+        }
+
+        $requestModel = $this->model('Request');
+        $request = $requestModel->getWithDetails($requestId);
+
+        if (!$request || $request['nursery_id'] != $nurseryId) {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Permintaan tidak ditemukan atau bukan untuk persemaian Anda']);
+            return;
+        }
+
+        if ($request['status'] !== 'approved') {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Hanya permintaan berstatus Disetujui yang dapat dibatalkan']);
+            return;
+        }
+
+        // Restore stock to nursery
+        $stockModel = $this->model('Stock');
+        $items = $requestModel->getRequestItems($requestId);
+        foreach ($items as $item) {
+            $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $item['seedling_type_id']);
+            if ($stock) {
+                $stockModel->update($stock['id'], [
+                    'quantity'         => $stock['quantity'] + $item['quantity'],
+                    'last_update_date' => date('Y-m-d')
+                ]);
+            }
+        }
+
+        // Cancel request
+        $cancelled = $requestModel->cancel($requestId, $user['id'], $reason);
+
+        if ($cancelled) {
+            $requestModel->addHistory($requestId, 'cancelled', $user['id'], 'Pembatalan oleh operator: ' . $reason);
+
+            try {
+                require_once UTILS_PATH . 'EmailSender.php';
+                $emailSender = new EmailSender();
+                $emailSender->sendCancellationNotification($request, $reason);
+            } catch (Exception $e) {
+                logError('Cancellation email failed: ' . $e->getMessage());
+            }
+
+            ob_end_clean();
+            $this->json(['success' => true, 'message' => 'Permintaan berhasil dibatalkan dan stok telah dikembalikan']);
+        } else {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Gagal membatalkan permintaan']);
+        }
     }
 
     /**
@@ -295,14 +388,27 @@ public function uploadDeliveryPhoto() {
         $userData = $userModel->getUserWithNursery($user['id']);
         $nurseryId = $userData['nursery_id'];
 
+        $filters = [
+            'month' => $this->get('month'),
+            'year' => $this->get('year'),
+            'seedling_type_id' => $this->get('seedling_type_id'),
+        ];
+        $programType = $this->get('program_type');
+
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $stockModel = $this->model('Stock');
-        $stocks = $stockModel->getByNurseryPaginated($nurseryId, $page, 10);
+        $stocks = $stockModel->getByNurseryPaginated($nurseryId, $page, 10, $programType, $filters);
+        
+        $seedlingTypeModel = $this->model('SeedlingType');
+        $seedlingTypes = $seedlingTypeModel->getAllActive();
         
         $data = [
             'title' => 'Kelola Stok Bibit',
             'stocks' => $stocks,
-            'nursery_name' => $userData['nursery_name']
+            'nursery_name' => $userData['nursery_name'],
+            'filters' => $filters,
+            'seedlingTypes' => $seedlingTypes,
+            'currentProgram' => $programType
         ];
         
         $this->render('operator/stock/index', $data, 'dashboard');
@@ -363,9 +469,10 @@ public function uploadDeliveryPhoto() {
         $quantity = (int)$this->post('quantity');
         $notes = $this->post('notes');
         $id = $this->post('id');
+        $programType = $this->post('program_type') ?: 'Reguler';
         
-        if (empty($seedlingTypeId) || $quantity < 0) {
-            $this->setFlash('error', 'Mohon lengkapi data dengan benar');
+        if (empty($seedlingTypeId) || $quantity === '' || $quantity === null || !is_numeric($quantity) || $quantity < 0) {
+            $this->setFlash('error', 'Mohon lengkapi data dengan benar (Jumlah stok minimal 0)');
             $this->redirect('operator/stock/form' . ($id ? "/$id" : ''));
             return;
         }
@@ -384,11 +491,12 @@ public function uploadDeliveryPhoto() {
                 $stockModel->update($id, [
                     'quantity' => $quantity,
                     'notes' => $notes,
+                    'program_type' => $programType,
                     'last_update_date' => date('Y-m-d')
                 ]);
             } else {
                 // Create or update by type
-                $stockModel->updateOrCreateNurseryStock($nurseryId, $seedlingTypeId, $quantity, $notes);
+                $stockModel->updateOrCreateNurseryStock($nurseryId, $seedlingTypeId, $quantity, $notes, $programType);
             }
             
             $this->setFlash('success', 'Data stok berhasil disimpan');
@@ -481,16 +589,18 @@ public function uploadDeliveryPhoto() {
         
         if ($isMultiItem) {
             foreach ($request['items'] as $item) {
-                $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $item['seedling_type_id']);
+                $programType = $item['program_type'] ?? 'Reguler';
+                $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $item['seedling_type_id'], $programType);
                 if (!$stock || $stock['quantity'] < $item['quantity']) {
-                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi untuk salah satu jenis bibit']);
+                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi untuk salah satu jenis bibit (' . $programType . ')']);
                     return;
                 }
             }
         } else {
-            $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $request['seedling_type_id']);
+            $programType = $request['program_type'] ?? 'Reguler';
+            $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $request['seedling_type_id'], $programType);
             if (!$stock || $stock['quantity'] < $request['quantity']) {
-                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi']);
+                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi (' . $programType . ')']);
                 return;
             }
         }
@@ -505,10 +615,12 @@ public function uploadDeliveryPhoto() {
             // Decrease stock
             if ($isMultiItem) {
                 foreach ($request['items'] as $item) {
-                    $stockModel->decreaseStockFromNursery($userData['nursery_id'], $item['seedling_type_id'], $item['quantity']);
+                    $programType = $item['program_type'] ?? 'Reguler';
+                    $stockModel->decreaseStockFromNursery($userData['nursery_id'], $item['seedling_type_id'], $item['quantity'], $programType);
                 }
             } else {
-                $stockModel->decreaseStockFromNursery($userData['nursery_id'], $request['seedling_type_id'], $request['quantity']);
+                $programType = $request['program_type'] ?? 'Reguler';
+                $stockModel->decreaseStockFromNursery($userData['nursery_id'], $request['seedling_type_id'], $request['quantity'], $programType);
             }
             
             // Add to history

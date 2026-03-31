@@ -47,6 +47,7 @@ class Request extends Model {
     public function createRequest($data) {
         $data['request_number'] = $this->generateRequestNumber();
         $data['status'] = 'pending';
+        if (!isset($data['program_type'])) $data['program_type'] = 'Reguler';
         
         return $this->create($data);
     }
@@ -62,6 +63,7 @@ class Request extends Model {
         // Generate request number
         $requestData['request_number'] = $this->generateRequestNumber();
         $requestData['status'] = 'pending';
+        if (!isset($requestData['program_type'])) $requestData['program_type'] = 'Reguler';
         
         // Set legacy columns to NULL (for backward compatibility)
         $requestData['seedling_type_id'] = null;
@@ -80,15 +82,17 @@ class Request extends Model {
             }
             
             // Insert items
-            $sql = "INSERT INTO request_items (request_id, seedling_type_id, quantity, created_at) 
-                    VALUES (?, ?, ?, NOW())";
+            $sql = "INSERT INTO request_items (request_id, seedling_type_id, quantity, program_type, created_at) 
+                    VALUES (?, ?, ?, ?, NOW())";
             
             foreach ($items as $item) {
+                $itemProgramType = $item['program_type'] ?? $requestData['program_type'];
                 $stmt = $this->db->prepare($sql);
                 $success = $stmt->execute([
                     $requestId,
                     $item['seedling_type_id'],
-                    $item['quantity']
+                    $item['quantity'],
+                    $itemProgramType
                 ]);
                 
                 if (!$success) {
@@ -403,16 +407,38 @@ class Request extends Model {
     }
     
     /**
+     * Cancel an approved request (requester did not show up)
+     * 
+     * @param int $requestId
+     * @param int $cancelledBy
+     * @param string $reason
+     * @return bool
+     */
+    public function cancel($requestId, $cancelledBy, $reason) {
+        $data = [
+            'status' => 'cancelled',
+            'approved_by' => $cancelledBy,
+            'rejection_reason' => $reason
+        ];
+        
+        return $this->update($requestId, $data);
+    }
+    
+    /**
      * Get pending requests count
      * 
      * @param int $bpdasId Filter by BPDAS (optional)
      * @return int
      */
-    public function getPendingCount($bpdasId = null) {
+    public function getPendingCount($bpdasId = null, $programType = null) {
+        $conditions = ['status' => 'pending'];
         if ($bpdasId) {
-            return $this->count(['status' => 'pending', 'bpdas_id' => $bpdasId]);
+            $conditions['bpdas_id'] = $bpdasId;
         }
-        return $this->count(['status' => 'pending']);
+        if ($programType) {
+            $conditions['program_type'] = $programType;
+        }
+        return $this->count($conditions);
     }
     
     /**
@@ -421,20 +447,25 @@ class Request extends Model {
      * @param int $bpdasId Filter by BPDAS (optional)
      * @return array
      */
-    public function getStatistics($bpdasId = null) {
+    public function getStatistics($bpdasId = null, $programType = null) {
         $sql = "SELECT 
                 COUNT(*) as total_requests,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
-                FROM {$this->table}";
+                FROM {$this->table} WHERE 1=1";
         
         $params = [];
         
         if ($bpdasId) {
-            $sql .= " WHERE bpdas_id = ?";
+            $sql .= " AND bpdas_id = ?";
             $params[] = $bpdasId;
+        }
+        
+        if ($programType) {
+            $sql .= " AND program_type = ?";
+            $params[] = $programType;
         }
         
         $result = $this->queryOne($sql, $params);
@@ -495,7 +526,7 @@ class Request extends Model {
      */
     public function getMapData($filters = []) {
         $sql = "SELECT r.id, r.request_number, r.latitude, r.longitude, r.status, r.created_at,
-                r.approval_date,
+                r.approval_date, r.program_type,
                 u.full_name as requester_name,
                 b.name as bpdas_name, b.id as bpdas_id,
                 p.name as province_name, p.id as province_id,

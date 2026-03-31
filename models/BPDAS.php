@@ -191,18 +191,25 @@ class BPDAS extends Model {
      * 
      * @return array
      */
-    public function getStockByProvince() {
+    public function getStockByProvince($programType = null) {
         $sql = "SELECT p.name as province_name,
                 SUM(s.quantity) as total_stock
                 FROM provinces p
                 INNER JOIN {$this->table} b ON p.id = b.province_id
-                LEFT JOIN stock s ON b.id = s.bpdas_id
-                WHERE b.is_active = 1
+                LEFT JOIN stock s ON b.id = s.bpdas_id";
+        
+        $params = [];
+        if ($programType) {
+            $sql .= " AND s.program_type = ?";
+            $params[] = $programType;
+        }
+        
+        $sql .= " WHERE b.is_active = 1
                 GROUP BY p.id, p.name
                 HAVING total_stock > 0
                 ORDER BY total_stock DESC";
         
-        return $this->query($sql);
+        return $this->query($sql, $params);
     }
     
     /**

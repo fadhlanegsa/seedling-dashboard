@@ -338,10 +338,10 @@
                 <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
                 
                 <div class="form-group">
-                    <label class="form-label">Username atau Email</label>
+                    <label class="form-label">Username, Email, No. HP, atau NIK</label>
                     <div class="input-wrapper">
                         <i class="fas fa-user input-icon"></i>
-                        <input type="text" name="username" class="form-control" required autofocus placeholder="Masukkan username atau email">
+                        <input type="text" name="username" class="form-control" required autofocus placeholder="Masukkan username, email, no HP, atau NIK">
                     </div>
                 </div>
 
@@ -377,7 +377,7 @@
         </div>
     </div>
     
-    <script>
+    <script nonce="<?= cspNonce() ?>">
         document.getElementById('togglePassword').addEventListener('click', function () {
             const password = document.getElementById('password');
             const type = password.getAttribute('type') === 'password' ? 'text' : 'password';

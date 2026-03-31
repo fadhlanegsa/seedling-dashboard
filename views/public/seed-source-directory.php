@@ -152,7 +152,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script>
+<script nonce="<?= cspNonce() ?>">
 // Initialize map
 const map = L.map('map').setView([-2.5, 118], 5); // Center of Indonesia
 

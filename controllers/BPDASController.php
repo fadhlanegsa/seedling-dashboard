@@ -24,9 +24,11 @@ class BPDASController extends Controller {
         $stockModel = $this->model('Stock');
         $requestModel = $this->model('Request');
         
+        $programType = $this->get('program_type');
+        
         // Get statistics
-        $stockStats = $stockModel->getBPDASStatistics($bpdasId);
-        $requestStats = $requestModel->getStatistics($bpdasId);
+        $stockStats = $stockModel->getBPDASStatistics($bpdasId, $programType);
+        $requestStats = $requestModel->getStatistics($bpdasId, $programType);
         
         // Get recent stock updates
         $recentStock = $stockModel->getByBPDAS($bpdasId);
@@ -57,7 +59,8 @@ class BPDASController extends Controller {
             'recentStock' => $recentStock,
             'pendingRequests' => $pendingRequests,
             'nurseries' => $nurseries,
-            'recentDeliveries' => $recentDeliveries
+            'recentDeliveries' => $recentDeliveries,
+            'currentProgram' => $programType
         ];
         
         $this->render('bpdas/dashboard', $data, 'dashboard');
@@ -153,16 +156,11 @@ class BPDASController extends Controller {
         $seedlingTypeId = $this->post('seedling_type_id');
         $quantity = $this->post('quantity');
         $notes = $this->post('notes');
+        $programType = $this->post('program_type') ?: 'Reguler';
         
         // Validate
-        if (empty($seedlingTypeId) || empty($quantity)) {
-            $this->setFlash('error', 'Jenis bibit dan jumlah harus diisi');
-            $this->redirect('bpdas/stock-form' . ($id ? "/$id" : ''));
-            return;
-        }
-        
-        if (!is_numeric($quantity) || $quantity < 0) {
-            $this->setFlash('error', 'Jumlah stok harus berupa angka positif');
+        if ($quantity === '' || $quantity === null || !is_numeric($quantity) || $quantity < 0) {
+            $this->setFlash('error', 'Jumlah stok harus berupa angka positif (0 atau lebih)');
             $this->redirect('bpdas/stock-form' . ($id ? "/$id" : ''));
             return;
         }
@@ -181,13 +179,14 @@ class BPDASController extends Controller {
             $result = $stockModel->update($id, [
                 'quantity' => $quantity,
                 'last_update_date' => date('Y-m-d'),
-                'notes' => $notes
+                'notes' => $notes,
+                'program_type' => $programType
             ]);
             
             $message = 'Stok berhasil diupdate';
         } else {
             // Create new stock or update if exists
-            $result = $stockModel->updateOrCreate($bpdasId, $seedlingTypeId, $quantity, $notes);
+            $result = $stockModel->updateOrCreate($bpdasId, $seedlingTypeId, $quantity, $notes, $programType);
             $message = 'Stok berhasil ditambahkan';
         }
         
@@ -488,6 +487,92 @@ class BPDASController extends Controller {
     }
     
     /**
+     * Cancel an approved request (requester did not show up)
+     */
+    public function cancelRequest() {
+        ob_start();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+        
+        if (!$this->validateCSRF()) {
+            ob_end_clean();
+            return;
+        }
+        
+        $user = currentUser();
+        $bpdasId = $user['bpdas_id'];
+        
+        $requestId = $this->post('request_id');
+        $reason    = $this->post('reason');
+        
+        if (empty($reason)) {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Alasan pembatalan harus diisi']);
+            return;
+        }
+        
+        $requestModel = $this->model('Request');
+        $request = $requestModel->getWithDetails($requestId);
+        
+        // Validate ownership and status
+        if (!$request || $request['bpdas_id'] != $bpdasId) {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Permintaan tidak ditemukan']);
+            return;
+        }
+        
+        if ($request['status'] !== 'approved') {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Hanya permintaan berstatus Disetujui yang dapat dibatalkan']);
+            return;
+        }
+        
+        // Restore stock to nursery
+        if (!empty($request['nursery_id'])) {
+            $stockModel = $this->model('Stock');
+            $items = $requestModel->getRequestItems($requestId);
+            
+            foreach ($items as $item) {
+                // Find the stock entry for this nursery + seedling
+                $stock = $stockModel->findByNurseryAndSeedling($request['nursery_id'], $item['seedling_type_id']);
+                if ($stock) {
+                    $stockModel->update($stock['id'], [
+                        'quantity'         => $stock['quantity'] + $item['quantity'],
+                        'last_update_date' => date('Y-m-d')
+                    ]);
+                }
+            }
+        }
+        
+        // Cancel request
+        $cancelled = $requestModel->cancel($requestId, $user['id'], $reason);
+        
+        if ($cancelled) {
+            // Add history
+            $requestModel->addHistory($requestId, 'cancelled', $user['id'], 'Pembatalan: ' . $reason);
+            
+            // Send email notification
+            try {
+                require_once UTILS_PATH . 'EmailSender.php';
+                $emailSender = new EmailSender();
+                $emailSender->sendCancellationNotification($request, $reason);
+            } catch (Exception $e) {
+                logError('Cancellation email failed: ' . $e->getMessage());
+            }
+            
+            ob_end_clean();
+            $this->json(['success' => true, 'message' => 'Permintaan berhasil dibatalkan dan stok telah dikembalikan']);
+        } else {
+            ob_end_clean();
+            $this->json(['success' => false, 'message' => 'Gagal membatalkan permintaan']);
+        }
+    }
+    
+    /**
      * BPDAS profile page
      */
     public function profile() {
@@ -542,6 +627,8 @@ class BPDASController extends Controller {
         }
         
         $userModel = $this->model('User');
+        $bpdasModel = $this->model('BPDAS');
+        $bpdasId = $user['bpdas_id'];
         
         // Check if username exists (excluding current user)
         if ($userModel->usernameExists($data['username'], $userId)) {
@@ -569,12 +656,24 @@ class BPDASController extends Controller {
             $userModel->changePassword($userId, $newPassword);
         }
         
-        if ($userModel->update($userId, $data)) {
+        // BPDAS Data
+        $bpdasData = [
+            'name' => sanitize($this->post('bpdas_name')),
+            'address' => sanitize($this->post('bpdas_address')),
+            'phone' => sanitize($this->post('bpdas_phone')),
+            'email' => sanitize($this->post('bpdas_email')),
+            'contact_person' => sanitize($this->post('bpdas_contact_person'))
+        ];
+
+        $userUpdate = $userModel->update($userId, $data);
+        $bpdasUpdate = $bpdasModel->update($bpdasId, $bpdasData);
+
+        if ($userUpdate || $bpdasUpdate) {
             // Update session
             $_SESSION['user'] = array_merge($_SESSION['user'], $data);
-            $this->setFlash('success', 'Profil berhasil diupdate');
+            $this->setFlash('success', 'Profil BPDAS dan Akun berhasil diupdate');
         } else {
-            $this->setFlash('error', 'Gagal mengupdate profil');
+            $this->setFlash('error', 'Gagal mengupdate profil atau tidak ada perubahan');
         }
         
         $this->redirect('bpdas/profile');
