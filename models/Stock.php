@@ -20,11 +20,12 @@ class Stock extends Model {
                 st.name as seedling_name, st.scientific_name, st.category
                 FROM {$this->table} s
                 INNER JOIN seedling_types st ON s.seedling_type_id = st.id
-                WHERE s.bpdas_id = ?
-                GROUP BY s.seedling_type_id, s.program_type, st.name, st.scientific_name, st.category
+                LEFT JOIN nurseries n ON s.nursery_id = n.id
+                WHERE s.bpdas_id = ? OR n.bpdas_id = ?
+                GROUP BY s.seedling_type_id, s.program_type, st.id, st.name, st.scientific_name, st.category
                 ORDER BY st.name ASC, s.program_type ASC";
         
-        return $this->query($sql, [$bpdasId]);
+        return $this->query($sql, [$bpdasId, $bpdasId]);
     }
     
     /**
