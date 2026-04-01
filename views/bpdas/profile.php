@@ -94,7 +94,53 @@
     </div>
 </div>
 
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-warning text-dark">
+                <h3><i class="fas fa-users-cog"></i> Pengaturan Pendelegasian Wewenang</h3>
+            </div>
+            <div class="card-body">
+                <form action="<?= url('bpdas/updateDelegation') ?>" method="POST">
+                    <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Info:</strong> Aktifkan fitur ini jika Anda ingin memberikan wewenang kepada 
+                        <strong>Operator Persemaian</strong> untuk menyetujui atau menolak permintaan bibit secara mandiri 
+                        melalui dashboard mereka.
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="can_operator_approve" id="can_operator_approve" 
+                               value="1" <?= ($bpdas['can_operator_approve'] ?? 0) ? 'checked' : '' ?> 
+                               style="width: 50px; height: 25px; cursor: pointer;">
+                        <label class="form-check-label ps-2" for="can_operator_approve" style="cursor: pointer; font-weight: 600;">
+                            Izinkan Operator Persemaian menyetujui permintaan bibit secara mandiri
+                        </label>
+                    </div>
+
+                    <p class="text-muted small">
+                        <i class="fas fa-exclamation-triangle"></i> Jika dimatikan (default), 
+                        seluruh persetujuan bibit harus dilakukan oleh akun BPDAS.
+                    </p>
+
+                    <div class="form-actions mt-3">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-check-circle"></i> Simpan Pengaturan Delegasi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
+.form-check-input:checked {
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
 .form-label.required::after {
     content: ' *';
     color: red;
