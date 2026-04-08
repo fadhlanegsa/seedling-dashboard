@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS `seedling_harvests` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `harvest_code` VARCHAR(50) NOT NULL COMMENT 'PA-YYYYMMXXX',
+    `harvest_date` DATE NOT NULL,
+    `sowing_id` INT(11) NOT NULL COMMENT 'Relasi ke seed_sowings.id',
+    `harvested_quantity` INT(11) NOT NULL DEFAULT 0 COMMENT 'Jumlah anakan yang dihasilkan',
+    `mandor` VARCHAR(150),
+    `manager` VARCHAR(150),
+    `notes` TEXT,
+    `bpdas_id` INT(11) DEFAULT NULL,
+    `nursery_id` INT(11) NOT NULL,
+    `created_by` INT(11) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_harvest_code` (`harvest_code`),
+    FOREIGN KEY (`sowing_id`) REFERENCES `seed_sowings`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (`bpdas_id`) REFERENCES `bpdas`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`nursery_id`) REFERENCES `nurseries`(`id`),
+    FOREIGN KEY (`created_by`) REFERENCES `users`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

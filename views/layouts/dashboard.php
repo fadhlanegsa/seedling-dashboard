@@ -178,7 +178,36 @@ $user = currentUser();
                         <li><a href="<?= url('public/profile') ?>" class="<?= $this->activeClass('public/profile') ?>">
                             <i class="fas fa-user"></i> Profil
                         </a></li>
-                    <?php endif; ?>
+                        <?php endif; ?>
+
+                        <!-- Penatausahaan Bibit Module (Visible only to Admin, BPDAS, Operator) -->
+                        <?php if (in_array($user['role'], ['admin', 'bpdas', 'operator_persemaian'])): ?>
+                            <li class="nav-section-header mt-3 px-3 small text-muted font-weight-bold">PENATAUSAHAAN BIBIT</li>
+                            <li><a href="<?= url('seedling-admin') ?>" class="<?= $this->activeClass('seedling-admin') ?>">
+                                <i class="fas fa-microscope"></i> Ringkasan
+                            </a></li>
+                            <li><a href="<?= url('seedling-admin/master-data') ?>" class="<?= $this->activeClass('seedling-admin/master-data') ?>">
+                                <i class="fas fa-database"></i> Database
+                            </a></li>
+                            
+                            <?php if ($user['role'] === 'operator_persemaian'): ?>
+                                <li><a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="<?= $this->activeClass('seedling-admin/bahan-baku-form') ?>">
+                                    <i class="fas fa-layer-group"></i> Bahan Baku IN
+                                </a></li>
+                                <li><a href="<?= url('seedling-admin/media-mixing-form') ?>" class="<?= $this->activeClass('seedling-admin/media-mixing-form') ?>">
+                                    <i class="fas fa-blender"></i> Pencampuran Media
+                                </a></li>
+                                <li><a href="<?= url('seedling-admin/bag-filling-form') ?>" class="<?= $this->activeClass('seedling-admin/bag-filling-form') ?>">
+                                    <i class="fas fa-fill-drip"></i> Pengisian Kantong
+                                </a></li>
+                                <li><a href="<?= url('seedling-admin/seed-sowing-form') ?>" class="<?= $this->activeClass('seedling-admin/seed-sowing-form') ?>">
+                                    <i class="fas fa-seedling"></i> Penaburan Benih
+                                </a></li>
+                                <li><a href="<?= url('seedling-admin/harvesting-form') ?>" class="<?= $this->activeClass('seedling-admin/harvesting-form') ?>">
+                                    <i class="fas fa-leaf"></i> Pemanenan Semai
+                                </a></li>
+                            <?php endif; ?>
+                        <?php endif; ?>
                 </ul>
             </nav>
         </aside>
