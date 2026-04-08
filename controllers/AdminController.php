@@ -329,9 +329,9 @@ class AdminController extends Controller {
     public function stock() {
         $page    = $this->get('page', 1);
         $filters = [
-            'province_id'      => $this->get('province_id'),
-            'bpdas_id'         => $this->get('bpdas_id'),
-            'seedling_type_id' => $this->get('seedling_type_id'),
+            'province_id'      => $this->get('province_id') ? (int)$this->get('province_id') : null,
+            'bpdas_id'         => $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null,
+            'seedling_type_id' => $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null,
             'category'         => $this->get('category'),
             'month'            => $this->get('month'),
             'year'             => $this->get('year')
@@ -368,8 +368,8 @@ class AdminController extends Controller {
         $page    = $this->get('page', 1);
         $filters = [
             'status'      => $this->get('status'),
-            'province_id' => $this->get('province_id'),
-            'bpdas_id'    => $this->get('bpdas_id')
+            'province_id' => $this->get('province_id') ? (int)$this->get('province_id') : null,
+            'bpdas_id'    => $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null
         ];
 
         $requestModel  = $this->model('Request');
@@ -608,9 +608,9 @@ class AdminController extends Controller {
      */
     public function getMapData() {
         $filters = [
-            'province_id'      => $this->get('province_id'),
-            'bpdas_id'         => $this->get('bpdas_id'),
-            'seedling_type_id' => $this->get('seedling_type_id'),
+            'province_id'      => $this->get('province_id') ? (int)$this->get('province_id') : null,
+            'bpdas_id'         => $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null,
+            'seedling_type_id' => $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null,
             'status'           => $this->get('status')
         ];
 

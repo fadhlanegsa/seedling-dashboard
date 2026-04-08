@@ -363,7 +363,7 @@ class PublicController extends Controller {
             exit;
         }
         
-        $bpdasId = $this->get('bpdas_id');
+        $bpdasId = $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null;
         if (!$bpdasId) {
             echo json_encode([]);
             return;
@@ -577,7 +577,7 @@ class PublicController extends Controller {
      * AJAX: Get BPDAS by province
      */
     public function getBPDASByProvince() {
-        $provinceId = $this->get('province_id');
+        $provinceId = $this->get('province_id') ? (int)$this->get('province_id') : null;
         
         if (!$provinceId) {
             $this->json(['success' => false, 'message' => 'Province ID required']);
@@ -594,8 +594,8 @@ class PublicController extends Controller {
      * AJAX: Get seedling types by BPDAS (and conditionally Nursery)
      */
     public function getSeedlingsByBPDAS() {
-        $bpdasId = $this->get('bpdas_id');
-        $nurseryId = $this->get('nursery_id'); // Optional
+        $bpdasId = $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null;
+        $nurseryId = $this->get('nursery_id') ? (int)$this->get('nursery_id') : null; // Optional
         
         if (!$bpdasId) {
             $this->json(['success' => false, 'message' => 'BPDAS ID required']);
@@ -620,8 +620,8 @@ class PublicController extends Controller {
      * AJAX: Check stock availability
      */
     public function checkStockAvailability() {
-        $bpdasId = $this->get('bpdas_id');
-        $seedlingTypeId = $this->get('seedling_type_id');
+        $bpdasId = $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null;
+        $seedlingTypeId = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
         $programType = $this->get('program_type') ?: 'Reguler';
         
         if (!$bpdasId || !$seedlingTypeId) {
@@ -673,11 +673,11 @@ class PublicController extends Controller {
         $filters = [];
         
         if ($this->get('province_id')) {
-            $filters['province_id'] = $this->get('province_id');
+            $filters['province_id'] = (int)$this->get('province_id');
         }
         
         if ($this->get('seedling_type_id')) {
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['seedling_type_id'] = (int)$this->get('seedling_type_id');
         }
         
         $stocks = $stockModel->searchStock($filters);
@@ -736,11 +736,11 @@ class PublicController extends Controller {
         $filters = [];
         
         if ($this->get('province_id')) {
-            $filters['province_id'] = $this->get('province_id');
+            $filters['province_id'] = (int)$this->get('province_id');
         }
         
         if ($this->get('seedling_type_id')) {
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['seedling_type_id'] = (int)$this->get('seedling_type_id');
         }
         
         if ($this->get('seed_class')) {

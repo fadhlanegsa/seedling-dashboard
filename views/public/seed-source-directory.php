@@ -41,7 +41,7 @@
                         <select class="form-control" id="filter_seedling_type" name="seedling_type_id">
                             <option value="">Semua Jenis</option>
                             <?php foreach ($seedlingTypes as $type): ?>
-                            <option value="<?= $type['id'] ?>"><?= htmlspecialchars($type['name']) ?></option>
+                            <option value="<?= htmlspecialchars((string)$type['id']) ?>"><?= htmlspecialchars($type['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -52,7 +52,7 @@
                         <select class="form-control" id="filter_province" name="province_id">
                             <option value="">Semua Provinsi</option>
                             <?php foreach ($provinces as $prov): ?>
-                            <option value="<?= $prov['id'] ?>"><?= htmlspecialchars($prov['name']) ?></option>
+                            <option value="<?= htmlspecialchars((string)$prov['id']) ?>"><?= htmlspecialchars($prov['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -153,6 +153,17 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script nonce="<?= cspNonce() ?>">
+// Escape HTML to prevent DOM XSS
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // Initialize map
 const map = L.map('map').setView([-2.5, 118], 5); // Center of Indonesia
 
@@ -182,14 +193,14 @@ function loadMarkers(filters = {}) {
                     
                     const popupContent = `
                         <div style="min-width: 200px;">
-                            <h4>${props.name}</h4>
-                            ${props.local_name ? `<p class="text-muted"><em>${props.local_name}</em></p>` : ''}
-                            <p><strong>Lokasi:</strong> ${props.location || '-'}</p>
-                            <p><strong>Provinsi:</strong> ${props.province}</p>
-                            ${props.seedling_type ? `<p><strong>Jenis:</strong> ${props.seedling_type}</p>` : ''}
-                            ${props.seed_class ? `<p><strong>Kelas:</strong> ${props.seed_class}</p>` : ''}
-                            ${props.phone ? `<p><strong>Kontak:</strong> <a href="tel:${props.phone}">${props.phone}</a></p>` : ''}
-                            <a href="<?= url('public/seed-source-detail/') ?>${props.id}" class="btn btn-sm btn-success">Detail</a>
+                            <h4>${escapeHTML(props.name)}</h4>
+                            ${props.local_name ? `<p class="text-muted"><em>${escapeHTML(props.local_name)}</em></p>` : ''}
+                            <p><strong>Lokasi:</strong> ${escapeHTML(props.location) || '-'}</p>
+                            <p><strong>Provinsi:</strong> ${escapeHTML(props.province)}</p>
+                            ${props.seedling_type ? `<p><strong>Jenis:</strong> ${escapeHTML(props.seedling_type)}</p>` : ''}
+                            ${props.seed_class ? `<p><strong>Kelas:</strong> ${escapeHTML(props.seed_class)}</p>` : ''}
+                            ${props.phone ? `<p><strong>Kontak:</strong> <a href="tel:${escapeHTML(props.phone)}">${escapeHTML(props.phone)}</a></p>` : ''}
+                            <a href="<?= url('public/seed-source-detail/') ?>${escapeHTML(props.id)}" class="btn btn-sm btn-success">Detail</a>
                         </div>
                     `;
                     
@@ -257,37 +268,37 @@ function updateResultsList(sources) {
     sources.forEach(source => {
         html += `
             <div class="source-card">
-                <h4>${source.seed_source_name}</h4>
-                ${source.local_name ? `<p class="text-muted"><em>${source.local_name}</em></p>` : ''}
+                <h4>${escapeHTML(source.seed_source_name)}</h4>
+                ${source.local_name ? `<p class="text-muted"><em>${escapeHTML(source.local_name)}</em></p>` : ''}
                 <div class="source-info">
                     <div class="info-item">
                         <i class="fas fa-map-marker-alt"></i>
-                        <div><strong>Lokasi:</strong><br>${source.location || '-'}, ${source.province_name}</div>
+                        <div><strong>Lokasi:</strong><br>${escapeHTML(source.location) || '-'}, ${escapeHTML(source.province_name)}</div>
                     </div>
                     ${source.seedling_type_name ? `
                     <div class="info-item">
                         <i class="fas fa-seedling"></i>
-                        <div><strong>Jenis:</strong><br>${source.seedling_type_name}</div>
+                        <div><strong>Jenis:</strong><br>${escapeHTML(source.seedling_type_name)}</div>
                     </div>` : ''}
                     ${source.seed_class ? `
                     <div class="info-item">
                         <i class="fas fa-certificate"></i>
-                        <div><strong>Kelas SB:</strong><br>${source.seed_class}</div>
+                        <div><strong>Kelas SB:</strong><br>${escapeHTML(source.seed_class)}</div>
                     </div>` : ''}
                     ${source.owner_name ? `
                     <div class="info-item">
                         <i class="fas fa-user"></i>
-                        <div><strong>Pemilik:</strong><br>${source.owner_name}</div>
+                        <div><strong>Pemilik:</strong><br>${escapeHTML(source.owner_name)}</div>
                     </div>` : ''}
                 </div>
                 ${source.owner_phone ? `
                 <div class="contact-highlight">
                     <i class="fas fa-phone"></i>
                     <strong>Kontak:</strong> 
-                    <a href="tel:${source.owner_phone}">${source.owner_phone}</a>
+                    <a href="tel:${escapeHTML(source.owner_phone)}">${escapeHTML(source.owner_phone)}</a>
                 </div>` : ''}
                 <div class="mt-3">
-                    <a href="<?= url('public/seed-source-detail/') ?>${source.id}" class="btn btn-sm btn-success">
+                    <a href="<?= url('public/seed-source-detail/') ?>${escapeHTML(source.id)}" class="btn btn-sm btn-success">
                         <i class="fas fa-info-circle"></i> Lihat Detail
                     </a>
                 </div>

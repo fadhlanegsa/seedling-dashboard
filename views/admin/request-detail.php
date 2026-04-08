@@ -56,8 +56,52 @@
                     </tr>
                     <tr>
                         <th>Jumlah Diminta:</th>
-                        <td><strong><?= formatNumber($request['quantity'] ?? 0) ?></strong> bibit</td>
+                        <td><strong><?= formatNumber($request['quantity'] ?? $request['total_quantity'] ?? 0) ?></strong> bibit</td>
                     </tr>
+                    <?php if (!empty($request['items'])): ?>
+                    <tr>
+                        <td colspan="2" class="p-0 border-top-0">
+                            <div class="bg-light p-3 rounded mt-2 mb-3">
+                                <h5 class="mt-0 mb-2" style="font-size: 1rem;"><i class="fas fa-list-ul"></i> Rincian Bibit (Multi-Item)</h5>
+                                <table class="table table-sm table-bordered bg-white mb-0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Jenis Bibit</th>
+                                            <th>Program</th>
+                                            <th class="text-right">Jumlah</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($request['items'] as $item): ?>
+                                        <tr>
+                                            <td>
+                                                <?= htmlspecialchars($item['seedling_name']) ?><br>
+                                                <small class="text-muted"><em><?= htmlspecialchars($item['scientific_name'] ?? '') ?></em></small>
+                                            </td>
+                                            <td>
+                                                <?php if(($item['program_type'] ?? $request['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                                    <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-primary">Reguler</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-right font-weight-bold">
+                                                <?= formatNumber($item['quantity']) ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <tfoot class="thead-light">
+                                        <tr>
+                                            <th colspan="2" class="text-right">Total</th>
+                                            <th class="text-right"><?= formatNumber($request['total_quantity'] ?? 0) ?></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                     <tr>
                         <th>Tujuan Penggunaan:</th>
                         <td><?= htmlspecialchars($request['purpose'] ?? '-') ?></td>

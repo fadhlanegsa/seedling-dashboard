@@ -49,11 +49,11 @@ class HomeController extends Controller {
         
         // Get search filters
         $filters = [
-            'province_id' => $this->get('province_id'),
-            'bpdas_id' => $this->get('bpdas_id'),
-            'nursery_id' => $this->get('nursery_id'),
-            'seedling_type_id' => $this->get('seedling_type_id'),
-            'min_stock' => $this->get('min_stock')
+            'province_id' => $this->get('province_id') ? (int)$this->get('province_id') : null,
+            'bpdas_id' => $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null,
+            'nursery_id' => $this->get('nursery_id') ? (int)$this->get('nursery_id') : null,
+            'seedling_type_id' => $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null,
+            'min_stock' => $this->get('min_stock') !== null && $this->get('min_stock') !== '' ? (int)$this->get('min_stock') : null
         ];
         
         $page = $this->get('page', 1);

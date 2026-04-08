@@ -41,19 +41,19 @@ class ExportController extends Controller {
         $filters = [];
         
         if ($isAdmin) {
-            $filters['province_id'] = $this->get('province_id');
-            $filters['bpdas_id'] = $this->get('bpdas_id');
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['province_id'] = $this->get('province_id') ? (int)$this->get('province_id') : null;
+            $filters['bpdas_id'] = $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null;
+            $filters['seedling_type_id'] = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
             $filters['category'] = $this->get('category');
         } elseif ($user['role'] === 'operator_persemaian') {
             $userModel = $this->model('User');
             $userData = $userModel->getUserWithNursery($user['id']);
             $filters['nursery_id'] = $userData['nursery_id'];
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['seedling_type_id'] = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
         } else {
             // BPDAS User - Locked to their BPDAS
             $filters['bpdas_id'] = $user['bpdas_id'];
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['seedling_type_id'] = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
         }
         
         // Date Filters (for both roles)
@@ -140,18 +140,18 @@ class ExportController extends Controller {
         // Prepare Filters (Same logc)
         $filters = [];
         if ($isAdmin) {
-            $filters['province_id'] = $this->get('province_id');
-            $filters['bpdas_id'] = $this->get('bpdas_id');
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['province_id'] = $this->get('province_id') ? (int)$this->get('province_id') : null;
+            $filters['bpdas_id'] = $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null;
+            $filters['seedling_type_id'] = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
             $filters['category'] = $this->get('category');
         } elseif ($user['role'] === 'operator_persemaian') {
             $userModel = $this->model('User');
             $userData = $userModel->getUserWithNursery($user['id']);
             $filters['nursery_id'] = $userData['nursery_id'];
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['seedling_type_id'] = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
         } else {
             $filters['bpdas_id'] = $user['bpdas_id'];
-            $filters['seedling_type_id'] = $this->get('seedling_type_id');
+            $filters['seedling_type_id'] = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
         }
         
         // Date Filters

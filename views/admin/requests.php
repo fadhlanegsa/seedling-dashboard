@@ -109,7 +109,7 @@
                                     <span class="badge badge-primary">Reguler</span>
                                 <?php endif; ?>
                             </td>
-                            <td><strong><?= formatNumber($item['quantity'] ?? 0) ?></strong></td>
+                            <td><strong><?= formatNumber($item['quantity'] ?? $item['item_quantity'] ?? 0) ?></strong></td>
                             <td>
                                 <?php $status = $item['status'] ?? 'pending'; ?>
                                 <span class="badge badge-<?= status_badge_class($status) ?>">

@@ -162,6 +162,16 @@ elseif ($parts[0] === 'api') {
         $params = [];
     }
 }
+// Handle special routing for seedling-admin/*
+elseif ($parts[0] === 'seedling-admin') {
+    $controllerName = 'SeedlingAdminController';
+    $action = isset($parts[1]) ? $parts[1] : 'index';
+    // Convert kebab-case to camelCase for action
+    if (strpos($action, '-') !== false) {
+        $action = lcfirst(str_replace('-', '', ucwords($action, '-')));
+    }
+    $params = array_slice($parts, 2);
+}
 else {
     // Handle special cases for acronyms
     $controller = $parts[0];

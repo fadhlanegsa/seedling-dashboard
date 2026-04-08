@@ -71,7 +71,7 @@
                         <div class="form-group">
                             <label class="form-label">Stok Minimal</label>
                             <input type="number" name="min_stock" class="form-control"
-                                   value="<?= $filters['min_stock'] ?? '' ?>"
+                                   value="<?= htmlspecialchars($filters['min_stock'] ?? '') ?>"
                                    placeholder="Contoh: 100">
                         </div>
 

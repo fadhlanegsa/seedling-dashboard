@@ -608,7 +608,7 @@ class Request extends Model {
      */
     public function getUserApprovedQuantity($userId) {
         $sql = "SELECT SUM(
-                    COALESCE(r.quantity, (SELECT SUM(ri.quantity) FROM request_items ri WHERE ri.request_id = r.id))
+                    COALESCE(r.quantity, (SELECT SUM(ri.quantity) FROM request_items ri WHERE ri.request_id = r.id), 0)
                 ) as total
                 FROM requests r
                 WHERE r.user_id = ?
@@ -624,7 +624,9 @@ class Request extends Model {
      * @return int
      */
     public function getTotalDistributed() {
-        $sql = "SELECT SUM(quantity) as total 
+        $sql = "SELECT SUM(
+                    COALESCE(quantity, (SELECT IFNULL(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = requests.id), 0)
+                ) as total 
                 FROM {$this->table} 
                 WHERE status IN ('delivered', 'completed')";
         $result = $this->queryOne($sql);
