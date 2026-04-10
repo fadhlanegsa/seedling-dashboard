@@ -82,6 +82,13 @@
                         </div>
                     </div>
                     <div class="form-group row">
+                        <label class="col-sm-3 col-form-label font-weight-bold text-warning small"><i class="fas fa-map-marker-alt mr-1"></i>Lokasi / Blok</label>
+                        <div class="col-sm-9">
+                            <input type="text" name="location" class="form-control" placeholder="Contoh: Blok A, Bedeng 2, Sf, dll">
+                            <small class="text-muted">Lokasi ini akan tampil saat memilih PA di form Penyapihan &amp; Entres</small>
+                        </div>
+                    </div>
+                    <div class="form-group row">
                         <label class="col-sm-3 col-form-label text-muted small">Keterangan</label>
                         <div class="col-sm-9">
                             <input type="text" name="notes" class="form-control">
@@ -164,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dataToRender.forEach(sw => {
             const dateStr = new Date(sw.sowing_date).toLocaleDateString('id-ID');
             modalBody.innerHTML += `
-                <tr ondblclick="selectSowing(${sw.id})">
+                <tr onclick="selectSowing(${sw.id})" style="cursor:pointer;">
                     <td class="font-weight-bold text-dark">${sw.seed_name}</td>
                     <td>${dateStr}</td>
                     <td class="text-muted">${sw.sowing_code}</td>

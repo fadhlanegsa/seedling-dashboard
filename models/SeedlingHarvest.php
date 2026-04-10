@@ -32,11 +32,22 @@ class SeedlingHarvest extends Model {
      * @return array
      */
     public function getRecentHarvests($limit = 10, $filters = []) {
-        $sql = "SELECT h.*, s.sowing_code, 
-                m.name as seed_name, m.unit as seed_unit
+        $sql = "SELECT h.*, s.sowing_code, h.location,
+                m.name as seed_name, 'pcs' as seed_unit,
+                (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock
                 FROM {$this->table} h
                 JOIN seed_sowings s ON h.sowing_id = s.id
-                JOIN bahan_baku_master m ON s.seed_item_id = m.id";
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(weaned_quantity) as used_stock
+                    FROM seedling_weanings
+                    GROUP BY harvest_id
+                ) w ON h.id = w.harvest_id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(used_quantity) as entres_stock
+                    FROM seedling_entres
+                    GROUP BY harvest_id
+                ) e ON h.id = e.harvest_id";
         
         $where = [];
         $params = [];
@@ -55,7 +66,7 @@ class SeedlingHarvest extends Model {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
 
-        $sql .= " ORDER BY h.created_at DESC LIMIT ?";
+        $sql .= " HAVING remaining_stock > 0 ORDER BY h.created_at DESC LIMIT ?";
         $params[] = (int)$limit;
 
         $stmt = $this->db->prepare($sql);
@@ -64,5 +75,83 @@ class SeedlingHarvest extends Model {
         }
         $stmt->execute();
         return $stmt->fetchAll();
+    }
+    /**
+     * Get available harvests (sisa stok anakan) that have not been fully weaned
+     * @param array $filters
+     * @return array
+     */
+    public function getAvailableHarvests($filters = []) {
+        $sql = "SELECT h.id, h.harvest_code, h.harvest_date, h.harvested_quantity as total_initial,
+                h.location, m.name as seed_name, 'pcs' as seed_unit,
+                COALESCE(w.used_stock, 0) as weaned_stock,
+                COALESCE(e.entres_stock, 0) as used_entres,
+                (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock
+                FROM {$this->table} h
+                JOIN seed_sowings s ON h.sowing_id = s.id
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(weaned_quantity) as used_stock
+                    FROM seedling_weanings
+                    GROUP BY harvest_id
+                ) w ON h.id = w.harvest_id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(used_quantity) as entres_stock
+                    FROM seedling_entres
+                    GROUP BY harvest_id
+                ) e ON h.id = e.harvest_id";
+        
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "h.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "h.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" AND ", $where);
+        }
+
+        $sql .= " HAVING remaining_stock > 0 ORDER BY h.harvest_date ASC";
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k + 1, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Get specific harvest details with current stock
+     * @param int $id
+     * @return array|null
+     */
+    public function getHarvestDetails($id) {
+        $sql = "SELECT h.id, h.harvest_code, h.harvest_date, h.harvested_quantity,
+                h.location, m.name as seed_name, m.scientific_name as seed_scientific_name, 'pcs' as seed_unit,
+                (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock
+                FROM {$this->table} h
+                JOIN seed_sowings s ON h.sowing_id = s.id
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(weaned_quantity) as used_stock
+                    FROM seedling_weanings
+                    GROUP BY harvest_id
+                ) w ON h.id = w.harvest_id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(used_quantity) as entres_stock
+                    FROM seedling_entres
+                    GROUP BY harvest_id
+                ) e ON h.id = e.harvest_id
+                WHERE h.id = ?";
+                
+        return $this->queryOne($sql, [$id]);
     }
 }

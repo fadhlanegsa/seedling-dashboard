@@ -27,7 +27,7 @@ class BahanBaku extends Model {
      * @return array
      */
     public function getCategories() {
-        $sql = "SELECT DISTINCT category_code, category FROM bahan_baku_master ORDER BY category_code ASC";
+        $sql = "SELECT code as category_code, name as category FROM bahan_baku_categories ORDER BY code ASC";
         return $this->query($sql);
     }
 
@@ -177,8 +177,19 @@ class BahanBaku extends Model {
 
         $sql = "SELECT m.id, m.name, m.category, m.unit,
                 COALESCE(trans_in.total_in, 0) as total_in,
-                (COALESCE(mixing_out.total_out, 0) + COALESCE(filling_out.total_out, 0) + COALESCE(sowing_seed_out.total_out, 0) + COALESCE(sowing_mat_out.total_out, 0)) as total_out,
-                (COALESCE(trans_in.total_in, 0) - (COALESCE(mixing_out.total_out, 0) + COALESCE(filling_out.total_out, 0) + COALESCE(sowing_seed_out.total_out, 0) + COALESCE(sowing_mat_out.total_out, 0))) as current_stock
+                (COALESCE(mixing_out.total_out, 0) + 
+                 COALESCE(filling_out.total_out, 0) + 
+                 COALESCE(sowing_seed_out.total_out, 0) + 
+                 COALESCE(sowing_mat_out.total_out, 0) + 
+                 COALESCE(weaning_mat_out.total_out, 0) + 
+                 COALESCE(entres_mat_out.total_out, 0)) as total_out,
+                (COALESCE(trans_in.total_in, 0) - (
+                 COALESCE(mixing_out.total_out, 0) + 
+                 COALESCE(filling_out.total_out, 0) + 
+                 COALESCE(sowing_seed_out.total_out, 0) + 
+                 COALESCE(sowing_mat_out.total_out, 0) + 
+                 COALESCE(weaning_mat_out.total_out, 0) + 
+                 COALESCE(entres_mat_out.total_out, 0))) as current_stock
                 FROM bahan_baku_master m
                 -- Total IN from transactions
                 LEFT JOIN (
@@ -227,6 +238,26 @@ class BahanBaku extends Model {
                     ($bpdasId ? " AND ss.bpdas_id = $bpdasId" : "") . "
                     GROUP BY sm.item_id
                 ) sowing_mat_out ON m.id = sowing_mat_out.item_id
+                -- Total OUT from weaning materials (Supporting materials for PE)
+                LEFT JOIN (
+                    SELECT wm.item_id, SUM(wm.quantity) as total_out
+                    FROM seedling_weaning_materials wm
+                    JOIN seedling_weanings sw ON wm.weaning_id = sw.id
+                    WHERE 1=1 " . 
+                    ($nurseryId ? " AND sw.nursery_id = $nurseryId" : "") . 
+                    ($bpdasId ? " AND sw.bpdas_id = $bpdasId" : "") . "
+                    GROUP BY wm.item_id
+                ) weaning_mat_out ON m.id = weaning_mat_out.item_id
+                -- Total OUT from entres materials (Supporting materials for ET)
+                LEFT JOIN (
+                    SELECT em.item_id, SUM(em.quantity) as total_out
+                    FROM seedling_entres_materials em
+                    JOIN seedling_entres se ON em.entres_id = se.id
+                    WHERE 1=1 " . 
+                    ($nurseryId ? " AND se.nursery_id = $nurseryId" : "") . 
+                    ($bpdasId ? " AND se.bpdas_id = $bpdasId" : "") . "
+                    GROUP BY em.item_id
+                ) entres_mat_out ON m.id = entres_mat_out.item_id
                 HAVING current_stock > 0 OR total_in > 0
                 ORDER BY m.category ASC, m.name ASC";
         

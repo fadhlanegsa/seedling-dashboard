@@ -102,8 +102,10 @@
                                 <td>
                                     <?php if(($stock['program_type'] ?? 'Reguler') === 'FOLU'): ?>
                                         <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                    <?php elseif(($stock['program_type'] ?? '') === 'bibitgratis'): ?>
+                                        <span class="badge badge-primary"><i class="fas fa-seedling mr-1"></i> PUB</span>
                                     <?php else: ?>
-                                        <span class="badge badge-primary">Reguler</span>
+                                        <span class="badge badge-success">Reguler</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="font-weight-bold text-primary"><?= number_format($stock['quantity']) ?></td>

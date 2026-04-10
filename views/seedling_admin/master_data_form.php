@@ -24,7 +24,11 @@
                         <?php endif; ?>
 
                         <div class="form-group row mb-4">
-                            <label class="col-sm-4 col-form-label font-weight-bold">Kategori Barang</label>
+                            <label class="col-sm-4 col-form-label font-weight-bold">
+                                Kategori Barang
+                                <br>
+                                <a href="<?= url('seedling-admin/manage-categories') ?>" class="small font-weight-bold text-info"><i class="fas fa-cog mr-1"></i>Urus Kategori</a>
+                            </label>
                             <div class="col-sm-8">
                                 <select name="category_code" id="category_code" class="form-control custom-select" required>
                                     <option value="">-- Pilih Kategori --</option>

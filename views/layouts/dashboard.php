@@ -206,6 +206,15 @@ $user = currentUser();
                                 <li><a href="<?= url('seedling-admin/harvesting-form') ?>" class="<?= $this->activeClass('seedling-admin/harvesting-form') ?>">
                                     <i class="fas fa-leaf"></i> Pemanenan Semai
                                 </a></li>
+                                <li><a href="<?= url('seedling-admin/weaning-form') ?>" class="<?= $this->activeClass('seedling-admin/weaning-form') ?>">
+                                    <i class="fas fa-seedling" style="color: #4CAF50;"></i> Penyapihan Bibit
+                                </a></li>
+                                <li><a href="<?= url('seedling-admin/entres-form') ?>" class="<?= $this->activeClass('seedling-admin/entres-form') ?>">
+                                    <i class="fas fa-cut" style="color: #ff9800;"></i> Penggunaan Entres
+                                </a></li>
+                                <li><a href="<?= url('seedling-admin/mutation-form') ?>" class="<?= $this->activeClass('seedling-admin/mutation-form') ?>">
+                                    <i class="fas fa-exchange-alt" style="color: #f44336;"></i> Mutasi Bibit (BO)
+                                </a></li>
                             <?php endif; ?>
                         <?php endif; ?>
                 </ul>

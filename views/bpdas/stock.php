@@ -117,8 +117,10 @@
                                 <strong><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></strong><br>
                                 <?php if(($item['program_type'] ?? 'Reguler') === 'FOLU'): ?>
                                     <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
+                                <?php elseif(($item['program_type'] ?? '') === 'bibitgratis'): ?>
+                                    <span class="badge badge-primary"><i class="fas fa-seedling mr-1"></i> PUB</span>
                                 <?php else: ?>
-                                    <span class="badge badge-primary">Reguler</span>
+                                    <span class="badge badge-success">Reguler</span>
                                 <?php endif; ?>
                             </td>
                             <td><em><?= htmlspecialchars($item['scientific_name'] ?? '-') ?></em></td>

@@ -56,7 +56,20 @@ class SeedlingAdminController extends Controller {
         $recentFillings = $fillingModel->getRecentFillings(10, $filters);
         $recentSowings = $sowingModel->getRecentSowings(10, $filters);
         $recentHarvests = $harvestModel->getRecentHarvests(10, $filters);
+
+        $weaningModel = $this->model('SeedlingWeaning');
+        $recentWeanings = $weaningModel->getRecentWeanings(10, $filters);
+
+        $entresModel = $this->model('SeedlingEntres');
+        $recentEntres = $entresModel->getRecentEntres(10, $filters);
+
         $stockBalance = $bahanBakuModel->getStockBalance($filters);
+
+        $mutationModel = $this->model('SeedlingMutation');
+        $recentMutations = $mutationModel->getRecentMutations(10, $filters['nursery_id']);
+
+        $stockModel = $this->model('Stock');
+        $readyStock = $stockModel->getByNursery($filters['nursery_id']);
 
         // Fetch BPDAS and Nurseries for the filter dropdowns (Admin/BPDAS only)
         $bpdasList = [];
@@ -84,6 +97,10 @@ class SeedlingAdminController extends Controller {
             'recentFillings' => $recentFillings,
             'recentSowings' => $recentSowings,
             'recentHarvests' => $recentHarvests,
+            'recentWeanings' => $recentWeanings,
+            'recentEntres' => $recentEntres,
+            'recentMutations' => $recentMutations,
+            'readyStock' => $readyStock,
             'stockBalance' => $stockBalance,
             'bpdasList' => $bpdasList,
             'nurseryList' => $nurseryList,
@@ -189,14 +206,7 @@ class SeedlingAdminController extends Controller {
         $bahanBakuModel = $this->model('BahanBaku');
         $item = $id ? $bahanBakuModel->getMasterItem($id) : null;
 
-        $categories = [
-            ['code' => 'A', 'name' => 'BENIH'],
-            ['code' => 'B', 'name' => 'MEDIA'],
-            ['code' => 'C', 'name' => 'KANTONG BIBIT'],
-            ['code' => 'D', 'name' => 'PUPUK'],
-            ['code' => 'E', 'name' => 'OBAT-OBATAN'],
-            ['code' => 'F', 'name' => 'LAIN-LAIN']
-        ];
+        $categories = $this->db->query("SELECT * FROM bahan_baku_categories ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
 
         $data = [
             'title' => ($id ? 'Edit' : 'Tambah') . ' Data Master',
@@ -592,6 +602,29 @@ class SeedlingAdminController extends Controller {
     }
 
     /**
+     * AJAX: Get Supporting Materials Stock Specifically for Entres
+     */
+    public function getEntresMaterialsAJAX() {
+        $bahanBakuModel = $this->model('BahanBaku');
+        $user = currentUser();
+        $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
+
+        $allStocks = $bahanBakuModel->getStockBalance(['nursery_id' => $nurseryId]);
+        $materials = [];
+
+        foreach ($allStocks as $stock) {
+            if (trim(strtoupper($stock['category'])) === 'ENTRESS') {
+                $materials[] = $stock;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'data' => $materials
+        ]);
+    }
+
+    /**
      * Store Penaburan Benih
      */
     public function storeSeedSowing() {
@@ -652,8 +685,8 @@ class SeedlingAdminController extends Controller {
             }
         }
 
-        if (empty($sowingData['seed_item_id']) || empty($polybagItems)) {
-            $this->setFlash('error', 'Benih dan minimal 1 Polybag Isi Media harus dipilih');
+        if (empty($sowingData['seed_item_id'])) {
+            $this->setFlash('error', 'Jenis Benih wajib diisi!');
             $this->redirect('seedling-admin/seed-sowing-form');
             return;
         }
@@ -668,6 +701,54 @@ class SeedlingAdminController extends Controller {
             $this->redirect('seedling-admin/seed-sowing-form');
         }
     }
+    /**
+     * Manage Categories Page
+     */
+    public function manageCategories() {
+        $categories = $this->db->query("SELECT * FROM bahan_baku_categories ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        $data = [
+            'title' => 'Kelola Kategori Barang',
+            'categories' => $categories
+        ];
+
+        $this->render('seedling_admin/manage_categories', $data, 'dashboard');
+    }
+
+    /**
+     * Save Category
+     */
+    public function saveCategory() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->validateCSRF()) {
+            return;
+        }
+
+        $id = $this->post('id');
+        $code = strtoupper(sanitize($this->post('code')));
+        $name = strtoupper(sanitize($this->post('name')));
+
+        if ($id) {
+            $sql = "UPDATE bahan_baku_categories SET code = ?, name = ? WHERE id = ?";
+            $this->db->prepare($sql)->execute([$code, $name, $id]);
+            $this->setFlash('success', 'Kategori berhasil diperbarui');
+        } else {
+            $sql = "INSERT INTO bahan_baku_categories (code, name) VALUES (?, ?)";
+            $this->db->prepare($sql)->execute([$code, $name]);
+            $this->setFlash('success', 'Kategori baru berhasil ditambahkan');
+        }
+
+        $this->redirect('seedling-admin/manage-categories');
+    }
+
+    /**
+     * Delete Category
+     */
+    public function deleteCategory($id) {
+        $this->db->prepare("DELETE FROM bahan_baku_categories WHERE id = ?")->execute([$id]);
+        $this->setFlash('success', 'Kategori berhasil dihapus');
+        $this->redirect('seedling-admin/manage-categories');
+    }
+
     /**
      * View: Pemanenan Semai Form
      */
@@ -723,6 +804,7 @@ class SeedlingAdminController extends Controller {
             'harvested_quantity' => (int)$this->post('harvested_quantity'),
             'mandor'             => sanitize($this->post('mandor')),
             'manager'            => sanitize($this->post('manager')),
+            'location'           => sanitize($this->post('location')),
             'notes'              => sanitize($this->post('notes')),
             'bpdas_id'           => $user['bpdas_id'],
             'nursery_id'         => $user['nursery_id'],
@@ -745,4 +827,324 @@ class SeedlingAdminController extends Controller {
             $this->redirect('seedling-admin/harvesting-form');
         }
     }
+    /**
+     * View: Penyapihan Bibit Form (PE)
+     */
+    public function weaningForm() {
+
+        $weaningModel = $this->model('SeedlingWeaning');
+        $seedlingTypeModel = $this->model('SeedlingType');
+
+        $weaningCode = $weaningModel->generateWeaningCode();
+        $seedlingTypes = $seedlingTypeModel->getAllActive();
+
+        $data = [
+            'title' => 'Penyapihan Bibit',
+            'weaningCode' => $weaningCode,
+            'seedlingTypes' => $seedlingTypes,
+            'today' => date('Y-m-d')
+        ];
+
+        $this->render('seedling_admin/weaning_form', $data, 'dashboard');
+    }
+
+    /**
+     * AJAX: Get Available Harvests (PA-)
+     */
+    public function getHarvestsAJAX() {
+        $harvestModel = $this->model('SeedlingHarvest');
+        $user = currentUser();
+        $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
+
+        $harvests = $harvestModel->getAvailableHarvests(['nursery_id' => $nurseryId]);
+
+        $this->json([
+            'success' => true,
+            'data' => $harvests
+        ]);
+    }
+
+    /**
+     * Store Penyapihan Bibit
+     */
+    public function storeWeaning() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('seedling-admin');
+            return;
+        }
+
+        if (!$this->validateCSRF()) {
+            return;
+        }
+
+        $user = currentUser();
+        $weaningModel = $this->model('SeedlingWeaning');
+
+        // Handle creation of new Seedling Type via AJAX-like request logic or POST
+        $resultItemId = (int)$this->post('result_item_id');
+        
+        $weaningData = [
+            'weaning_code'       => $this->post('weaning_code'),
+            'weaning_date'       => $this->post('weaning_date'),
+            'harvest_id'         => (int)$this->post('harvest_id'),
+            'result_item_id'     => $resultItemId,
+            'weaned_quantity'    => (int)$this->post('weaned_quantity'),
+            'location'           => sanitize($this->post('location')),
+            'mandor'             => sanitize($this->post('mandor')),
+            'manager'            => sanitize($this->post('manager')),
+            'notes'              => sanitize($this->post('notes')),
+            'bpdas_id'           => $user['bpdas_id'],
+            'nursery_id'         => $user['nursery_id'],
+            'created_by'         => $user['id']
+        ];
+
+        // Process Arrays for Polybags and Materials
+        $polybagItems = [];
+        $materialItems = [];
+
+        if (isset($_POST['pb_id']) && is_array($_POST['pb_id'])) {
+            for ($i = 0; $i < count($_POST['pb_id']); $i++) {
+                if (!empty($_POST['pb_id'][$i]) && !empty($_POST['pb_qty'][$i])) {
+                    $polybagItems[] = [
+                        'bag_filling_id' => (int)$_POST['pb_id'][$i],
+                        'quantity' => (float)$_POST['pb_qty'][$i]
+                    ];
+                }
+            }
+        }
+
+        if (isset($_POST['mat_id']) && is_array($_POST['mat_id'])) {
+            for ($i = 0; $i < count($_POST['mat_id']); $i++) {
+                if (!empty($_POST['mat_id'][$i]) && !empty($_POST['mat_qty'][$i])) {
+                    $materialItems[] = [
+                        'item_id' => (int)$_POST['mat_id'][$i],
+                        'quantity' => (float)$_POST['mat_qty'][$i]
+                    ];
+                }
+            }
+        }
+
+        if (empty($weaningData['harvest_id']) || empty($weaningData['weaned_quantity']) || empty($weaningData['result_item_id'])) {
+            $this->setFlash('error', 'Data Anakan PA, Bibit Dihasilkan, dan Jumlah wajib diisi!');
+            $this->redirect('seedling-admin/weaning-form');
+            return;
+        }
+
+        $result = $weaningModel->saveWeaning($weaningData, $polybagItems, $materialItems);
+
+        if ($result) {
+            $this->setFlash('success', "Penyapihan Bibit <b>{$weaningData['weaning_code']}</b> berhasil disimpan.");
+            $this->redirect('seedling-admin');
+        } else {
+            $this->setFlash('error', 'Gagal menyimpan Penyapihan Bibit. Silakan coba lagi.');
+            $this->redirect('seedling-admin/weaning-form');
+        }
+    }
+
+    /**
+     * View: Entres Form (ET)
+     */
+    public function entresForm() {
+        $entresModel = $this->model('SeedlingEntres');
+        $entresCode = $entresModel->generateEntresCode();
+
+        $data = [
+            'title' => 'Entres (ET)',
+            'entresCode' => $entresCode,
+            'today' => date('Y-m-d')
+        ];
+
+        $this->render('seedling_admin/entres_form', $data, 'dashboard');
+    }
+
+    /**
+     * Store Entres Transaction
+     */
+    /**
+     * AJAX: Get Available Weanings (PE-) for Entres
+     */
+    public function getWeaningsAJAX() {
+        $weaningModel = $this->model('SeedlingWeaning');
+        $user = currentUser();
+        $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
+
+        $weanings = $weaningModel->getAvailableWeanings(['nursery_id' => $nurseryId]);
+
+        $this->json([
+            'success' => true,
+            'data' => $weanings
+        ]);
+    }
+
+    public function storeEntres() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->validateCSRF()) {
+            $this->redirect('seedling-admin');
+            return;
+        }
+
+        $user = currentUser();
+        $entresModel = $this->model('SeedlingEntres');
+        $weaningModel = $this->model('SeedlingWeaning');
+
+        $weaningId = (int)$this->post('weaning_id');
+        $usedQty = (int)$this->post('used_quantity');
+
+        if (empty($weaningId) || empty($usedQty)) {
+            $this->setFlash('error', 'Data Bibit PE dan Jumlah wajib diisi!');
+            $this->redirect('seedling-admin/entres-form');
+            return;
+        }
+
+        // Fetch Weaning info for automatically determining 'result_item_id'
+        // We reuse the column 'harvest_id' in seedling_entres but it now stores weaning_id
+        $weaningInfo = $weaningModel->findBy(['id' => $weaningId]);
+        if (!$weaningInfo) {
+            $this->setFlash('error', 'Data bibit asal (PE) tidak valid.');
+            $this->redirect('seedling-admin/entres-form');
+            return;
+        }
+
+        // Get the species name from the result_item_id of the weaning
+        $seedlingTypeModel = $this->model('SeedlingType');
+        $baseType = $seedlingTypeModel->find($weaningInfo['result_item_id']);
+        
+        // Handle auto-generation or fetching of the " - ENTRES" master type
+        $resultItemId = $entresModel->getOrCreateEntresType(
+            $baseType['name'], 
+            $baseType['scientific_name']
+        );
+
+        $entresData = [
+            'entres_code'    => $this->post('entres_code'),
+            'entres_date'    => $this->post('entres_date'),
+            'harvest_id'     => $weaningId, // We use harvest_id column for weaning_id
+            'result_item_id' => $resultItemId,
+            'used_quantity'  => $usedQty,
+            'location'       => sanitize($this->post('location')),
+            'mandor'         => sanitize($this->post('mandor')),
+            'manager'        => sanitize($this->post('manager')),
+            'notes'          => sanitize($this->post('notes')),
+            'bpdas_id'       => $user['bpdas_id'],
+            'nursery_id'     => $user['nursery_id'],
+            'created_by'     => $user['id']
+        ];
+
+        // Process supporting Bahan Baku
+        $materialItems = [];
+        if (isset($_POST['mat_id']) && is_array($_POST['mat_id'])) {
+            for ($i = 0; $i < count($_POST['mat_id']); $i++) {
+                if (!empty($_POST['mat_id'][$i]) && !empty($_POST['mat_qty'][$i])) {
+                    $materialItems[] = [
+                        'item_id' => (int)$_POST['mat_id'][$i],
+                        'quantity' => (float)$_POST['mat_qty'][$i]
+                    ];
+                }
+            }
+        }
+
+        $result = $entresModel->saveEntres($entresData, $materialItems);
+
+        if ($result) {
+            $this->setFlash('success', "Proses Entres <b>{$entresData['entres_code']}</b> berhasil disimpan.");
+            $this->redirect('seedling-admin');
+        } else {
+            $this->redirect('seedling-admin/entres-form');
+        }
+    }
+    /**
+     * View: Mutation Form (BO)
+     */
+    public function mutationForm() {
+        $mutationModel = $this->model('SeedlingMutation');
+        
+        $data = [
+            'mutationCode' => $mutationModel->generateMutationCode(),
+            'today'        => date('Y-m-d')
+        ];
+
+        $this->render('seedling_admin/mutation_form', $data, 'dashboard');
+    }
+
+    /**
+     * AJAX: Get Available Sources (PE or ET) for Mutation
+     */
+    public function getMutationSourcesAjax() {
+        $type = $this->get('type'); // 'PE' or 'ET'
+        $user = currentUser();
+        $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
+
+        if ($type === 'PE') {
+            $model = $this->model('SeedlingWeaning');
+            $data = $model->getAvailableWeanings(['nursery_id' => $nurseryId]);
+        } else {
+            $model = $this->model('SeedlingEntres');
+            $data = $model->getAvailableEntres(['nursery_id' => $nurseryId]);
+        }
+
+        $this->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Store Mutation Transaction
+     */
+    public function storeMutation() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->validateCSRF()) {
+            $this->redirect('seedling-admin');
+            return;
+        }
+
+        $user = currentUser();
+        $mutationModel = $this->model('SeedlingMutation');
+        
+        $sourceType = $this->post('source_type'); // PE / ET
+        $sourceId = (int)$this->post('source_id');
+        $mutationType = $this->post('mutation_type'); // MATI / NAIK KELAS / TRANSFER
+        $quantity = (int)$this->post('quantity');
+
+        if (empty($sourceId) || empty($quantity)) {
+            $this->setFlash('error', 'Data bibit asal dan jumlah wajib diisi!');
+            $this->redirect('seedling-admin/mutation-form');
+            return;
+        }
+
+        // Get origin location to save it in record
+        $originLocation = '';
+        if ($sourceType === 'PE') {
+            $sourceBatch = $this->model('SeedlingWeaning')->find($sourceId);
+        } else {
+            $sourceBatch = $this->model('SeedlingEntres')->find($sourceId);
+        }
+        $originLocation = $sourceBatch['location'] ?? '';
+
+        $mutationData = [
+            'mutation_code'   => $mutationModel->generateMutationCode(),
+            'mutation_date'   => $this->post('mutation_date'),
+            'source_type'     => $sourceType,
+            'source_id'       => $sourceId,
+            'mutation_type'   => $mutationType,
+            'quantity'        => $quantity,
+            'origin_location' => $originLocation,
+            'target_location' => sanitize($this->post('target_location')),
+            'mandor'          => sanitize($this->post('mandor')),
+            'manager'         => sanitize($this->post('manager')),
+            'notes'           => sanitize($this->post('notes')),
+            'bpdas_id'        => $sourceBatch['bpdas_id'] ?? $user['bpdas_id'],
+            'nursery_id'      => $sourceBatch['nursery_id'] ?? $user['nursery_id'],
+            'created_by'      => $user['id']
+        ];
+
+        $result = $mutationModel->saveMutation($mutationData);
+
+        if ($result) {
+            $this->setFlash('success', "Mutasi Bibit <b>{$mutationData['mutation_code']}</b> berhasil diproses.");
+            $this->redirect('seedling-admin');
+        } else {
+            $this->setFlash('error', 'Gagal menyimpan transaksi mutasi. Silakan periksa sisa stok.');
+            $this->redirect('seedling-admin/mutation-form');
+        }
+    }
 }
+

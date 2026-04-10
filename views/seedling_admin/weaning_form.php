@@ -1,10 +1,10 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PENABURAN BENIH</h2>
+        <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PENYAPIHAN BIBIT</h2>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb bg-transparent p-0 mb-0">
                 <li class="breadcrumb-item"><a href="<?= url('seedling-admin') ?>">Penatausahaan Bibit</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Penaburan Benih</li>
+                <li class="breadcrumb-item active" aria-current="page">Penyapihan Bibit</li>
             </ol>
         </nav>
     </div>
@@ -16,7 +16,7 @@
         </div>
     <?php endif; ?>
 
-    <form action="<?= url('seedling-admin/store-seed-sowing') ?>" method="POST" id="sowingForm">
+    <form action="<?= url('seedling-admin/store-weaning') ?>" method="POST" id="weaningForm">
         <input type="hidden" name="csrf_token" value="<?= generateCSRFToken() ?>">
         
         <div class="row">
@@ -82,7 +82,7 @@
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: Seed Info & Metadata -->
+            <!-- RIGHT COLUMN: Harvest Info & Metadata -->
             <div class="col-lg-5">
                 <div class="card shadow mb-4 border-top-primary">
                     <div class="card-body">
@@ -90,60 +90,96 @@
                         <div class="row form-group">
                             <div class="col-6">
                                 <label class="small font-weight-bold text-info">Tanggal</label>
-                                <input type="date" name="sowing_date" class="form-control font-weight-bold" value="<?= $today ?>" required>
+                                <input type="date" name="weaning_date" class="form-control font-weight-bold" value="<?= $today ?>" required>
                             </div>
                             <div class="col-6">
                                 <label class="small font-weight-bold text-info">Kode</label>
-                                <input type="text" name="sowing_code" class="form-control bg-light font-weight-bold shadow-none" value="<?= $sowingCode ?>" readonly required>
+                                <input type="text" name="weaning_code" class="form-control bg-light font-weight-bold shadow-none" value="<?= $weaningCode ?>" readonly required>
                             </div>
                         </div>
 
                         <hr>
-                        <h6 class="font-weight-bold text-danger text-uppercase mb-3">JENIS & NAMA BENIH</h6>
+                        <h6 class="font-weight-bold text-danger text-uppercase mb-3">BAHAN ANAKAN</h6>
                         
-                        <div class="form-group">
-                            <label class="small text-muted">Kategori</label>
-                            <select class="form-control bg-light shadow-none" disabled>
-                                <option>Benih</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="small text-muted">Arahkan Benih (Pilih dari Master Data)</label>
-                            <select name="seed_item_id" id="seed_item_id" class="form-control select2" required>
-                                <option value="">-- Pilih Jenis Benih --</option>
-                                <?php foreach ($seeds as $s): ?>
-                                    <option value="<?= $s['id'] ?>" data-unit="<?= $s['unit'] ?>" data-stock="<?= $s['stock'] ?>">
-                                        <?= $s['name'] ?> (Stok: <?= number_format($s['stock'], 2) ?> <?= $s['unit'] ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="row form-group">
-                            <div class="col-8">
-                                <label class="small text-muted">Jumlah Benih (Digunakan)</label>
-                                <input type="number" step="0.01" name="seed_quantity" id="seed_quantity" class="form-control font-weight-bold text-danger" required>
+                        <div class="input-group mb-3 shadow-sm">
+                            <input type="text" id="display_harvest_name" class="form-control bg-warning text-dark font-weight-bold font-italic" placeholder="Pilih anakan (PA) yang akan disapih..." readonly required style="background-color: #fff9c4 !important;">
+                            <div class="input-group-append">
+                                <button class="btn btn-secondary border px-4 font-weight-bold" type="button" onclick="openHarvestModal()">Pilih</button>
                             </div>
-                            <div class="col-4">
-                                <label class="small text-muted">Satuan</label>
-                                <input type="text" id="seed_unit_display" class="form-control bg-light text-center shadow-none" readonly>
+                        </div>
+                        
+                        <input type="hidden" id="harvest_id" name="harvest_id" required>
+
+                        <div class="row mb-3 pl-3 ml-1 border-left border-warning">
+                            <div class="col-6 mb-2">
+                                <label class="text-muted small mb-0">Kode Produksi</label>
+                                <input type="text" id="display_harvest_code" class="form-control form-control-sm bg-light" readonly>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="text-muted small mb-0">Tgl Produksi</label>
+                                <input type="text" id="display_harvest_date" class="form-control form-control-sm bg-light" readonly>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <label class="small text-muted font-weight-bold mb-0">Sisa Stok Anakan (PA)</label>
+                                <div class="d-flex align-items-center">
+                                    <input type="number" id="max_harvest_stock" class="form-control font-weight-bold text-danger w-50" readonly>
+                                    <span class="ml-2 small text-muted" id="display_harvest_unit"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <label class="small text-muted font-weight-bold mb-0"><i class="fas fa-map-marker-alt text-warning mr-1"></i>Lokasi Asal PA</label>
+                                <input type="text" id="display_harvest_location" class="form-control form-control-sm bg-light text-dark font-weight-bold" readonly placeholder="(pilih anakan untuk melihat lokasi)">
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6 class="font-weight-bold text-primary text-uppercase mb-3">ANAKAN YANG DIHASILKAN</h6>
+
+                        <div class="form-group row align-items-center mb-3">
+                            <div class="col-10">
+                                <select name="result_item_id" id="result_item_id" class="form-control" required>
+                                    <option value="">-- Pilih Jenis Bibit Jadi --</option>
+                                    <?php foreach ($seedlingTypes as $st): ?>
+                                        <option value="<?= $st['id'] ?>"><?= $st['name'] ?> (<?= htmlspecialchars($st['scientific_name'] ?? '') ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-2 pl-0">
+                                <a href="<?= url('seedling-admin/master-data') ?>" target="_blank" class="btn btn-sm btn-outline-primary w-100 h-100 d-flex align-items-center justify-content-center" title="Buka Data Master Bibit Baru di Tab Baru">Baru</a>
+                            </div>
+                        </div>
+
+                        <div class="row form-group mb-4">
+                            <div class="col-6">
+                                <label class="small font-weight-bold text-primary mb-1">JUMLAH DISAPIH</label>
+                                <input type="number" step="1" name="weaned_quantity" id="weaned_quantity" class="form-control form-control-lg font-weight-bold text-primary border-primary" placeholder="0" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted mb-1">ID Barang (Ref)</label>
+                                <input type="text" id="display_result_id" class="form-control form-control-lg bg-light text-center" readonly>
                             </div>
                         </div>
 
                         <hr>
 
                         <div class="form-group">
-                            <label class="small text-muted">Mandor</label>
-                            <input type="text" name="mandor" class="form-control form-control-sm">
+                            <label class="small text-muted">Lokasi / Blok</label>
+                            <input type="text" name="location" class="form-control" placeholder="Contoh: sf, w, Blok 2, AHA 1">
                         </div>
-                        <div class="form-group">
-                            <label class="small text-muted">Pelaksana / Manager</label>
-                            <input type="text" name="manager" class="form-control form-control-sm">
+
+                        <div class="form-group row">
+                            <div class="col-6">
+                                <label class="small text-muted">Mandor</label>
+                                <input type="text" name="mandor" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted">Pelaksana</label>
+                                <input type="text" name="manager" class="form-control form-control-sm">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="small text-muted">Keterangan</label>
-                            <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+                            <textarea name="notes" class="form-control form-control-sm" rows="1"></textarea>
                         </div>
 
                         <div class="d-flex justify-content-end mt-4 pt-3 border-top">
@@ -155,6 +191,40 @@
             </div>
         </div>
     </form>
+</div>
+
+<!-- Modal Pencarian Anakan PA -->
+<div class="modal fade" id="harvestModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom-0">
+                <h6 class="modal-title font-weight-bold text-primary"><i class="fas fa-search mr-2"></i> Pilih Anakan Semai (PA) &nbsp;<span class="badge badge-info shadow-sm">Stok Tersedia</span></h6>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover mb-0" id="modalHarvestTable">
+                        <thead class="bg-primary text-white small" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th>Anakan / Spesies</th>
+                                <th>Tgl Panen</th>
+                                <th>Kode Produksi (PA)</th>
+                                <th>Lokasi Asal</th>
+                                <th class="text-right">Awal</th>
+                                <th class="text-right">Sisa Stok</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small text-dark" id="modalHarvestBody">
+                            <tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data anakan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-2 justify-content-start">
+                <input type="text" id="harvestSearch" class="form-control form-control-sm w-50" placeholder="Cari spesies atau kode PA...">
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Polybag PB -->
@@ -241,38 +311,102 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ---------------------------------------------------------
-    // SEED LOGIC
+    // HARVEST (PA) LOGIC
     // ---------------------------------------------------------
-    const seedSelect = $('#seed_item_id');
-    const seedQtyInput = document.getElementById('seed_quantity');
-    const seedUnitDisplay = document.getElementById('seed_unit_display');
-    let maxSeedStock = 0;
+    let harvestData = [];
+    const weanedQtyInput = document.getElementById('weaned_quantity');
+    let maxHarvestStock = 0;
 
-    seedSelect.on('change', function() {
-        const option = $(this).find('option:selected');
-        if (option.val()) {
-            seedUnitDisplay.value = option.data('unit');
-            maxSeedStock = parseFloat(option.data('stock'));
-            seedQtyInput.max = maxSeedStock;
-            
-            // if current input is higher than stock, reset it
-            if (parseFloat(seedQtyInput.value) > maxSeedStock) {
-                seedQtyInput.value = maxSeedStock;
-                alert('Stok '+option.text()+' tidak mencukupi (Max: '+maxSeedStock+')');
-            }
-        } else {
-            seedUnitDisplay.value = '';
-            maxSeedStock = 0;
-            seedQtyInput.max = "";
+    window.openHarvestModal = function() {
+        $('#harvestModal').modal('show');
+        const modalBody = document.getElementById('modalHarvestBody');
+        modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data stok anakan...</td></tr>';
+
+        fetch('<?= url('seedling-admin/get-harvests-ajax') ?>')
+            .then(res => res.json())
+            .then(data => {
+                modalBody.innerHTML = '';
+                if(data.success && data.data.length > 0) {
+                    harvestData = data.data;
+                    renderHarvestTable(harvestData);
+                } else {
+                    modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok Pemanenan Semai (PA) yang bisa disapih.</td></tr>';
+                }
+            });
+    };
+
+    function renderHarvestTable(dataToRender) {
+        const modalBody = document.getElementById('modalHarvestBody');
+        modalBody.innerHTML = '';
+        if (dataToRender.length === 0) {
+            modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok anakan PA tersedia.</td></tr>';
+            return;
+        }
+        dataToRender.forEach(h => {
+            const dateStr = new Date(h.harvest_date).toLocaleDateString('id-ID');
+            const lokasi = h.location ? `<span class="badge badge-secondary">${h.location}</span>` : '<span class="text-muted">-</span>';
+            const totalInitial = parseFloat(h.total_initial).toLocaleString('id-ID');
+            const totalRemaining = parseFloat(h.remaining_stock).toLocaleString('id-ID');
+            modalBody.innerHTML += `
+                <tr style="cursor:pointer;" onclick="selectHarvest(${h.id})" class="hover-bg-light">
+                    <td class="font-weight-bold text-dark">${h.seed_name}</td>
+                    <td>${dateStr}</td>
+                    <td class="text-muted font-weight-bold">${h.harvest_code}</td>
+                    <td>${lokasi}</td>
+                    <td class="text-right text-muted">${totalInitial}</td>
+                    <td class="text-right text-danger font-weight-bold">${totalRemaining} ${h.seed_unit}</td>
+                </tr>
+            `;
+        });
+    }
+
+    document.getElementById('harvestSearch').addEventListener('input', function(e) {
+        const q = e.target.value.toLowerCase();
+        const filtered = harvestData.filter(h => 
+            h.seed_name.toLowerCase().includes(q) || 
+            h.harvest_code.toLowerCase().includes(q)
+        );
+        renderHarvestTable(filtered);
+    });
+
+    window.selectHarvest = function(id) {
+        const h = harvestData.find(x => x.id == id);
+        if(!h) return;
+
+        document.getElementById('harvest_id').value = h.id;
+        document.getElementById('display_harvest_name').value = h.seed_name;
+        document.getElementById('display_harvest_code').value = h.harvest_code;
+        document.getElementById('display_harvest_date').value = new Date(h.harvest_date).toLocaleDateString('id-ID');
+        document.getElementById('max_harvest_stock').value = h.remaining_stock;
+        document.getElementById('display_harvest_unit').innerText = 'pcs';
+        
+        // Show origin location if available
+        const locEl = document.getElementById('display_harvest_location');
+        if (locEl) locEl.value = h.location || '-';
+        
+        maxHarvestStock = parseFloat(h.remaining_stock);
+        weanedQtyInput.max = maxHarvestStock;
+
+        if (parseFloat(weanedQtyInput.value) > maxHarvestStock) {
+            weanedQtyInput.value = maxHarvestStock;
+        }
+
+        $('#harvestModal').modal('hide');
+    };
+
+    weanedQtyInput.addEventListener('input', function() {
+        if (this.value && parseFloat(this.value) > maxHarvestStock && document.getElementById('harvest_id').value) {
+            alert('Jumlah disapih tidak boleh melebihi sisa stok PA! (Max: ' + maxHarvestStock + ')');
+            this.value = maxHarvestStock;
         }
     });
 
-    seedQtyInput.addEventListener('input', function() {
-        if (this.value && parseFloat(this.value) > maxSeedStock && seedSelect.val()) {
-            alert('Stok Benih tidak mencukupi! Sisa stok hanya: ' + maxSeedStock);
-            this.value = maxSeedStock;
-        }
+    // Handle "ID Barang" Preview display
+    $('#result_item_id').on('change', function() {
+        document.getElementById('display_result_id').value = $(this).val() ? '#' + $(this).val() : '';
     });
+
+
 
     // ---------------------------------------------------------
     // POLYBAG LOGIC (Left Modal 1)
