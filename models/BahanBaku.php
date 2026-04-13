@@ -36,7 +36,10 @@ class BahanBaku extends Model {
      * @return array
      */
     public function getAllMaster() {
-        $sql = "SELECT * FROM bahan_baku_master ORDER BY category_code ASC, name ASC";
+        $sql = "SELECT m.*, st.name as result_seedling_name 
+                FROM bahan_baku_master m
+                LEFT JOIN seedling_types st ON m.seedling_type_id = st.id
+                ORDER BY m.category_code ASC, m.name ASC";
         return $this->query($sql);
     }
 
@@ -49,20 +52,20 @@ class BahanBaku extends Model {
     public function saveMaster($data, $id = null) {
         if ($id) {
             $sql = "UPDATE bahan_baku_master SET 
-                    category_code = ?, category = ?, code = ?, name = ?, 
+                    category_code = ?, category = ?, seedling_type_id = ?, code = ?, name = ?, 
                     scientific_name = ?, unit = ?, description = ? 
                     WHERE id = ?";
             return $this->execute($sql, [
-                $data['category_code'], $data['category'], $data['code'], 
+                $data['category_code'], $data['category'], $data['seedling_type_id'], $data['code'], 
                 $data['name'], $data['scientific_name'], $data['unit'], 
                 $data['description'], $id
             ]);
         } else {
             $sql = "INSERT INTO bahan_baku_master 
-                    (category_code, category, code, name, scientific_name, unit, description) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    (category_code, category, seedling_type_id, code, name, scientific_name, unit, description) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             return $this->execute($sql, [
-                $data['category_code'], $data['category'], $data['code'], 
+                $data['category_code'], $data['category'], $data['seedling_type_id'], $data['code'], 
                 $data['name'], $data['scientific_name'], $data['unit'], 
                 $data['description']
             ]);
@@ -95,7 +98,10 @@ class BahanBaku extends Model {
      * @return array|null
      */
     public function getMasterItem($id) {
-        $sql = "SELECT * FROM bahan_baku_master WHERE id = ?";
+        $sql = "SELECT m.*, st.name as result_seedling_name 
+                FROM bahan_baku_master m
+                LEFT JOIN seedling_types st ON m.seedling_type_id = st.id
+                WHERE m.id = ?";
         return $this->queryOne($sql, [$id]);
     }
 

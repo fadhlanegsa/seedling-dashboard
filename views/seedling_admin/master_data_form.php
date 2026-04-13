@@ -50,17 +50,33 @@
                             </div>
                         </div>
 
+                        <div class="form-group row mb-4" id="seedling_type_container" style="display: none;">
+                            <label class="col-sm-4 col-form-label font-weight-bold text-primary">Jenis Bibit (Tujuan Akhir)</label>
+                            <div class="col-sm-8">
+                                <select name="seedling_type_id" id="seedling_type_id" class="form-control select2">
+                                    <option value="">-- Pilih Master Jenis Bibit --</option>
+                                    <?php foreach ($seedlingTypes as $st): ?>
+                                        <option value="<?= $st['id'] ?>" data-name="<?= $st['name'] ?>" data-scientific="<?= $st['scientific_name'] ?>" <?= ($item && $item['seedling_type_id'] == $st['id']) ? 'selected' : '' ?>>
+                                            <?= $st['name'] ?> (<?= $st['scientific_name'] ?: 'N/A' ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-info">*Wajib untuk kategori BENIH dan ENTRESS agar sinkron dengan Bibit Jadi.</small>
+                            </div>
+                        </div>
+
                         <div class="form-group row mb-4">
                             <label class="col-sm-4 col-form-label font-weight-bold">Nama Item (Spesifik)</label>
                             <div class="col-sm-8">
-                                <input type="text" name="name" class="form-control" placeholder="Contoh: Benih Cempaka" value="<?= $item ? $item['name'] : '' ?>" required>
+                                <input type="text" name="name" id="item_name" class="form-control" placeholder="Contoh: Benih Sengon" value="<?= $item ? $item['name'] : '' ?>" required>
+                                <small id="name_info" class="text-muted" style="display:none;">Auto-generate berdasarkan Jenis Bibit pilihan.</small>
                             </div>
                         </div>
 
                         <div class="form-group row mb-4">
                             <label class="col-sm-4 col-form-label font-weight-bold">Nama Ilmiah</label>
                             <div class="col-sm-8">
-                                <input type="text" name="scientific_name" class="form-control" placeholder="Opsional" value="<?= $item ? $item['scientific_name'] : '' ?>">
+                                <input type="text" name="scientific_name" id="scientific_name" class="form-control" placeholder="Opsional" value="<?= $item ? $item['scientific_name'] : '' ?>">
                             </div>
                         </div>
 
@@ -101,10 +117,68 @@
 document.addEventListener('DOMContentLoaded', function() {
     const categoryCode = document.getElementById('category_code');
     const categoryName = document.getElementById('category_name');
+    const seedlingTypeContainer = document.getElementById('seedling_type_container');
+    const seedlingTypeId = document.getElementById('seedling_type_id');
+    const itemName = document.getElementById('item_name');
+    const nameInfo = document.getElementById('name_info');
+    const scientificName = document.getElementById('scientific_name');
 
-    categoryCode.addEventListener('change', function() {
+    // Categories that MUST use Master Seedling Types
+    const strictlyLinkedCodes = ['A', 'G']; // A=BENIH, G=ENTRESS
+
+    function toggleSeedlingType() {
+        const option = categoryCode.options[categoryCode.selectedIndex];
+        const code = categoryCode.value;
+        const name = option ? option.dataset.name : '';
+        
+        categoryName.value = name;
+
+        if (strictlyLinkedCodes.includes(code)) {
+            seedlingTypeContainer.style.display = 'flex';
+            seedlingTypeId.required = true;
+            itemName.readOnly = true;
+            nameInfo.style.display = 'block';
+            scientificName.readOnly = true;
+        } else {
+            seedlingTypeContainer.style.display = 'none';
+            seedlingTypeId.required = false;
+            seedlingTypeId.value = '';
+            itemName.readOnly = false;
+            nameInfo.style.display = 'none';
+            scientificName.readOnly = false;
+        }
+    }
+
+    categoryCode.addEventListener('change', toggleSeedlingType);
+
+    seedlingTypeId.addEventListener('change', function() {
         const option = this.options[this.selectedIndex];
-        categoryName.value = option.dataset.name || '';
+        if (option && this.value !== "") {
+            const masterName = option.dataset.name;
+            const masterScientific = option.dataset.scientific;
+            const catNameCap = categoryName.value.charAt(0).toUpperCase() + categoryName.value.slice(1).toLowerCase();
+            
+            // Auto prefix: "Benih Sengon" or "Entress Sengon"
+            itemName.value = catNameCap + " " + masterName;
+            scientificName.value = masterScientific || '';
+        } else if (strictlyLinkedCodes.includes(categoryCode.value)) {
+            itemName.value = '';
+            scientificName.value = '';
+        }
     });
+
+    // Initial state
+    toggleSeedlingType();
+    
+    // Initialize Select2 if available
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        }).on('change', function() {
+            // Trigger manual change for native listener
+            $(this).get(0).dispatchEvent(new Event('change'));
+        });
+    }
 });
 </script>

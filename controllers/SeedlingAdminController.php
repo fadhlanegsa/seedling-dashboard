@@ -207,11 +207,13 @@ class SeedlingAdminController extends Controller {
         $item = $id ? $bahanBakuModel->getMasterItem($id) : null;
 
         $categories = $this->db->query("SELECT * FROM bahan_baku_categories ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $seedlingTypes = $this->db->query("SELECT id, name, scientific_name FROM seedling_types WHERE is_active = 1 ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
         $data = [
             'title' => ($id ? 'Edit' : 'Tambah') . ' Data Master',
             'item' => $item,
-            'categories' => $categories
+            'categories' => $categories,
+            'seedlingTypes' => $seedlingTypes
         ];
 
         $this->render('seedling_admin/master_data_form', $data, 'dashboard');
@@ -236,6 +238,7 @@ class SeedlingAdminController extends Controller {
         $data = [
             'category_code'   => $this->post('category_code'),
             'category'        => $this->post('category'),
+            'seedling_type_id' => $this->post('seedling_type_id') ?: null,
             'code'           => $this->post('code'),
             'name'           => sanitize($this->post('name')),
             'scientific_name' => sanitize($this->post('scientific_name')),

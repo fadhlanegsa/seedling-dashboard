@@ -57,6 +57,13 @@
                                         <?php if ($item['scientific_name']): ?>
                                             <small class="text-italic font-italic"><?= $item['scientific_name'] ?></small>
                                         <?php endif; ?>
+                                        <?php if (!empty($item['result_seedling_name'])): ?>
+                                            <div class="mt-1">
+                                                <span class="badge badge-primary-soft text-primary" style="background-color: rgba(78, 115, 223, 0.1); font-size: 0.7rem;">
+                                                    <i class="fas fa-link mr-1"></i> Terhubung: <?= $item['result_seedling_name'] ?>
+                                                </span>
+                                            </div>
+                                        <?php endif; ?>
                                         <?php if ($item['description']): ?>
                                             <div class="text-xs text-muted mt-1"><?= $item['description'] ?></div>
                                         <?php endif; ?>

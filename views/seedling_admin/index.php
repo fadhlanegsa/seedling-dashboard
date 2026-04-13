@@ -62,74 +62,79 @@
         </div>
     <?php endif; ?>
 
-    <!-- Summary Level & Navigation -->
-    <div class="row">
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Status Stok Bahan Baku</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count($stockBalance) ?> Item</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-layer-group fa-2x text-gray-300"></i>
-                        </div>
+    <!-- Summary & Production Navigation -->
+    <div class="row mb-4">
+        <!-- Stock Summary Small Card -->
+        <div class="col-xl-3 col-md-4 mb-3">
+            <div class="card stat-card border-0 shadow-sm h-100 overflow-hidden bg-white">
+                <div class="card-body position-relative">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase letter-spacing-1 mb-1">Status Stok Bahan</div>
+                    <div class="d-flex align-items-baseline">
+                        <span class="h2 mb-0 font-weight-bold text-gray-900"><?= count($stockBalance) ?></span>
+                        <span class="ml-2 text-muted small">Item Aktif</span>
                     </div>
+                    <i class="fas fa-cubes stat-icon"></i>
+                </div>
+                <div class="progress progress-sm rounded-0">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-8 col-md-6 mb-4">
-            <div class="card shadow h-100">
-                <div class="card-body d-flex align-items-center justify-content-around">
+        <!-- Production Flow Actions -->
+        <!-- Production Flow Actions -->
+        <div class="col-xl-9 col-md-8 mb-3">
+            <div class="card border-0 shadow-sm bg-white overflow-hidden">
+                <div class="card-header bg-white py-2 border-bottom-0">
+                    <div class="text-xs font-weight-bold text-muted text-uppercase">Menu Cepat Produksi (PUB)</div>
+                </div>
+                <div class="card-body p-2 bg-light d-flex flex-wrap justify-content-start" style="gap: 10px;">
                     <?php if ($user['role'] === 'operator_persemaian'): ?>
-                        <div class="text-center px-2">
-                            <a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="btn btn-primary shadow-sm mb-2">
-                                <i class="fas fa-plus mr-2"></i> Bahan Baku IN
-                            </a>
-                            <p class="small text-muted mb-0">Input pengadaan bahan</p>
-                        </div>
-                        <div class="border-left h-75"></div>
-                        <div class="text-center px-2">
-                            <a href="<?= url('seedling-admin/media-mixing-form') ?>" class="btn btn-success shadow-sm mb-2">
-                                <i class="fas fa-blender mr-2"></i> Pencampuran Media
-                            </a>
-                            <p class="small text-muted mb-0">Input hasil campuran (MT)</p>
-                        </div>
-                        <div class="border-left h-75"></div>
-                        <div class="text-center px-2">
-                            <a href="<?= url('seedling-admin/seed-sowing-form') ?>" class="btn btn-warning text-dark shadow-sm mb-2 font-weight-bold">
-                                <i class="fas fa-seedling mr-2"></i> Penaburan Benih
-                            </a>
-                            <p class="small text-muted mb-0">Input tanam benih (PC)</p>
-                        </div>
-                        <div class="border-left h-75"></div>
-                        <div class="text-center px-2">
-                            <a href="<?= url('seedling-admin/harvesting-form') ?>" class="btn btn-info shadow-sm mb-2 font-weight-bold">
-                                <i class="fas fa-leaf mr-2"></i> Pemanenan Semai
-                            </a>
-                            <p class="small text-muted mb-0">Input panen anakan (PA)</p>
-                        </div>
-                        <div class="border-left h-75"></div>
-                        <div class="text-center px-2">
-                            <a href="<?= url('seedling-admin/weaning-form') ?>" class="btn shadow-sm mb-2 font-weight-bold" style="background-color: #4CAF50; color: white;">
-                                <i class="fas fa-seedling mr-2"></i> Penyapihan Bibit
-                            </a>
-                            <p class="small text-muted mb-0">Input pindah tanam (PE)</p>
-                        </div>
-                        <div class="border-left h-75 d-none d-lg-block"></div>
-                        <div class="text-center px-2 d-none d-lg-block">
-                            <a href="<?= url('seedling-admin/mutation-form') ?>" class="btn shadow-sm mb-2 font-weight-bold" style="background-color: #f44336; color: white;">
-                                <i class="fas fa-exchange-alt mr-2"></i> Mutasi Keluar
-                            </a>
-                            <p class="small text-muted mb-0">Log Mati/Naik Kelas (BO)</p>
-                        </div>
+                        <a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="action-btn-modern bg-primary text-white">
+                            <i class="fas fa-plus-circle"></i>
+                            <div class="content">
+                                <span class="title">Bahan Baku</span>
+                                <span class="code">PG-IN</span>
+                            </div>
+                        </a>
+                        <a href="<?= url('seedling-admin/media-mixing-form') ?>" class="action-btn-modern bg-success text-white">
+                            <i class="fas fa-mortar-pestle"></i>
+                            <div class="content">
+                                <span class="title">Mixing</span>
+                                <span class="code">MT-MEDIA</span>
+                            </div>
+                        </a>
+                        <a href="<?= url('seedling-admin/seed-sowing-form') ?>" class="action-btn-modern bg-warning text-dark">
+                            <i class="fas fa-seedling"></i>
+                            <div class="content">
+                                <span class="title">Tanam</span>
+                                <span class="code">PC-BENIH</span>
+                            </div>
+                        </a>
+                        <a href="<?= url('seedling-admin/harvesting-form') ?>" class="action-btn-modern bg-info text-white">
+                            <i class="fas fa-hand-holding-seedling"></i>
+                            <div class="content">
+                                <span class="title">Panen</span>
+                                <span class="code">PA-SEMAI</span>
+                            </div>
+                        </a>
+                        <a href="<?= url('seedling-admin/weaning-form') ?>" class="action-btn-modern bg-teal text-white">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                            <div class="content">
+                                <span class="title">Sapih</span>
+                                <span class="code">PE/ET-BIBIT</span>
+                            </div>
+                        </a>
+                        <a href="<?= url('seedling-admin/mutation-form') ?>" class="action-btn-modern bg-danger text-white">
+                            <i class="fas fa-graduation-cap"></i>
+                            <div class="content">
+                                <span class="title">Naik Kelas</span>
+                                <span class="code">BO-PUB</span>
+                            </div>
+                        </a>
                     <?php else: ?>
-                        <div class="text-center py-3">
-                            <i class="fas fa-info-circle text-info fa-2x mb-3"></i>
-                            <h6 class="font-weight-bold mb-0">Mode Monitoring Aktif</h6>
-                            <p class="small text-muted mb-0">Hanya Operator Persemaian yang memiliki akses fitur input data fisik.</p>
+                        <div class="py-2 px-4 d-flex align-items-center text-muted">
+                            <i class="fas fa-lock mr-2"></i> Mode Monitoring Aktif
                         </div>
                     <?php endif; ?>
                 </div>
@@ -137,40 +142,40 @@
         </div>
     </div>
 
-    <div class="row">
-        <!-- Ready Stock (Bibit Jadi) Table -->
-        <div class="col-lg-12 mb-4">
-            <div class="card shadow border-left-primary">
-                <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-warehouse mr-2"></i> Stok Bibit Jadi (Siap Salur)</h6>
-                    <span class="badge badge-light border small text-muted">Data stok yang tersedia untuk masyarakat</span>
+    <!-- READY STOCK SECTION (BIBIT JADI) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-top-primary">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-gray-800"><i class="fas fa-store-alt text-primary mr-2"></i> Stok Bibit Jadi (Siap Salur)</h5>
+                    <div class="badge badge-pill badge-light border px-3">Update Real-time</div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="row no-gutters">
+                <div class="card-body p-4 bg-light-soft">
+                    <div class="row">
                         <?php if (empty($readyStock)): ?>
-                            <div class="col-12 text-center py-4 text-muted small">Belum ada stok bibit jadi di persemaian ini.</div>
+                            <div class="col-12 text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                                <p>Belum ada stok bibit siap salur di persemaian ini.</p>
+                            </div>
                         <?php else: ?>
                             <?php foreach ($readyStock as $rs): ?>
-                                <div class="col-md-3 p-3 border-right border-bottom">
-                                    <div class="d-flex align-items-top justify-content-between">
-                                        <div>
-                                            <div class="h6 font-weight-bold mb-1">
-                                                <?= $rs['seedling_name'] ?>
-                                                <?php if (($rs['source_type'] ?? '') === 'automated_pub'): ?>
-                                                    <span class="badge badge-primary ml-1 shadow-sm" style="font-size: 0.6rem; vertical-align: middle;">PUB</span>
-                                                <?php endif; ?>
+                                <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                                    <div class="seedling-card h-100 shadow-hover transition-all">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                                <div class="seedling-icon-wrapper">
+                                                    <i class="fas fa-leaf"></i>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="qty-badge"><?= number_format($rs['quantity'], 0) ?> <small>btg</small></div>
+                                                </div>
                                             </div>
-                                            <div class="text-xs text-uppercase mb-2">
-                                                <?php if ($rs['program_type'] === 'bibitgratis'): ?>
-                                                    <span class="badge badge-success px-2 py-1"><i class="fas fa-certificate mr-1"></i> Gratis (PUB)</span>
-                                                <?php else: ?>
-                                                    <span class="text-muted"><?= $rs['program_type'] ?></span>
-                                                <?php endif; ?>
+                                            <h6 class="font-weight-bold text-dark mb-1"><?= $rs['seedling_name'] ?></h6>
+                                            <div class="d-flex flex-wrap" style="gap: 5px;">
+                                                <span class="<?= $rs['program_type'] === 'bibitgratis' ? 'badge-custom-green' : 'badge-custom-blue' ?>">
+                                                    <?= $rs['program_type'] === 'bibitgratis' ? 'PUB' : strtoupper($rs['program_type']) ?>
+                                                </span>
                                             </div>
-                                            <div class="h4 mb-0 font-weight-bold text-gray-800"><?= number_format($rs['quantity'], 0) ?> <small class="text-muted" style="font-size: 0.6rem;">btg</small></div>
-                                        </div>
-                                        <div class="text-primary opacity-25">
-                                            <i class="fas fa-box fa-2x"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -182,347 +187,40 @@
         </div>
     </div>
 
-    <div class="row">
-        <!-- Stock Balance Table -->
-        <div class="col-lg-5 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 bg-white">
-                    <h6 class="m-0 font-weight-bold text-dark"><i class="fas fa-box-open mr-2 text-primary"></i> Saldo Stok Bahan Baku</h6>
+    <!-- INVENTORY SECTION (FULL WIDTH) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header py-3 bg-white border-bottom">
+                    <h6 class="m-0 font-weight-bold text-dark"><i class="fas fa-archive mr-2 text-primary"></i> Saldo Stok Bahan Baku (Inventory)</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="bg-light x-small text-uppercase font-weight-bold text-dark">
                                 <tr>
-                                    <th>Bahan Baku</th>
-                                    <th class="text-right" title="Total Masuk (Pengadaan)">Masuk</th>
-                                    <th class="text-right" title="Total Keluar (Dipakai)">Dipakai</th>
-                                    <th class="text-right" title="Sisa Stok Tersedia Saat Ini">Sisa</th>
+                                    <th>Bahan Baku / Kategori</th>
+                                    <th class="text-right">Total Masuk</th>
+                                    <th class="text-right">Total Keluar</th>
+                                    <th class="text-right">Sisa Stok</th>
+                                    <th>Satuan</th>
                                 </tr>
                             </thead>
                             <tbody class="small">
-                                <?php if (empty($stockBalance)): ?>
-                                    <tr><td colspan="4" class="text-center text-muted">Belum ada stok.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($stockBalance as $stock): ?>
-                                        <tr>
-                                            <td>
-                                                <?= $stock['name'] ?> <small class="text-muted">(<?= $stock['unit'] ?>)</small><br>
-                                                <span class="badge badge-light border text-muted" style="font-size: 0.65rem; padding: 2px 4px;"><?= $stock['category'] ?></span>
-                                            </td>
-                                            <td class="text-right text-muted"><?= number_format($stock['total_in'], 2) ?></td>
-                                            <td class="text-right text-danger"><?= number_format($stock['total_out'], 2) ?></td>
-                                            <td class="text-right font-weight-bold <?= $stock['current_stock'] <= 0 ? 'text-danger' : 'text-success' ?>">
-                                                <?= number_format($stock['current_stock'], 2) ?>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Transactions & Productions -->
-        <div class="col-lg-7">
-            <!-- Mixing Productions -->
-            <div class="card shadow mb-4 border-left-success">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white">
-                    <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-history mr-2"></i> Produksi Campuran Terbaru (MT)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Kode Produksi</th>
-                                    <th class="text-right">Hasil (m3)</th>
-                                    <th>Keterangan</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentProductions)): ?>
-                                    <tr><td colspan="4" class="text-center py-3 text-muted">Belum ada catatan produksi.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentProductions as $prod): ?>
-                                        <tr>
-                                            <td><?= formatDate($prod['production_date']) ?></td>
-                                            <td><span class="badge badge-success"><?= $prod['production_code'] ?></span></td>
-                                            <td class="text-right font-weight-bold"><?= number_format($prod['total_production'], 2) ?></td>
-                                            <td><?= $prod['notes'] ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bag Fillings -->
-            <div class="card shadow mb-4 border-left-info">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white">
-                    <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-fill-drip mr-2"></i> Pengisian Kantong Terbaru (PB)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Kode</th>
-                                    <th>Kantong</th>
-                                    <th class="text-right">Awal</th>
-                                    <th class="text-right">Stok</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentFillings)): ?>
-                                    <tr><td colspan="4" class="text-center py-3 text-muted">Belum ada pengisian kantong.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentFillings as $pb): ?>
-                                        <tr>
-                                            <td><?= formatDate($pb['filling_date']) ?></td>
-                                            <td><span class="badge badge-info"><?= $pb['filling_code'] ?></span></td>
-                                            <td><?= $pb['bag_name'] ?></td>
-                                            <td class="text-right text-muted small"><?= number_format($pb['total_production'], 0) ?></td>
-                                            <td class="text-right font-weight-bold text-primary"><?= number_format($pb['remaining_stock'], 0) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Seed Sowings (PC-) -->
-            <div class="card shadow mb-4 border-left-warning">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white">
-                    <h6 class="m-0 font-weight-bold text-warning"><i class="fas fa-seedling mr-2"></i> Penaburan Benih Terbaru (PC)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Kode (PC)</th>
-                                    <th>Jenis Benih</th>
-                                    <th class="text-right">Jml Benih</th>
-                                    <th class="text-right">Polybags Jd</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentSowings)): ?>
-                                    <tr><td colspan="5" class="text-center py-3 text-muted">Belum ada penaburan benih.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentSowings as $pc): ?>
-                                        <tr>
-                                            <td><?= formatDate($pc['sowing_date']) ?></td>
-                                            <td><span class="badge badge-warning text-dark"><?= $pc['sowing_code'] ?></span></td>
-                                            <td><?= $pc['seed_name'] ?></td>
-                                            <td class="text-right font-weight-bold"><?= number_format($pc['seed_quantity'], 2) ?> <?= $pc['seed_unit'] ?></td>
-                                            <td class="text-right font-weight-bold text-primary"><?= number_format($pc['total_polybags'], 0) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Seedling Harvests (PA-) -->
-            <div class="card shadow mb-4 border-left-primary">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white">
-                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-leaf mr-2"></i> Stok Anakan Semai Tersedia (PA)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Kode (PA)</th>
-                                    <th>Ref (PC)</th>
-                                    <th>Jenis Benih</th>
-                                    <th class="text-right">Sisa (Btg)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentHarvests)): ?>
-                                    <tr><td colspan="5" class="text-center py-3 text-muted">Belum ada pemanenan semai.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentHarvests as $pa): ?>
-                                        <tr>
-                                            <td><?= formatDate($pa['harvest_date']) ?></td>
-                                            <td><span class="badge badge-primary"><?= $pa['harvest_code'] ?></span></td>
-                                            <td><small class="text-muted"><?= $pa['sowing_code'] ?></small></td>
-                                            <td><?= $pa['seed_name'] ?></td>
-                                            <td class="text-right font-weight-bold text-success"><?= number_format($pa['remaining_stock'], 0) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Penyapihan Bibit (PE) -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white border-left-success">
-                    <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-seedling mr-2"></i> Penyapihan Bibit Terbaru (PE)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
+                                <?php foreach ($stockBalance as $stock): ?>
                                     <tr>
-                                        <th>Tanggal</th>
-                                        <th>Kode (PE)</th>
-                                        <th>Asal (PA)</th>
-                                        <th>Bibit Jadi</th>
-                                        <th class="text-right">Sisa (Btg)</th>
+                                        <td>
+                                            <div class="font-weight-bold"><?= $stock['name'] ?></div>
+                                            <span class="text-muted x-small"><?= $stock['category'] ?></span>
+                                        </td>
+                                        <td class="text-right font-weight-bold text-muted"><?= number_format($stock['total_in'], 2) ?></td>
+                                        <td class="text-right font-weight-bold text-danger"><?= number_format($stock['total_out'], 2) ?></td>
+                                        <td class="text-right font-weight-bold <?= $stock['current_stock'] <= 0 ? 'text-danger' : 'text-success' ?>" style="font-size: 1.1rem;">
+                                            <?= number_format($stock['current_stock'], 2) ?>
+                                        </td>
+                                        <td><small class="font-weight-bold text-uppercase text-muted"><?= $stock['unit'] ?></small></td>
                                     </tr>
-                                </thead>
-                                <tbody class="small text-dark">
-                                    <?php if (empty($recentWeanings)): ?>
-                                        <tr><td colspan="5" class="text-center py-3 text-muted">Belum ada penyapihan bibit.</td></tr>
-                                    <?php else: ?>
-                                        <?php foreach ($recentWeanings as $pe): ?>
-                                            <tr>
-                                                <td><?= formatDate($pe['weaning_date']) ?></td>
-                                                <td><span class="badge badge-success"><?= $pe['weaning_code'] ?></span></td>
-                                                <td><small class="text-muted"><?= $pe['harvest_code'] ?></small></td>
-                                                <td><?= $pe['result_name'] ?></td>
-                                                <td class="text-right font-weight-bold text-success"><?= number_format($pe['remaining_stock'], 0) ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Penggunaan Entres (ET) -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white border-left-warning">
-                    <h6 class="m-0 font-weight-bold text-warning"><i class="fas fa-cut mr-2"></i> Penggunaan Entres Terbaru (ET)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Kode (ET)</th>
-                                    <th>Asal PA</th>
-                                    <th>Hasil</th>
-                                    <th class="text-right">Jumlah</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentEntres)): ?>
-                                    <tr><td colspan="5" class="text-center py-3 text-muted">Belum ada penggunaan entres.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentEntres as $et): ?>
-                                        <tr>
-                                            <td><?= formatDate($et['entres_date']) ?></td>
-                                            <td><span class="badge badge-warning text-dark"><?= $et['entres_code'] ?></span></td>
-                                            <td><small class="text-muted"><?= $et['weaning_code'] ?></small></td>
-                                            <td><?= $et['result_name'] ?></td>
-                                            <td class="text-right font-weight-bold text-warning"><?= number_format($et['used_quantity'], 0) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mutasi Bibit Terbaru (BO) -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white border-left-danger">
-                    <h6 class="m-0 font-weight-bold text-danger"><i class="fas fa-exchange-alt mr-2"></i> Mutasi Bibit Terbaru (BO)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Kode</th>
-                                    <th>Asal</th>
-                                    <th>Tgl</th>
-                                    <th>Tipe</th>
-                                    <th class="text-right">Jml</th>
-                                    <th>Tujuan</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentMutations)): ?>
-                                    <tr><td colspan="6" class="text-center py-3 text-muted">Belum ada catatan mutasi.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentMutations as $bo): ?>
-                                        <tr>
-                                            <td class="font-weight-bold"><?= $bo['mutation_code'] ?></td>
-                                            <td><small class="badge badge-light border"><?= $bo['source_code'] ?></small><br><?= $bo['seedling_name'] ?></td>
-                                            <td><?= formatDate($bo['mutation_date']) ?></td>
-                                            <td>
-                                                <?php if($bo['mutation_type'] === 'MATI'): ?>
-                                                    <span class="text-danger font-weight-bold">MATI</span>
-                                                <?php elseif($bo['mutation_type'] === 'NAIK KELAS'): ?>
-                                                    <span class="text-success font-weight-bold">LULUS</span>
-                                                <?php else: ?>
-                                                    <span class="text-info font-weight-bold">PINDAH</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-right font-weight-bold"><?= number_format($bo['quantity'], 0) ?></td>
-                                            <td><small class="text-muted"><?= $bo['target_location'] ?: '-' ?></small></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bahan Baku IN -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white">
-                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-receipt mr-2"></i> Transaksi Masuk (Bahan Baku IN)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-light small text-dark font-weight-bold">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Item</th>
-                                    <th class="text-right">Jumlah</th>
-                                    <th>Unit</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small text-dark">
-                                <?php if (empty($recentTransactions)): ?>
-                                    <tr><td colspan="4" class="text-center py-3 text-muted">Belum ada transaksi masuk.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($recentTransactions as $row): ?>
-                                        <tr>
-                                            <td><?= formatDate($row['transaction_date']) ?></td>
-                                            <td><?= $row['item_name'] ?></td>
-                                            <td class="text-right"><?= number_format($row['quantity'], 2) ?></td>
-                                            <td><?= $row['item_unit'] ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -530,6 +228,245 @@
             </div>
         </div>
     </div>
+
+    <!-- PRODUCTION HISTORY GRID (3 COLUMNS) -->
+    <div class="row">
+        <!-- Mixing (MT) -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                <div class="card-header py-2 bg-success text-white small font-weight-bold">
+                    <i class="fas fa-mortar-pestle mr-1"></i> Mixing Media (MT)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 table-hover table-striped">
+                        <tbody class="small">
+                            <?php if (!empty($recentProductions)): ?>
+                                <?php foreach (array_slice($recentProductions, 0, 5) as $prod): ?>
+                                    <tr>
+                                        <td class="p-2 border-bottom">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="badge badge-success px-2"><?= $prod['production_code'] ?></span>
+                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($prod['production_date']) ?></span>
+                                            </div>
+                                            <div class="font-weight-bold text-dark"><?= number_format($prod['total_production'], 2) ?> <small>m3</small></div>
+                                            <div class="text-muted x-small italic"><?= $prod['notes'] ?: '-' ?></div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Polybag Fillings (PB) -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                <div class="card-header py-2 bg-info text-white small font-weight-bold">
+                    <i class="fas fa-fill-drip mr-1"></i> Pengisian Kantong (PB)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 table-hover table-striped">
+                        <tbody class="small">
+                            <?php if (!empty($recentFillings)): ?>
+                                <?php foreach (array_slice($recentFillings, 0, 5) as $pb): ?>
+                                    <tr>
+                                        <td class="p-2 border-bottom">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="badge badge-info px-2"><?= $pb['filling_code'] ?></span>
+                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pb['filling_date']) ?></span>
+                                            </div>
+                                            <div class="font-weight-bold text-dark"><?= $pb['bag_name'] ?></div>
+                                            <div class="d-flex justify-content-between align-items-center x-small mt-1">
+                                                <span class="text-muted">Stok Tersedia:</span>
+                                                <span class="text-primary font-weight-bold"><?= number_format($pb['remaining_stock'], 0) ?> poly</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tanam Benih (PC) -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                <div class="card-header py-2 bg-warning text-dark font-weight-bold small">
+                    <i class="fas fa-seedling mr-1"></i> Penaburan Benih (PC)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 table-hover table-striped">
+                        <tbody class="small">
+                            <?php if (!empty($recentSowings)): ?>
+                                <?php foreach (array_slice($recentSowings, 0, 5) as $pc): ?>
+                                    <tr>
+                                        <td class="p-2 border-bottom">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="badge badge-warning text-dark px-2 font-weight-bold"><?= $pc['sowing_code'] ?></span>
+                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pc['sowing_date']) ?></span>
+                                            </div>
+                                            <div class="font-weight-bold text-dark"><?= $pc['seed_name'] ?></div>
+                                            <div class="d-flex justify-content-between x-small">
+                                                <span class="font-weight-bold text-primary"><?= number_format($pc['total_polybags'], 0) ?> btg</span>
+                                                <span class="text-muted"><?= number_format($pc['seed_quantity'], 1) ?> <?= $pc['seed_unit'] ?></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panen (PA) -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                <div class="card-header py-2 bg-primary text-white small font-weight-bold">
+                    <i class="fas fa-leaf mr-1"></i> Panen Anakan (PA)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 table-hover table-striped">
+                        <tbody class="small">
+                            <?php if (!empty($recentHarvests)): ?>
+                                <?php foreach (array_slice($recentHarvests, 0, 5) as $pa): ?>
+                                    <tr>
+                                        <td class="p-2 border-bottom">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="badge badge-primary px-2"><?= $pa['harvest_code'] ?></span>
+                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pa['harvest_date']) ?></span>
+                                            </div>
+                                            <div class="font-weight-bold text-dark"><?= $pa['seed_name'] ?></div>
+                                            <div class="d-flex justify-content-between x-small">
+                                                <span class="text-muted">PA-Code: <?= $pa['harvest_code'] ?></span>
+                                                <span class="text-success font-weight-bold text-success"><?= number_format($pa['remaining_stock'], 0) ?> sisa</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weaning (PE/ET) -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                <div class="card-header py-2 bg-teal text-white small font-weight-bold">
+                    <i class="fas fa-expand-arrows-alt mr-1"></i> Sapih Bibit (PE/ET)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 table-hover table-striped">
+                        <tbody class="small">
+                            <?php if (!empty($recentWeanings)): ?>
+                                <?php foreach (array_slice($recentWeanings, 0, 5) as $pe): ?>
+                                    <tr>
+                                        <td class="p-2 border-bottom">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="badge badge-teal text-white px-2"><?= $pe['weaning_code'] ?></span>
+                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pe['weaning_date']) ?></span>
+                                            </div>
+                                            <div class="font-weight-bold text-dark"><?= $pe['result_name'] ?></div>
+                                            <div class="d-flex justify-content-between">
+                                                <span class="x-small text-muted">Dari: <?= $pe['harvest_code'] ?></span>
+                                                <span class="text-success font-weight-bold"><?= number_format($pe['remaining_stock'], 0) ?> btg</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Out Mutation (BO) -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                <div class="card-header py-2 bg-danger text-white small font-weight-bold">
+                    <i class="fas fa-exchange-alt mr-1"></i> Log Mutasi (BO-PUB)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 table-hover table-striped">
+                        <tbody class="small">
+                            <?php if (!empty($recentMutations)): ?>
+                                <?php foreach (array_slice($recentMutations, 0, 5) as $bo): ?>
+                                    <tr>
+                                        <td class="p-2 border-bottom">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="badge-source"><?= $bo['source_code'] ?></span>
+                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($bo['mutation_date']) ?></span>
+                                            </div>
+                                            <div class="font-weight-bold text-dark"><?= $bo['seedling_name'] ?></div>
+                                            <div class="d-flex justify-content-between x-small">
+                                                <span class="font-weight-bold <?= $bo['mutation_type'] === 'MATI' ? 'text-danger' : 'text-primary' ?>"><?= $bo['mutation_type'] ?></span>
+                                                <span class="text-danger font-weight-bold"><?= number_format($bo['quantity'], 0) ?> btg</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bahan Baku IN Full Row -->
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm border-0 border-top-primary">
+                <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold small text-dark"><i class="fas fa-receipt mr-2 text-primary"></i> Transaksi Pengadaan Bahan Terbaru</h6>
+                    <a href="<?= url('seedling-admin/master-data') ?>" class="btn btn-sm btn-link font-weight-bold p-0">Lihat Semua</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="bg-light x-small text-muted font-weight-bold text-uppercase text-dark">
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Item Barang</th>
+                                    <th class="text-right">Jumlah Masuk</th>
+                                    <th>Gudang/Unit</th>
+                                </tr>
+                            </thead>
+                            <tbody class="small">
+                                <?php foreach (array_slice($recentTransactions, 0, 5) as $row): ?>
+                                    <tr>
+                                        <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
+                                        <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
+                                        <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'], 2) ?></td>
+                                        <td class="p-2"><?= $row['item_unit'] ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 
 <script>
@@ -565,13 +502,153 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-    .border-left-primary {
-        border-left: 0.25rem solid var(--primary-color) !important;
+    :root {
+        --teal: #008080;
+        --primary-soft: rgba(78, 115, 223, 0.1);
+        --bg-gray-100: #f8f9fc;
     }
-    .text-gray-800 {
-        color: #5a5c69 !important;
+
+    .letter-spacing-1 { letter-spacing: 1px; }
+    .bg-teal { background-color: var(--teal) !important; }
+    .transition-all { transition: all 0.3s ease; }
+
+    /* Stat Card Improvement */
+    .stat-card {
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.05) !important;
     }
-    .text-gray-300 {
-        color: #dddfeb !important;
+    .stat-icon {
+        position: absolute;
+        right: 15px;
+        bottom: 15px;
+        font-size: 3rem;
+        color: rgba(0,0,0,0.05);
+        z-index: 0;
+    }
+
+    /* Action Buttons Modern */
+    .action-btn-modern {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        border-radius: 8px;
+        text-decoration: none !important;
+        min-width: 140px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .action-btn-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .action-btn-modern i {
+        font-size: 1.5rem;
+        margin-right: 12px;
+        opacity: 0.8;
+    }
+    .action-btn-modern .content {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+    }
+    .action-btn-modern .content .title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .action-btn-modern .content .code {
+        font-size: 0.65rem;
+        opacity: 0.7;
+    }
+
+    /* Seedling Cards Modern */
+    .seedling-card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e3e6f0;
+        overflow: hidden;
+    }
+    .seedling-card:hover {
+        border-color: #4e73df;
+        transform: scale(1.02);
+    }
+    .seedling-icon-wrapper {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-soft);
+        color: #4e73df;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        font-size: 1.2rem;
+    }
+    .qty-badge {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #2e3b4e;
+    }
+    .qty-badge small {
+        font-weight: 400;
+        color: #858796;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+    }
+
+    /* Badges Custom */
+    .badge-custom-green {
+        background-color: #e6fffa;
+        color: #2c7a7b;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        border: 1px solid #b2f5ea;
+    }
+    .badge-custom-blue {
+        background-color: #ebf4ff;
+        color: #2b6cb0;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        border: 1px solid #bee3f8;
+    }
+    .badge-custom-info {
+        background-color: #f7fafc;
+        color: #4a5568;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.65rem;
+        font-weight: 400;
+        border: 1px solid #e2e8f0;
+    }
+
+    .shadow-hover:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .bg-teal { background-color: var(--teal) !important; }
+    .badge-teal { background-color: var(--teal) !important; color: white !important; }
+    .border-top-primary { border-top: 3px solid #4e73df !important; }
+
+    .badge-source {
+        background-color: #334155;
+        color: #f8fafc;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: inline-block;
+        margin-bottom: 2px;
+    }
+    .x-small { font-size: 0.75rem; }
+    .border-left-teal { border-left: 0.25rem solid var(--teal) !important; }
+
+    @media (max-width: 768px) {
+        .action-btn-modern {
+            min-width: 120px;
+            padding: 8px 10px;
+        }
     }
 </style>

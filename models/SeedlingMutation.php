@@ -127,12 +127,13 @@ class SeedlingMutation extends Model {
     }
 
     private function updateReadyStock($data) {
-        // Find which seedling_type_id to increase
+        // Find which seedling_type_id and batch info to carry over
         $seedlingTypeId = null;
+        $batchInfo = '';
         if ($data['source_type'] === 'PE') {
-            $sql = "SELECT result_item_id FROM seedling_weanings WHERE id = ?";
+            $sql = "SELECT result_item_id, weaning_code as code, location FROM seedling_weanings WHERE id = ?";
         } else {
-            $sql = "SELECT result_item_id FROM seedling_entres WHERE id = ?";
+            $sql = "SELECT result_item_id, entres_code as code, location FROM seedling_entres WHERE id = ?";
         }
         
         $stmt = $this->db->prepare($sql);
@@ -141,26 +142,33 @@ class SeedlingMutation extends Model {
         if (!$row) return;
         
         $seedlingTypeId = $row['result_item_id'];
+        $batchInfo = "Batch: " . $row['code'] . " (Lokasi: " . ($row['location'] ?: '-') . ")";
 
         // Upsert into stock table
-        // We use program_type = 'bibitgratis' and source_type = 'automated_pub'
-        $sqlCheck = "SELECT id, quantity FROM stock 
-                     WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis' AND source_type = 'automated_pub'
+        // We use program_type = 'bibitgratis' and source_type = 'PUB'
+        $sqlCheck = "SELECT id, quantity, notes FROM stock 
+                     WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis' AND source_type = 'PUB'
                      LIMIT 1";
         
         $stmt = $this->db->prepare($sqlCheck);
         $stmt->execute([$data['nursery_id'], $seedlingTypeId]);
         $existing = $stmt->fetch();
 
+        $newNotes = "Asal PUB [" . $batchInfo . "]. " . date('d/m/Y');
+
         if ($existing) {
             $newQty = $existing['quantity'] + $data['quantity'];
-            $sqlUpdate = "UPDATE stock SET quantity = ?, updated_at = CURRENT_TIMESTAMP, last_update_date = CURDATE() WHERE id = ?";
-            $this->db->prepare($sqlUpdate)->execute([$newQty, $existing['id']]);
+            // Append info to notes if not already there, but keep it concise
+            $updatedNotes = $existing['notes'] . " | " . $newNotes;
+            if (strlen($updatedNotes) > 255) $updatedNotes = substr($updatedNotes, 0, 252) . "...";
+
+            $sqlUpdate = "UPDATE stock SET quantity = ?, notes = ?, updated_at = CURRENT_TIMESTAMP, last_update_date = CURDATE() WHERE id = ?";
+            $this->db->prepare($sqlUpdate)->execute([$newQty, $updatedNotes, $existing['id']]);
         } else {
             $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, source_type, last_update_date, notes) 
-                          VALUES (?, ?, ?, 'bibitgratis', ?, 'automated_pub', CURDATE(), 'Otomatis dari modul penatausahaan bibit')";
+                          VALUES (?, ?, ?, 'bibitgratis', ?, 'PUB', CURDATE(), ?)";
             $this->db->prepare($sqlInsert)->execute([
-                $data['bpdas_id'], $data['nursery_id'], $seedlingTypeId, $data['quantity']
+                $data['bpdas_id'], $data['nursery_id'], $seedlingTypeId, $data['quantity'], $newNotes
             ]);
         }
     }
