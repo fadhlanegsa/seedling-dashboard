@@ -30,14 +30,16 @@ class SeedlingEditController extends Controller {
     
     public function editBahanBaku($id) {
         $model = $this->model('BahanBaku');
-        $data = $model->find($id);
+        
+        // Fetch with JOIN to get item name and unit for display
+        $sql = "SELECT t.*, m.name as item_name, m.unit as item_unit, m.category 
+                FROM bahan_baku_transactions t
+                JOIN bahan_baku_master m ON t.item_id = m.id
+                WHERE t.id = ? LIMIT 1";
+        $data = $model->queryOne($sql, [$id]);
+        
         if (!$data) $this->redirect('seedling-admin');
 
-        // Check 24 hour window
-
-        // Lock check isn't strictly chained for just BB IN unless you want to make it strict.
-        // We will rely on Delta validation for BB.
-        
         $bahanBakuModel = $this->model('BahanBaku');
         $items = $bahanBakuModel->getAllMaster();
 
