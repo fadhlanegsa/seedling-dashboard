@@ -25,6 +25,7 @@ class SeedlingMutation extends Model {
     }
 
     public function saveMutation($data) {
+        // === STEP 1: Save the mutation record ===
         try {
             $this->db->beginTransaction();
 
@@ -37,26 +38,42 @@ class SeedlingMutation extends Model {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 $data['mutation_code'], $data['mutation_date'], $data['source_type'], $data['source_id'],
-                $data['mutation_type'], $data['quantity'], $data['origin_location'], $data['target_location'],
-                $data['mandor'], $data['manager'], $data['notes'], $data['bpdas_id'], 
+                $data['mutation_type'], $data['quantity'], $data['origin_location'] ?? null, $data['target_location'] ?? null,
+                $data['mandor'] ?? null, $data['manager'] ?? null, $data['notes'] ?? null, $data['bpdas_id'], 
                 $data['nursery_id'], $data['created_by']
             ]);
 
-            // If NAIK KELAS, increase the Ready Stock in 'stock' table
-            if ($data['mutation_type'] === 'NAIK KELAS') {
-                $this->updateReadyStock($data);
-            } elseif ($data['mutation_type'] === 'TRANSFER') {
-                $this->splitTransferStock($data);
-            }
-
             $this->db->commit();
-            return true;
+
         } catch (Exception $e) {
             $this->db->rollBack();
-            file_put_contents(__DIR__ . '/../mutation_error.log', date('Y-m-d H:i:s') . " - Error: " . $e->getMessage() . "\n", FILE_APPEND);
-            error_log("Error saving mutation: " . $e->getMessage());
+            $errMsg = date('Y-m-d H:i:s') . " - saveMutation INSERT Error: " . $e->getMessage() . "\n";
+            @file_put_contents(__DIR__ . '/../mutation_error.log', $errMsg, FILE_APPEND);
+            error_log("saveMutation Error: " . $e->getMessage());
             return false;
         }
+
+        // === STEP 2: Update Ready Stock (separate - non-blocking) ===
+        if ($data['mutation_type'] === 'NAIK KELAS') {
+            try {
+                $this->updateReadyStock($data);
+            } catch (Exception $e) {
+                $errMsg = date('Y-m-d H:i:s') . " - updateReadyStock Error: " . $e->getMessage() . "\n";
+                @file_put_contents(__DIR__ . '/../mutation_error.log', $errMsg, FILE_APPEND);
+                error_log("updateReadyStock Error: " . $e->getMessage());
+                // Don't return false - mutation is already saved
+            }
+        } elseif ($data['mutation_type'] === 'TRANSFER') {
+            try {
+                $this->splitTransferStock($data);
+            } catch (Exception $e) {
+                $errMsg = date('Y-m-d H:i:s') . " - splitTransferStock Error: " . $e->getMessage() . "\n";
+                @file_put_contents(__DIR__ . '/../mutation_error.log', $errMsg, FILE_APPEND);
+                error_log("splitTransferStock Error: " . $e->getMessage());
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -215,15 +232,16 @@ class SeedlingMutation extends Model {
 
         if ($existing) {
             $newQty = $existing['quantity'] + $data['quantity'];
-            // Append info to notes if not already there, but keep it concise
             $updatedNotes = $existing['notes'] . " | " . $newNotes;
             if (strlen($updatedNotes) > 255) $updatedNotes = substr($updatedNotes, 0, 252) . "...";
 
-            $sqlUpdate = "UPDATE stock SET quantity = ?, notes = ?, updated_at = CURRENT_TIMESTAMP, last_update_date = CURDATE() WHERE id = ?";
+            $sqlUpdate = "UPDATE stock SET quantity = ?, notes = ?, last_update_date = CURDATE() WHERE id = ?";
             $this->db->prepare($sqlUpdate)->execute([$newQty, $updatedNotes, $existing['id']]);
         } else {
+            // Use INSERT ... ON DUPLICATE KEY UPDATE as a safety net
             $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, source_type, last_update_date, notes) 
-                          VALUES (?, ?, ?, 'bibitgratis', ?, 'PUB', CURDATE(), ?)";
+                          VALUES (?, ?, ?, 'bibitgratis', ?, 'PUB', CURDATE(), ?)
+                          ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), last_update_date = CURDATE()";
             $this->db->prepare($sqlInsert)->execute([
                 $data['bpdas_id'], $data['nursery_id'], $seedlingTypeId, $data['quantity'], $newNotes
             ]);
