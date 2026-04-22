@@ -40,11 +40,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($items)): ?>
-                            <tr>
-                                <td colspan="6" class="text-center py-4 text-muted border-bottom-0">Belum ada data master. Silakan klik "Tambah Item Baru".</td>
-                            </tr>
-                        <?php else: ?>
+                        <?php if (!empty($items)): ?>
                             <?php $no = 1; foreach ($items as $item): ?>
                                 <tr>
                                     <td class="text-center"><?= $no++ ?></td>
@@ -88,46 +84,48 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<form id="deleteForm" action="" method="POST">
-    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-danger text-white border-bottom-0">
-                    <h5 class="modal-title font-weight-bold">Konfirmasi Hapus</h5>
-                    <button class="close text-white" type="button" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span>
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-bottom-0">
+                <h5 class="modal-title font-weight-bold">Konfirmasi Hapus</h5>
+                <button class="close text-white" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body py-4">
+                Apakah Anda yakin ingin menghapus item <span id="deleteItemName" class="font-weight-bold"></span> dari database? 
+                <br><small class="text-danger">*Data yang sudah digunakan dalam transaksi mungkin tidak bisa dihapus.</small>
+            </div>
+            <div class="modal-footer bg-light border-top-0">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                <form id="deleteForm" action="" method="POST" style="display:inline;">
+                    <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4">
+                        <i class="fas fa-trash mr-1"></i> Hapus Sekarang
                     </button>
-                </div>
-                <div class="modal-body py-4">
-                    Apakah Anda yakin ingin menghapus item <span id="deleteItemName" class="font-weight-bold"></span> dari database? 
-                    <br><small class="text-danger">*Data yang sudah digunakan dalam transaksi mungkin tidak bisa dihapus.</small>
-                </div>
-                <div class="modal-footer bg-light border-top-0">
-                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-danger font-weight-bold px-4">Hapus Sekarang</button>
-                </div>
+                </form>
             </div>
         </div>
     </div>
-</form>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Delete Button Logic
-    const deleteBtns = document.querySelectorAll('.delete-btn');
     const deleteModal = $('#deleteModal');
-    const deleteForm = document.getElementById('deleteForm');
     const deleteItemName = document.getElementById('deleteItemName');
 
-    deleteBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
-            
-            deleteItemName.textContent = name;
-            deleteForm.action = `<?= url('seedling-admin/delete-master-data') ?>/${id}`;
-            deleteModal.modal('show');
-        });
+    // Use event delegation so DataTable re-rendered rows still work
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.delete-btn');
+        if (!btn) return;
+
+        const id   = btn.dataset.id;
+        const name = btn.dataset.name;
+
+        deleteItemName.textContent = name;
+        document.getElementById('deleteForm').action = `<?= url('seedling-admin/delete-master-data') ?>/${id}`;
+        deleteModal.modal('show');
     });
 
     // DataTable initialization if exists

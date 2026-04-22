@@ -52,7 +52,7 @@
                                     <span class="badge badge-primary">Reguler</span>
                                 <?php endif; ?>
                             </td>
-                            <td><strong><?= formatNumber($request['quantity'] ?? $request['item_quantity'] ?? 0) ?></strong> bibit</td>
+                            <td><strong><?= formatNumber($request['item_quantity'] ?: $request['quantity'] ?: 0) ?></strong> bibit</td>
                             <td>
                                 <?php $status = $request['status'] ?? 'pending'; ?>
                                 <span class="badge badge-<?= status_badge_class($status) ?>">

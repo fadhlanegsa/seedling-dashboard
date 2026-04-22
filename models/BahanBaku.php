@@ -13,13 +13,8 @@ class BahanBaku extends Model {
      * Helper to execute non-SELECT queries
      */
     private function execute($sql, $params = []) {
-        try {
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute($params);
-        } catch (PDOException $e) {
-            logError("BahanBaku Execute Error: " . $e->getMessage());
-            return false;
-        }
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
     }
 
     /**
@@ -88,7 +83,9 @@ class BahanBaku extends Model {
      * @return array
      */
     public function getItemsByCategory($category) {
-        $sql = "SELECT id, name, scientific_name, unit, code FROM bahan_baku_master WHERE category = ? ORDER BY name ASC";
+        $sql = "SELECT id, name, scientific_name, unit, code FROM bahan_baku_master 
+                WHERE category = ? 
+                ORDER BY name ASC";
         return $this->query($sql, [$category]);
     }
 
@@ -103,6 +100,32 @@ class BahanBaku extends Model {
                 LEFT JOIN seedling_types st ON m.seedling_type_id = st.id
                 WHERE m.id = ?";
         return $this->queryOne($sql, [$id]);
+    }
+
+    /**
+     * Generate Auto Master Code (Format: [CAT]-00X)
+     * @param string $categoryCode
+     * @return string
+     */
+    public function generateMasterCode($categoryCode) {
+        $prefix = $categoryCode . "-";
+        $sql = "SELECT code FROM bahan_baku_master 
+                WHERE code LIKE ? AND code REGEXP ?
+                ORDER BY code DESC LIMIT 1";
+        
+        // Match prefix and then numbers
+        $last = $this->queryOne($sql, [$prefix . '%', '^' . $prefix . '[0-9]+$']);
+
+        if (!$last) {
+            return $prefix . "001";
+        }
+
+        // Extract number after prefix
+        $lastNumberStr = str_replace($prefix, '', $last['code']);
+        $lastNumber = (int)$lastNumberStr;
+        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        
+        return $prefix . $newNumber;
     }
 
     /**
@@ -133,6 +156,23 @@ class BahanBaku extends Model {
      */
     public function saveTransaction($data) {
         return $this->create($data);
+    }
+
+    /**
+     * Update transaction with Audit Trail
+     */
+    public function updateTransactionData($id, $data, $oldData, $editReason, $userId) {
+        try {
+            $this->beginTransaction();
+            $this->update($id, $data);
+            $this->insertAuditTrail('bahan_baku', $id, $oldData, $data, $editReason, $userId);
+            $this->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->rollback();
+            logError("BahanBaku Update Error: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -268,5 +308,33 @@ class BahanBaku extends Model {
                 ORDER BY m.category ASC, m.name ASC";
         
         return $this->query($sql);
+    }
+
+    /**
+     * Delete transaction & Revert Stock
+     */
+    public function deleteTransaction($id, $userId, $reason) {
+        $oldData = $this->queryOne("SELECT * FROM bahan_baku_transactions WHERE id = ?", [$id]);
+        if (!$oldData) return false;
+
+        $this->beginTransaction();
+        try {
+            // Delete the transaction
+            $stmt = $this->db->prepare("DELETE FROM bahan_baku_transactions WHERE id = ?");
+            if (!$stmt->execute([$id])) {
+                $this->rollback();
+                return false;
+            }
+
+            // Log Audit Trail
+            $this->insertAuditTrail('Bahan Baku', $id, $oldData, null, $reason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("Bahan Baku Delete Error: " . $e->getMessage());
+            return false;
+        }
     }
 }

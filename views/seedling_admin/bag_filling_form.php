@@ -4,7 +4,7 @@
             <div class="card shadow mb-4 border-bottom-info">
                 <!-- Card Header -->
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-info text-white">
-                    <h6 class="m-0 font-weight-bold text-uppercase"><i class="fas fa-fill-drip mr-2"></i> PENGISIAN KANTONG BIBIT</h6>
+                    <h6 class="m-0 font-weight-bold text-uppercase text-white"><i class="fas fa-fill-drip mr-2"></i> PENGISIAN KANTONG BIBIT</h6>
                     <a href="<?= url('seedling-admin') ?>" class="btn btn-sm btn-light border shadow-sm">
                         <i class="fas fa-arrow-left"></i> Kembali
                     </a>
@@ -87,7 +87,7 @@
                                         <button type="button" class="btn btn-sm btn-info mr-3 shadow-sm" data-toggle="modal" data-target="#mediaModal">
                                             <i class="fas fa-plus mr-1"></i> Tambah Media
                                         </button>
-                                        <h6 class="m-0 font-weight-bold text-warning text-uppercase" style="letter-spacing: 1px;">MEDIA TANAM</h6>
+                                        <h6 class="m-0 font-weight-bold text-dark text-uppercase" style="letter-spacing: 1px;">MEDIA TANAM</h6>
                                     </div>
                                 </div>
                                 

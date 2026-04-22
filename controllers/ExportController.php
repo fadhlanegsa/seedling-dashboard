@@ -295,7 +295,7 @@ class ExportController extends Controller {
             // Tambahkan newline style agar text terwrap
             $sheet->getStyle('J' . $row)->getAlignment()->setWrapText(true);
             
-            $sheet->setCellValue('K' . $row, $req['item_quantity'] ?? $req['quantity'] ?? 0);
+            $sheet->setCellValue('K' . $row, $req['item_quantity'] ?: $req['quantity'] ?: 0);
             
             // Kolom Tambahan Detail
             // Luas Lahan (biasanya tersimpan sebagai land_area)

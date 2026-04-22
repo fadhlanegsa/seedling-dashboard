@@ -166,7 +166,7 @@
                                 }
                             ?>
                         </td>
-                        <td class="text-right"><?= number_format($req['item_quantity'] ?? $req['quantity'] ?? 0, 0, ',', '.') ?></td>
+                        <td class="text-right"><?= number_format($req['item_quantity'] ?: $req['quantity'] ?: 0, 0, ',', '.') ?></td>
                         <td><?= htmlspecialchars($req['land_area'] ?? '-') ?> Ha</td>
                         <td><?= htmlspecialchars($req['planting_address'] ?? '-') ?></td>
                         <td style="font-size: 8px;">

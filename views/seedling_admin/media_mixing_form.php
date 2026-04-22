@@ -4,7 +4,7 @@
             <div class="card shadow mb-4 border-bottom-primary">
                 <!-- Card Header -->
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-primary text-white">
-                    <h6 class="m-0 font-weight-bold text-uppercase"><i class="fas fa-blender mr-2"></i> PENCAMPURAN MEDIA TANAM</h6>
+                    <h6 class="m-0 font-weight-bold text-uppercase text-white"><i class="fas fa-blender mr-2"></i> PENCAMPURAN MEDIA TANAM</h6>
                     <a href="<?= url('seedling-admin') ?>" class="btn btn-sm btn-light border shadow-sm">
                         <i class="fas fa-arrow-left"></i> Kembali
                     </a>
@@ -28,7 +28,7 @@
                             
                             <div class="table-responsive">
                                 <table class="table table-bordered table-sm" id="ingredients-table">
-                                    <thead class="bg-light text-center small text-uppercase font-weight-bold">
+                                    <thead class="bg-dark text-white text-center small text-uppercase font-weight-bold">
                                         <tr>
                                             <th width="200">Kategori</th>
                                             <th>Nama Bahan Baku</th>

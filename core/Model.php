@@ -251,6 +251,28 @@ class Model {
     }
     
     /**
+     * Insert Audit Trail
+     */
+    public function insertAuditTrail($transactionType, $recordId, $oldData, $newData, $editReason, $userId) {
+        $auditData = json_encode([
+            'old_data' => $oldData,
+            'new_data' => $newData,
+            'reason' => $editReason
+        ]);
+
+        $sql = "INSERT INTO pub_audit_trails (transaction_type, record_id, audit_data, edited_by) 
+                VALUES (?, ?, ?, ?)";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$transactionType, $recordId, $auditData, $userId]);
+        } catch (PDOException $e) {
+            logError("Model Audit Trail Error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Begin transaction
      */
     public function beginTransaction() {

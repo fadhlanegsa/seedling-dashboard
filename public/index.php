@@ -172,6 +172,25 @@ elseif ($parts[0] === 'seedling-admin') {
     }
     $params = array_slice($parts, 2);
 }
+// Handle special routing for seedling-edit/*
+elseif ($parts[0] === 'seedling-edit') {
+    $controllerName = 'SeedlingEditController';
+    $action = isset($parts[1]) ? $parts[1] : 'index';
+    // Convert kebab-case to camelCase for action
+    if (strpos($action, '-') !== false) {
+        $action = lcfirst(str_replace('-', '', ucwords($action, '-')));
+    }
+    $params = array_slice($parts, 2);
+}
+// Handle special routing for seedling-audit/*
+elseif ($parts[0] === 'seedling-audit') {
+    $controllerName = 'SeedlingAuditController';
+    $action = isset($parts[1]) ? $parts[1] : 'index';
+    if (strpos($action, '-') !== false) {
+        $action = lcfirst(str_replace('-', '', ucwords($action, '-')));
+    }
+    $params = array_slice($parts, 2);
+}
 else {
     // Handle special cases for acronyms
     $controller = $parts[0];

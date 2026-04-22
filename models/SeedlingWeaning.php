@@ -68,11 +68,57 @@ class SeedlingWeaning extends Model {
     }
 
     /**
+     * Update Weaning with Audit Trail
+     */
+    public function updateWeaning($id, $weaningData, $polybagItems, $materialItems, $oldData, $editReason, $userId) {
+        try {
+            $this->beginTransaction();
+
+            $this->update($id, $weaningData);
+
+            // Re-insert polybags
+            $this->db->prepare("DELETE FROM seedling_weaning_polybags WHERE weaning_id = ?")->execute([$id]);
+            if (!empty($polybagItems)) {
+                $sqlPB = "INSERT INTO seedling_weaning_polybags (weaning_id, bag_filling_id, quantity) VALUES (?, ?, ?)";
+                $stmtPB = $this->db->prepare($sqlPB);
+                foreach ($polybagItems as $pb) {
+                    $stmtPB->execute([$id, $pb['bag_filling_id'], $pb['quantity']]);
+                }
+            }
+
+            // Re-insert materials
+            $this->db->prepare("DELETE FROM seedling_weaning_materials WHERE weaning_id = ?")->execute([$id]);
+            if (!empty($materialItems)) {
+                $sqlMat = "INSERT INTO seedling_weaning_materials (weaning_id, item_id, quantity) VALUES (?, ?, ?)";
+                $stmtMat = $this->db->prepare($sqlMat);
+                foreach ($materialItems as $mat) {
+                    $stmtMat->execute([$id, $mat['item_id'], $mat['quantity']]);
+                }
+            }
+
+            $this->insertAuditTrail('seedling_weanings', $id, $oldData, [
+                'weaning' => $weaningData,
+                'polybags' => $polybagItems,
+                'materials' => $materialItems
+            ], $editReason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("SeedlingWeaning Update Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get recent weanings for dashboard
      */
     public function getRecentWeanings($limit = 10, $filters = []) {
         $sql = "SELECT w.*, h.harvest_code, st.name as result_name,
-                (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock
+                (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock,
+                (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
+                 EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
                 FROM {$this->table} w
                 JOIN seedling_harvests h ON w.harvest_id = h.id
                 JOIN seedling_types st ON w.result_item_id = st.id
@@ -159,5 +205,47 @@ class SeedlingWeaning extends Model {
         $sql .= " HAVING remaining_stock > 0 ORDER BY w.weaning_date ASC";
 
         return $this->query($sql, $params);
+    }
+
+    /**
+     * Delete Weaning & Revert Stock
+     */
+    public function deleteWeaning($id, $userId, $reason) {
+        $oldData = $this->queryOne("SELECT * FROM {$this->table} WHERE id = ?", [$id]);
+        if (!$oldData) return false;
+
+        $polybags = $this->query("SELECT * FROM seedling_weaning_polybags WHERE weaning_id = ?", [$id]);
+        $materials = $this->query("SELECT * FROM seedling_weaning_materials WHERE weaning_id = ?", [$id]);
+
+        $this->beginTransaction();
+        try {
+            // Delete downstream dependencies (Mutations from this weaning)
+            $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id = ? AND source_type = 'PE'")->execute([$id]);
+
+            // Delete polybags & materials
+            $this->db->prepare("DELETE FROM seedling_weaning_polybags WHERE weaning_id = ?")->execute([$id]);
+            $this->db->prepare("DELETE FROM seedling_weaning_materials WHERE weaning_id = ?")->execute([$id]);
+            
+            // Delete weaning record
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            if (!$stmt->execute([$id])) {
+                $this->rollback();
+                return false;
+            }
+
+            // Log Audit Trail
+            $this->insertAuditTrail('Sapih PE', $id, [
+                'weaning' => $oldData, 
+                'polybags' => $polybags,
+                'materials' => $materials
+            ], null, $reason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("SeedlingWeaning Delete Error: " . $e->getMessage());
+            return false;
+        }
     }
 }

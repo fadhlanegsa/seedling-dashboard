@@ -34,7 +34,9 @@ class SeedlingHarvest extends Model {
     public function getRecentHarvests($limit = 10, $filters = []) {
         $sql = "SELECT h.*, s.sowing_code, h.location,
                 m.name as seed_name, 'pcs' as seed_unit,
-                (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock
+                (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock,
+                (EXISTS(SELECT 1 FROM seedling_weanings WHERE harvest_id = h.id) OR 
+                 EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = h.id)) as is_locked
                 FROM {$this->table} h
                 JOIN seed_sowings s ON h.sowing_id = s.id
                 JOIN bahan_baku_master m ON s.seed_item_id = m.id
@@ -76,6 +78,27 @@ class SeedlingHarvest extends Model {
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    /**
+     * Update Harvest with Audit Trail
+     */
+    public function updateHarvest($id, $harvestData, $oldData, $editReason, $userId) {
+        try {
+            $this->beginTransaction();
+
+            $this->update($id, $harvestData);
+
+            $this->insertAuditTrail('seedling_harvests', $id, $oldData, $harvestData, $editReason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->rollback();
+            logError("SeedlingHarvest Update Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
     /**
      * Get available harvests (sisa stok anakan) that have not been fully weaned
      * @param array $filters
@@ -153,5 +176,46 @@ class SeedlingHarvest extends Model {
                 WHERE h.id = ?";
                 
         return $this->queryOne($sql, [$id]);
+    }
+
+    /**
+     * Delete Harvest & Revert Stock
+     */
+    public function deleteHarvest($id, $userId, $reason) {
+        $oldData = $this->queryOne("SELECT * FROM {$this->table} WHERE id = ?", [$id]);
+        if (!$oldData) return false;
+
+        $this->beginTransaction();
+        try {
+            // Delete downstream dependencies (Mutations from Weanings and Entres of this harvest)
+            $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id IN (SELECT id FROM seedling_weanings WHERE harvest_id = ?) AND source_type = 'PE'")->execute([$id]);
+            $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id IN (SELECT id FROM seedling_entres WHERE harvest_id = ?) AND source_type = 'ET'")->execute([$id]);
+
+            // Delete Weaning & Entres items
+            $this->db->prepare("DELETE FROM seedling_weaning_polybags WHERE weaning_id IN (SELECT id FROM seedling_weanings WHERE harvest_id = ?)")->execute([$id]);
+            $this->db->prepare("DELETE FROM seedling_weaning_materials WHERE weaning_id IN (SELECT id FROM seedling_weanings WHERE harvest_id = ?)")->execute([$id]);
+            $this->db->prepare("DELETE FROM seedling_entres_materials WHERE entres_id IN (SELECT id FROM seedling_entres WHERE harvest_id = ?)")->execute([$id]);
+
+            // Delete weanings and entres
+            $this->db->prepare("DELETE FROM seedling_weanings WHERE harvest_id = ?")->execute([$id]);
+            $this->db->prepare("DELETE FROM seedling_entres WHERE harvest_id = ?")->execute([$id]);
+
+            // Delete harvest record
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            if (!$stmt->execute([$id])) {
+                $this->rollback();
+                return false;
+            }
+
+            // Log Audit Trail
+            $this->insertAuditTrail('Panen Anakan (PA)', $id, $oldData, null, $reason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("SeedlingHarvest Delete Error: " . $e->getMessage());
+            return false;
+        }
     }
 }

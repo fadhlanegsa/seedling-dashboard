@@ -177,7 +177,7 @@ class BPDAS extends Model {
                 COALESCE(SUM(s.quantity), 0) as total_stock,
                 (SELECT COUNT(*) FROM nurseries WHERE is_active = 1) as total_nurseries,
                 (SELECT COUNT(*) FROM requests) as total_requests,
-                (SELECT SUM(COALESCE(quantity, (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = requests.id), 0)) 
+                (SELECT SUM(COALESCE((SELECT NULLIF(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = requests.id), quantity, 0)) 
                  FROM requests WHERE status IN ('delivered', 'completed')) as total_distributed
                 FROM {$this->table} b
                 LEFT JOIN stock s ON b.id = s.bpdas_id

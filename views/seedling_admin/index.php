@@ -133,9 +133,24 @@
                             </div>
                         </a>
                     <?php else: ?>
-                        <div class="py-2 px-4 d-flex align-items-center text-muted">
-                            <i class="fas fa-lock mr-2"></i> Mode Monitoring Aktif
-                        </div>
+                        <?php if ($user['role'] === 'admin' || $user['role'] === 'bpdas'): ?>
+                            <a href="<?= url('seedling-audit') ?>" class="action-btn-modern bg-dark text-white">
+                                <i class="fas fa-history"></i>
+                                <div class="content">
+                                    <span class="title">Audit Trail</span>
+                                    <span class="code">HISTORY</span>
+                                </div>
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($user['role'] === 'bpdas'): ?>
+                            <div class="py-2 px-4 d-flex align-items-center text-muted">
+                                <i class="fas fa-eye mr-2"></i> Mode Monitoring BPDAS
+                            </div>
+                        <?php else: ?>
+                            <div class="py-2 px-4 d-flex align-items-center text-muted">
+                                <i class="fas fa-eye mr-2"></i> Mode Monitoring Aktif
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -246,7 +261,10 @@
                                         <td class="p-2 border-bottom">
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="badge badge-success px-2"><?= $prod['production_code'] ?></span>
-                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($prod['production_date']) ?></span>
+                                                <div class="d-flex align-items-center">
+                                                    <a href="<?= url('seedling-edit/edit-media-mixing/' . $prod['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-media-mixing/' . $prod['id']) ?>" data-title="Mixing Media <?= $prod['production_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                             <div class="font-weight-bold text-dark"><?= number_format($prod['total_production'], 2) ?> <small>m3</small></div>
                                             <div class="text-muted x-small italic"><?= $prod['notes'] ?: '-' ?></div>
@@ -277,7 +295,11 @@
                                         <td class="p-2 border-bottom">
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="badge badge-info px-2"><?= $pb['filling_code'] ?></span>
-                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pb['filling_date']) ?></span>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pb['filling_date']) ?></span>
+                                                    <a href="<?= url('seedling-edit/edit-bag-filling/' . $pb['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bag-filling/' . $pb['id']) ?>" data-title="Pengisian Kantong <?= $pb['filling_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                             <div class="font-weight-bold text-dark"><?= $pb['bag_name'] ?></div>
                                             <div class="d-flex justify-content-between align-items-center x-small mt-1">
@@ -311,7 +333,11 @@
                                         <td class="p-2 border-bottom">
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="badge badge-warning text-dark px-2 font-weight-bold"><?= $pc['sowing_code'] ?></span>
-                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pc['sowing_date']) ?></span>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pc['sowing_date']) ?></span>
+                                                    <a href="<?= url('seedling-edit/edit-seed-sowing/' . $pc['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-seed-sowing/' . $pc['id']) ?>" data-title="Penaburan Benih <?= $pc['sowing_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                             <div class="font-weight-bold text-dark"><?= $pc['seed_name'] ?></div>
                                             <div class="d-flex justify-content-between x-small">
@@ -345,7 +371,11 @@
                                         <td class="p-2 border-bottom">
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="badge badge-primary px-2"><?= $pa['harvest_code'] ?></span>
-                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pa['harvest_date']) ?></span>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pa['harvest_date']) ?></span>
+                                                    <a href="<?= url('seedling-edit/edit-harvesting/' . $pa['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-harvesting/' . $pa['id']) ?>" data-title="Panen Anakan <?= $pa['harvest_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                             <div class="font-weight-bold text-dark"><?= $pa['seed_name'] ?></div>
                                             <div class="d-flex justify-content-between x-small">
@@ -379,7 +409,12 @@
                                         <td class="p-2 border-bottom">
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="badge badge-teal text-white px-2"><?= $pe['weaning_code'] ?></span>
-                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($pe['weaning_date']) ?></span>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pe['weaning_date']) ?></span>
+                                                    <?php $isEntres = strpos($pe['weaning_code'], 'ET-') === 0; ?>
+                                                    <a href="<?= url('seedling-edit/' . ($isEntres ? 'edit-entres' : 'edit-weaning') . '/' . $pe['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/' . ($isEntres ? 'delete-entres' : 'delete-weaning') . '/' . $pe['id']) ?>" data-title="Sapih/Entres <?= $pe['weaning_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                             <div class="font-weight-bold text-dark"><?= $pe['result_name'] ?></div>
                                             <div class="d-flex justify-content-between">
@@ -413,7 +448,11 @@
                                         <td class="p-2 border-bottom">
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="badge-source"><?= $bo['source_code'] ?></span>
-                                                <span class="text-muted x-small font-weight-bold"><?= formatDate($bo['mutation_date']) ?></span>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($bo['mutation_date']) ?></span>
+                                                    <a href="<?= url('seedling-edit/edit-mutation/' . $bo['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-mutation/' . $bo['id']) ?>" data-title="Mutasi <?= $bo['source_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                             <div class="font-weight-bold text-dark"><?= $bo['seedling_name'] ?></div>
                                             <div class="d-flex justify-content-between x-small">
@@ -652,3 +691,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 </style>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form id="deleteForm" method="POST" action="">
+            <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i> Konfirmasi Hapus Data</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Anda yakin ingin menghapus <strong><span id="deleteItemTitle"></span></strong>?</p>
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-info-circle mr-1"></i> Data yang dihapus tidak dapat dikembalikan. Stok yang berkaitan dengan transaksi ini akan otomatis direvert (dikembalikan) ke posisi awal. History penghapusan akan tercatat.
+                    </div>
+                    <div class="form-group mb-0 mt-3">
+                        <label class="small font-weight-bold text-danger">Alasan Hapus <span class="text-danger">*</span></label>
+                        <textarea name="delete_reason" class="form-control border-danger" rows="2" required placeholder="Wajib diisi. Contoh: Salah input, data ganda, dll..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash mr-1"></i> Hapus Permanen</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete Button Click Handler
+    const deleteButtons = document.querySelectorAll('.btn-delete');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = this.getAttribute('data-url');
+            const title = this.getAttribute('data-title');
+            
+            document.getElementById('deleteForm').setAttribute('action', url);
+            document.getElementById('deleteItemTitle').textContent = title;
+            
+            $('#deleteModal').modal('show');
+        });
+    });
+});
+</script>

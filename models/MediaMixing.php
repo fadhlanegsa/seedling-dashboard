@@ -65,13 +65,48 @@ class MediaMixing extends Model {
     }
 
     /**
+     * Update Production with Audit Trail
+     */
+    public function updateProduction($id, $productionData, $items, $oldData, $editReason, $userId) {
+        try {
+            $this->beginTransaction();
+
+            $this->update($id, $productionData);
+            
+            // Re-insert items
+            $this->db->prepare("DELETE FROM media_mixing_items WHERE production_id = ?")->execute([$id]);
+            
+            $sqlItem = "INSERT INTO media_mixing_items (production_id, item_id, quantity) VALUES (?, ?, ?)";
+            $stmt = $this->db->prepare($sqlItem);
+
+            foreach ($items as $item) {
+                if (empty($item['item_id']) || empty($item['quantity'])) continue;
+                $stmt->execute([$id, $item['item_id'], $item['quantity']]);
+            }
+
+            $this->insertAuditTrail('media_mixing', $id, $oldData, [
+                'production' => $productionData,
+                'items' => $items
+            ], $editReason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->rollback();
+            logError("MediaMixing Update Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get recent productions
      * @param int $limit
      * @param array $filters
      * @return array
      */
     public function getRecentProductions($limit = 10, $filters = []) {
-        $sql = "SELECT p.*, u.full_name as creator_name
+        $sql = "SELECT p.*, u.full_name as creator_name,
+                EXISTS(SELECT 1 FROM bag_filling_media WHERE media_production_id = p.id) as is_locked
                 FROM {$this->table} p
                 JOIN users u ON p.created_by = u.id";
         
@@ -142,5 +177,63 @@ class MediaMixing extends Model {
         $sql .= " HAVING remaining_stock > 0 ORDER BY p.production_date DESC";
 
         return $this->query($sql, $params);
+    }
+
+    /**
+     * Delete Production & Revert Stock
+     */
+    public function deleteProduction($id, $userId, $reason) {
+        $oldData = $this->queryOne("SELECT * FROM {$this->table} WHERE id = ?", [$id]);
+        if (!$oldData) return false;
+
+        $items = $this->query("SELECT * FROM media_mixing_items WHERE production_id = ?", [$id]);
+        
+        $this->beginTransaction();
+        try {
+            // Get all Bag Fillings that used this media to handle deeper dependencies
+            $fillings = $this->query("SELECT DISTINCT bag_filling_id FROM bag_filling_media WHERE media_production_id = ?", [$id]);
+            foreach ($fillings as $f) {
+                $fId = $f['bag_filling_id'];
+                // Delete Sowing records that used these bags (recursive-like)
+                $sowings = $this->query("SELECT DISTINCT sowing_id FROM seed_sowing_polybags WHERE bag_filling_id = ?", [$fId]);
+                foreach ($sowings as $s) {
+                    $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id IN (SELECT id FROM seedling_weanings WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)) AND source_type = 'PE'")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id IN (SELECT id FROM seedling_entres WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)) AND source_type = 'ET'")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seedling_weanings WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seedling_entres WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seedling_harvests WHERE sowing_id = ?")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seed_sowing_polybags WHERE sowing_id = ?")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seed_sowing_materials WHERE sowing_id = ?")->execute([$s['sowing_id']]);
+                    $this->db->prepare("DELETE FROM seed_sowings WHERE id = ?")->execute([$s['sowing_id']]);
+                }
+                // Delete the Bag Filling itself and its links
+                $this->db->prepare("DELETE FROM seed_sowing_polybags WHERE bag_filling_id = ?")->execute([$fId]);
+                $this->db->prepare("DELETE FROM bag_filling_media WHERE bag_filling_id = ?")->execute([$fId]);
+                $this->db->prepare("DELETE FROM bag_fillings WHERE id = ?")->execute([$fId]);
+            }
+
+            // Delete downstream dependencies (Bag Filling Media usage) - backup in case some orphaned links exist
+            $this->db->prepare("DELETE FROM bag_filling_media WHERE media_production_id = ?")->execute([$id]);
+
+            // Delete items (ingredients)
+            $this->db->prepare("DELETE FROM media_mixing_items WHERE production_id = ?")->execute([$id]);
+            
+            // Delete production
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            if (!$stmt->execute([$id])) {
+                $this->rollback();
+                return false;
+            }
+
+            // Log Audit Trail
+            $this->insertAuditTrail('Mixing Media (MT)', $id, ['production' => $oldData, 'items' => $items], null, $reason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("MediaMixing Delete Error: " . $e->getMessage());
+            return false;
+        }
     }
 }

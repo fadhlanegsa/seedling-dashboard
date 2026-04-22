@@ -531,7 +531,7 @@ class Request extends Model {
                 b.name as bpdas_name, b.id as bpdas_id,
                 p.name as province_name, p.id as province_id,
                 COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name, st.id as seedling_type_id,
-                COALESCE(r.quantity, (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id)) as quantity
+                COALESCE((SELECT NULLIF(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = r.id), r.quantity, 0) as quantity
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
@@ -608,7 +608,7 @@ class Request extends Model {
      */
     public function getUserApprovedQuantity($userId) {
         $sql = "SELECT SUM(
-                    COALESCE(r.quantity, (SELECT SUM(ri.quantity) FROM request_items ri WHERE ri.request_id = r.id), 0)
+                    COALESCE((SELECT NULLIF(SUM(ri.quantity), 0) FROM request_items ri WHERE ri.request_id = r.id), r.quantity, 0)
                 ) as total
                 FROM requests r
                 WHERE r.user_id = ?
@@ -625,7 +625,7 @@ class Request extends Model {
      */
     public function getTotalDistributed() {
         $sql = "SELECT SUM(
-                    COALESCE(quantity, (SELECT IFNULL(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = requests.id), 0)
+                    COALESCE((SELECT NULLIF(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = requests.id), quantity, 0)
                 ) as total 
                 FROM {$this->table} 
                 WHERE status IN ('delivered', 'completed')";
@@ -642,7 +642,7 @@ class Request extends Model {
         $sql = "SELECT 
                     MONTH(r.updated_at) as month,
                     p.name as province_name,
-                    SUM(COALESCE(r.quantity, (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id), 0)) as total_distributed
+                    SUM(COALESCE((SELECT NULLIF(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = r.id), r.quantity, 0)) as total_distributed
                 FROM requests r
                 JOIN bpdas b ON r.bpdas_id = b.id
                 JOIN provinces p ON b.province_id = p.id

@@ -190,7 +190,7 @@ $user = currentUser();
                                 <i class="fas fa-database"></i> Database
                             </a></li>
                             
-                            <?php if ($user['role'] === 'operator_persemaian'): ?>
+                            <?php if (in_array($user['role'], ['admin', 'operator_persemaian'])): ?>
                                 <li><a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="<?= $this->activeClass('seedling-admin/bahan-baku-form') ?>">
                                     <i class="fas fa-layer-group"></i> Bahan Baku IN
                                 </a></li>
@@ -245,6 +245,45 @@ $user = currentUser();
     <script src="<?= asset('js/datatables.js') ?>"></script>
     <?php if ($user['role'] === 'admin'): ?>
     <script src="<?= asset('js/charts.js') ?>"></script>
+    <script>
+        // Auto-inject Nursery Selector for Admins on PUB Form Pages
+        if (window.location.pathname.includes('/seedling-admin/') && window.location.pathname.includes('-form')) {
+            document.addEventListener('DOMContentLoaded', function() {
+                var form = document.querySelector('form');
+                if (form) {
+                    var html = '<div class="form-group row mb-4 border border-danger p-2 bg-light rounded"><label class="col-sm-5 col-form-label font-weight-bold text-danger"><i class="fas fa-exclamation-triangle"></i> ADMIN OVERRIDE:<br><small>Pilih Persemaian Target</small></label><div class="col-sm-7"><select name="nursery_id" id="admin_nursery_id" class="form-control" required><option value="">-- Loading Persemaian --</option></select><input type="hidden" name="bpdas_id" id="admin_bpdas_id" value=""></div></div>';
+                    var rightCol = form.querySelector('.col-md-6.pl-md-5');
+                    if (rightCol) {
+                        rightCol.insertAdjacentHTML('afterbegin', html);
+                    } else if (form.querySelector('.card-body')) {
+                        form.querySelector('.card-body').insertAdjacentHTML('afterbegin', html);
+                    }
+                    
+                    // Fetch all nurseries via new endpoint
+                    fetch('<?= url("seedling-admin/get-all-nurseries-ajax") ?>')
+                        .then(res => res.json())
+                        .then(res => {
+                            if (res.success && res.data) {
+                                var select = document.getElementById('admin_nursery_id');
+                                var bpdasInput = document.getElementById('admin_bpdas_id');
+                                select.innerHTML = '<option value="">-- Pilih Persemaian Target --</option>';
+                                res.data.forEach(function(n) {
+                                    var opt = document.createElement('option');
+                                    opt.value = n.id;
+                                    opt.textContent = n.name;
+                                    opt.dataset.bpdas = n.bpdas_id;
+                                    select.appendChild(opt);
+                                });
+                                select.addEventListener('change', function() {
+                                    var selOpt = this.options[this.selectedIndex];
+                                    bpdasInput.value = selOpt.dataset.bpdas || '';
+                                });
+                            }
+                        });
+                }
+            });
+        }
+    </script>
     <?php endif; ?>
 </body>
 </html>

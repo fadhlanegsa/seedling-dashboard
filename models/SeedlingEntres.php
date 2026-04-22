@@ -92,11 +92,45 @@ class SeedlingEntres extends Model {
     }
 
     /**
+     * Update Entres with Audit Trail
+     */
+    public function updateEntres($id, $entresData, $materialItems, $oldData, $editReason, $userId) {
+        try {
+            $this->beginTransaction();
+
+            $this->update($id, $entresData);
+
+            // Re-insert materials
+            $this->db->prepare("DELETE FROM seedling_entres_materials WHERE entres_id = ?")->execute([$id]);
+            if (!empty($materialItems)) {
+                $sqlMat = "INSERT INTO seedling_entres_materials (entres_id, item_id, quantity) VALUES (?, ?, ?)";
+                $stmtMat = $this->db->prepare($sqlMat);
+                foreach ($materialItems as $mat) {
+                    $stmtMat->execute([$id, $mat['item_id'], $mat['quantity']]);
+                }
+            }
+
+            $this->insertAuditTrail('seedling_entres', $id, $oldData, [
+                'entres' => $entresData,
+                'materials' => $materialItems
+            ], $editReason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("SeedlingEntres Update Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get recent entres for dashboard
      */
     public function getRecentEntres($limit = 10, $filters = []) {
         $sql = "SELECT e.*, w.weaning_code, st.name as result_name,
-                (e.used_quantity - COALESCE(m.mutation_stock, 0)) as remaining_stock
+                (e.used_quantity - COALESCE(m.mutation_stock, 0)) as remaining_stock,
+                EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = e.id AND source_type = 'ET') as is_locked
                 FROM {$this->table} e
                 JOIN seedling_weanings w ON e.harvest_id = w.id
                 JOIN seedling_types st ON e.result_item_id = st.id
@@ -167,5 +201,44 @@ class SeedlingEntres extends Model {
         $sql .= " HAVING remaining_stock > 0 ORDER BY e.entres_date ASC";
 
         return $this->query($sql, $params);
+    }
+
+    /**
+     * Delete Entres & Revert Stock
+     */
+    public function deleteEntres($id, $userId, $reason) {
+        $oldData = $this->queryOne("SELECT * FROM {$this->table} WHERE id = ?", [$id]);
+        if (!$oldData) return false;
+
+        $materials = $this->query("SELECT * FROM seedling_entres_materials WHERE entres_id = ?", [$id]);
+
+        $this->beginTransaction();
+        try {
+            // Delete downstream dependencies (Mutations from this entres)
+            $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id = ? AND source_type = 'ET'")->execute([$id]);
+
+            // Delete materials
+            $this->db->prepare("DELETE FROM seedling_entres_materials WHERE entres_id = ?")->execute([$id]);
+            
+            // Delete entres record
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            if (!$stmt->execute([$id])) {
+                $this->rollback();
+                return false;
+            }
+
+            // Log Audit Trail
+            $this->insertAuditTrail('Sapih ET', $id, [
+                'entres' => $oldData, 
+                'materials' => $materials
+            ], null, $reason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("SeedlingEntres Delete Error: " . $e->getMessage());
+            return false;
+        }
     }
 }

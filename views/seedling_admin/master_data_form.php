@@ -45,7 +45,7 @@
                         <div class="form-group row mb-4">
                             <label class="col-sm-4 col-form-label font-weight-bold">Kode Item</label>
                             <div class="col-sm-3">
-                                <input type="text" name="code" class="form-control" placeholder="A01" value="<?= $item ? $item['code'] : '' ?>">
+                                <input type="text" name="code" class="form-control" placeholder="Otomatis jika kosong (A-001)" value="<?= $item ? $item['code'] : '' ?>">
                                 <small class="text-muted">Opsional (Ref Blangko)</small>
                             </div>
                         </div>

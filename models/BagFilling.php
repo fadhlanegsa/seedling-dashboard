@@ -65,6 +65,40 @@ class BagFilling extends Model {
     }
 
     /**
+     * Update Bag Filling with Audit Trail
+     */
+    public function updateBagFilling($id, $fillingData, $mediaItems, $oldData, $editReason, $userId) {
+        try {
+            $this->beginTransaction();
+
+            $this->update($id, $fillingData);
+            
+            // Re-insert items
+            $this->db->prepare("DELETE FROM bag_filling_media WHERE bag_filling_id = ?")->execute([$id]);
+            
+            $sqlMedia = "INSERT INTO bag_filling_media (bag_filling_id, media_production_id, quantity) VALUES (?, ?, ?)";
+            $stmt = $this->db->prepare($sqlMedia);
+
+            foreach ($mediaItems as $item) {
+                if (empty($item['media_production_id']) || empty($item['quantity'])) continue;
+                $stmt->execute([$id, $item['media_production_id'], $item['quantity']]);
+            }
+
+            $this->insertAuditTrail('bag_filling', $id, $oldData, [
+                'filling' => $fillingData,
+                'media' => $mediaItems
+            ], $editReason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->rollback();
+            logError("BagFilling Update Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get recent fillings
      * @param int $limit
      * @param array $filters
@@ -72,7 +106,9 @@ class BagFilling extends Model {
      */
     public function getRecentFillings($limit = 10, $filters = []) {
         $sql = "SELECT f.*, m.name as bag_name, m.unit as bag_unit,
-                (f.total_production - COALESCE(used.total_used, 0)) as remaining_stock
+                (f.total_production - COALESCE(used.total_used, 0)) as remaining_stock,
+                (EXISTS(SELECT 1 FROM seed_sowing_polybags WHERE bag_filling_id = f.id) OR 
+                 EXISTS(SELECT 1 FROM seedling_weaning_polybags WHERE bag_filling_id = f.id)) as is_locked
                 FROM {$this->table} f
                 JOIN bahan_baku_master m ON f.bag_item_id = m.id
                 LEFT JOIN (
@@ -145,5 +181,56 @@ class BagFilling extends Model {
         $sql .= " HAVING remaining_stock > 0 ORDER BY f.filling_date DESC";
 
         return $this->query($sql, $params);
+    }
+
+    /**
+     * Delete Filling & Revert Stock
+     */
+    public function deleteFilling($id, $userId, $reason) {
+        $oldData = $this->queryOne("SELECT * FROM {$this->table} WHERE id = ?", [$id]);
+        if (!$oldData) return false;
+
+        $media = $this->query("SELECT * FROM bag_filling_media WHERE filling_id = ?", [$id]);
+
+        $this->beginTransaction();
+        try {
+            // Get all Sowing records that used these bags to handle deeper dependencies
+            $sowings = $this->query("SELECT DISTINCT sowing_id FROM seed_sowing_polybags WHERE bag_filling_id = ?", [$id]);
+            foreach ($sowings as $s) {
+                $sId = $s['sowing_id'];
+                // Delete down to Mutations
+                $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id IN (SELECT id FROM seedling_weanings WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)) AND source_type = 'PE'")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seedling_mutations WHERE source_id IN (SELECT id FROM seedling_entres WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)) AND source_type = 'ET'")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seedling_weanings WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seedling_entres WHERE harvest_id IN (SELECT id FROM seedling_harvests WHERE sowing_id = ?)")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seedling_harvests WHERE sowing_id = ?")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seed_sowing_polybags WHERE sowing_id = ?")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seed_sowing_materials WHERE sowing_id = ?")->execute([$sId]);
+                $this->db->prepare("DELETE FROM seed_sowings WHERE id = ?")->execute([$sId]);
+            }
+
+            // Delete downstream links (backup)
+            $this->db->prepare("DELETE FROM seed_sowing_polybags WHERE bag_filling_id = ?")->execute([$id]);
+
+            // Delete media relations
+            $this->db->prepare("DELETE FROM bag_filling_media WHERE bag_filling_id = ?")->execute([$id]);
+            
+            // Delete filling record
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            if (!$stmt->execute([$id])) {
+                $this->rollback();
+                return false;
+            }
+
+            // Log Audit Trail
+            $this->insertAuditTrail('Pengisian Kantong (PB)', $id, ['filling' => $oldData, 'media' => $media], null, $reason, $userId);
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            logError("BagFilling Delete Error: " . $e->getMessage());
+            return false;
+        }
     }
 }

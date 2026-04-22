@@ -66,10 +66,16 @@ class SeedlingAdminController extends Controller {
         $stockBalance = $bahanBakuModel->getStockBalance($filters);
 
         $mutationModel = $this->model('SeedlingMutation');
-        $recentMutations = $mutationModel->getRecentMutations(10, $filters['nursery_id']);
+        $recentMutations = $mutationModel->getRecentMutations(10, $filters);
 
         $stockModel = $this->model('Stock');
-        $readyStock = $stockModel->getByNursery($filters['nursery_id']);
+        if (!empty($filters['nursery_id'])) {
+            $readyStock = $stockModel->getByNursery($filters['nursery_id']);
+        } elseif (!empty($filters['bpdas_id'])) {
+            $readyStock = $stockModel->getByBPDAS($filters['bpdas_id']);
+        } else {
+            $readyStock = $stockModel->searchStock($filters);
+        }
 
         // Fetch BPDAS and Nurseries for the filter dropdowns (Admin/BPDAS only)
         $bpdasList = [];
@@ -129,6 +135,19 @@ class SeedlingAdminController extends Controller {
             'success' => true,
             'data' => $nurseries
         ]);
+    }
+
+    /**
+     * AJAX: Get All Nurseries (For Admin Form Override)
+     */
+    public function getAllNurseriesAjax() {
+        if (currentUser()['role'] !== 'admin') {
+            $this->json(['success' => false], 403);
+            return;
+        }
+        $sql = "SELECT id, name, bpdas_id FROM nurseries ORDER BY name ASC";
+        $nurseries = $this->db->query($sql)->fetchAll();
+        $this->json(['success' => true, 'data' => $nurseries]);
     }
 
     /**
@@ -239,12 +258,17 @@ class SeedlingAdminController extends Controller {
             'category_code'   => $this->post('category_code'),
             'category'        => $this->post('category'),
             'seedling_type_id' => $this->post('seedling_type_id') ?: null,
-            'code'           => $this->post('code'),
+            'code'           => strtoupper(sanitize($this->post('code'))),
             'name'           => sanitize($this->post('name')),
             'scientific_name' => sanitize($this->post('scientific_name')),
             'unit'           => $this->post('unit', 'kg'),
             'description'    => sanitize($this->post('description'))
         ];
+
+        // Auto-generate code if empty to prevent UNIQUE constraint violation on DB
+        if (empty($data['code']) && !$id) {
+            $data['code'] = $bahanBakuModel->generateMasterCode($data['category_code']);
+        }
 
         if (empty($data['category_code']) || empty($data['name'])) {
             $this->setFlash('error', 'Kategori dan Nama Item harus diisi');
@@ -252,13 +276,25 @@ class SeedlingAdminController extends Controller {
             return;
         }
 
-        $result = $bahanBakuModel->saveMaster($data, $id);
+        try {
+            $result = $bahanBakuModel->saveMaster($data, $id);
 
-        if ($result) {
-            $this->setFlash('success', 'Data Master berhasil disimpan');
-            $this->redirect('seedling-admin/master-data');
-        } else {
-            $this->setFlash('error', 'Gagal menyimpan data master');
+            if ($result) {
+                $this->setFlash('success', 'Data Master berhasil disimpan');
+                $this->redirect('seedling-admin/master-data');
+            } else {
+                $this->setFlash('error', 'Gagal menyimpan data master. Silakan periksa kelengkapan data.');
+                $this->redirect('seedling-admin/master-data-form' . ($id ? '/' . $id : ''));
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $this->setFlash('error', 'Gagal: Kode barang "' . $data['code'] . '" sudah digunakan. Silakan gunakan kode lain.');
+            } else {
+                $this->setFlash('error', 'Database Error: ' . $e->getMessage());
+            }
+            $this->redirect('seedling-admin/master-data-form' . ($id ? '/' . $id : ''));
+        } catch (Exception $e) {
+            $this->setFlash('error', 'General Error: ' . $e->getMessage());
             $this->redirect('seedling-admin/master-data-form' . ($id ? '/' . $id : ''));
         }
     }
@@ -267,15 +303,35 @@ class SeedlingAdminController extends Controller {
      * Delete Master Data
      */
     public function deleteMasterData($id) {
+        // Must be a POST request
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('seedling-admin/master-data');
+            return;
+        }
+
+        // CSRF check with graceful redirect on failure
+        $token = $_POST[CSRF_TOKEN_NAME] ?? '';
+        if (!verifyCSRFToken($token)) {
+            $this->setFlash('error', 'Sesi habis. Silakan coba lagi.');
+            $this->redirect('seedling-admin/master-data');
+            return;
+        }
+
         $bahanBakuModel = $this->model('BahanBaku');
         
-        // Potential check for transactions using this item
-        $result = $bahanBakuModel->deleteMaster($id);
+        try {
+            $result = $bahanBakuModel->deleteMaster($id);
 
-        if ($result) {
-            $this->setFlash('success', 'Data Master berhasil dihapus');
-        } else {
-            $this->setFlash('error', 'Gagal menghapus data master');
+            if ($result) {
+                $this->setFlash('success', 'Item berhasil dihapus.');
+            } else {
+                $this->setFlash('error', 'Gagal menghapus. Item mungkin sudah terhapus atau tidak ditemukan.');
+            }
+        } catch (PDOException $e) {
+            // FK constraint - item is used in transactions
+            $this->setFlash('error', 'Item tidak bisa dihapus karena sudah digunakan dalam transaksi produksi.');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Terjadi kesalahan sistem saat menghapus data.');
         }
         
         $this->redirect('seedling-admin/master-data');
@@ -307,8 +363,8 @@ class SeedlingAdminController extends Controller {
             'receiver'         => sanitize($this->post('receiver')),
             'foreman'          => sanitize($this->post('foreman')),
             'manager'          => sanitize($this->post('manager')),
-            'bpdas_id'         => $user['bpdas_id'],
-            'nursery_id'       => $user['nursery_id'],
+            'bpdas_id'         => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'       => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'       => $user['id']
         ];
 
@@ -374,8 +430,8 @@ class SeedlingAdminController extends Controller {
             'foreman'          => sanitize($this->post('foreman')),
             'manager'          => sanitize($this->post('manager')),
             'notes'            => sanitize($this->post('notes')),
-            'bpdas_id'         => $user['bpdas_id'],
-            'nursery_id'       => $user['nursery_id'],
+            'bpdas_id'         => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'       => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'       => $user['id']
         ];
 
@@ -456,7 +512,7 @@ class SeedlingAdminController extends Controller {
         $user = currentUser();
         $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
 
-        $stocks = $mixingModel->getAvailableMediaStock($nurseryId);
+        $stocks = $mixingModel->getAvailableMediaStock(['nursery_id' => $nurseryId]);
 
         $this->json([
             'success' => true,
@@ -489,8 +545,8 @@ class SeedlingAdminController extends Controller {
             'mandor'           => sanitize($this->post('mandor')),
             'manager'          => sanitize($this->post('manager')),
             'notes'            => sanitize($this->post('notes')),
-            'bpdas_id'         => $user['bpdas_id'],
-            'nursery_id'       => $user['nursery_id'],
+            'bpdas_id'         => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'       => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'       => $user['id']
         ];
 
@@ -651,8 +707,8 @@ class SeedlingAdminController extends Controller {
             'mandor'           => sanitize($this->post('mandor')),
             'manager'          => sanitize($this->post('manager')),
             'notes'            => sanitize($this->post('notes')),
-            'bpdas_id'         => $user['bpdas_id'],
-            'nursery_id'       => $user['nursery_id'],
+            'bpdas_id'         => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'       => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'       => $user['id']
         ];
 
@@ -747,8 +803,12 @@ class SeedlingAdminController extends Controller {
      * Delete Category
      */
     public function deleteCategory($id) {
-        $this->db->prepare("DELETE FROM bahan_baku_categories WHERE id = ?")->execute([$id]);
-        $this->setFlash('success', 'Kategori berhasil dihapus');
+        try {
+            $this->db->prepare("DELETE FROM bahan_baku_categories WHERE id = ?")->execute([$id]);
+            $this->setFlash('success', 'Kategori berhasil dihapus');
+        } catch (PDOException $e) {
+            $this->setFlash('error', 'Gagal: Kategori ini sedang digunakan oleh barang di Database Master.');
+        }
         $this->redirect('seedling-admin/manage-categories');
     }
 
@@ -809,8 +869,8 @@ class SeedlingAdminController extends Controller {
             'manager'            => sanitize($this->post('manager')),
             'location'           => sanitize($this->post('location')),
             'notes'              => sanitize($this->post('notes')),
-            'bpdas_id'           => $user['bpdas_id'],
-            'nursery_id'         => $user['nursery_id'],
+            'bpdas_id'           => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'         => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'         => $user['id']
         ];
 
@@ -896,8 +956,8 @@ class SeedlingAdminController extends Controller {
             'mandor'             => sanitize($this->post('mandor')),
             'manager'            => sanitize($this->post('manager')),
             'notes'              => sanitize($this->post('notes')),
-            'bpdas_id'           => $user['bpdas_id'],
-            'nursery_id'         => $user['nursery_id'],
+            'bpdas_id'           => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'         => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'         => $user['id']
         ];
 
@@ -1027,8 +1087,8 @@ class SeedlingAdminController extends Controller {
             'mandor'         => sanitize($this->post('mandor')),
             'manager'        => sanitize($this->post('manager')),
             'notes'          => sanitize($this->post('notes')),
-            'bpdas_id'       => $user['bpdas_id'],
-            'nursery_id'     => $user['nursery_id'],
+            'bpdas_id'       => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : $user['bpdas_id'],
+            'nursery_id'     => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : $user['nursery_id'],
             'created_by'     => $user['id']
         ];
 
@@ -1134,8 +1194,8 @@ class SeedlingAdminController extends Controller {
             'mandor'          => sanitize($this->post('mandor')),
             'manager'         => sanitize($this->post('manager')),
             'notes'           => sanitize($this->post('notes')),
-            'bpdas_id'        => $sourceBatch['bpdas_id'] ?? $user['bpdas_id'],
-            'nursery_id'      => $sourceBatch['nursery_id'] ?? $user['nursery_id'],
+            'bpdas_id'        => ($user['role'] === 'admin' && $this->post('bpdas_id')) ? $this->post('bpdas_id') : ($sourceBatch['bpdas_id'] ?? $user['bpdas_id']),
+            'nursery_id'      => ($user['role'] === 'admin' && $this->post('nursery_id')) ? $this->post('nursery_id') : ($sourceBatch['nursery_id'] ?? $user['nursery_id']),
             'created_by'      => $user['id']
         ];
 
