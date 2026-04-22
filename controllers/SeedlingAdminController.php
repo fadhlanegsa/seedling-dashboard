@@ -155,15 +155,26 @@ class SeedlingAdminController extends Controller {
      */
     public function bahanBakuForm() {
         $bahanBakuModel = $this->model('BahanBaku');
+        $user = currentUser();
         
         $categories = $bahanBakuModel->getCategories();
         $transactionId = $bahanBakuModel->generateTransactionID();
 
+        // Build filter based on role
+        $filters = [];
+        if ($user['role'] === 'operator_persemaian') {
+            $filters['nursery_id'] = $user['nursery_id'];
+        } elseif ($user['role'] === 'bpdas') {
+            $filters['bpdas_id'] = $user['bpdas_id'];
+        }
+        $recentBahanBaku = $bahanBakuModel->getRecentTransactions(20, $filters);
+
         $data = [
-            'title' => 'Bahan Baku IN',
-            'categories' => $categories,
-            'transactionId' => $transactionId,
-            'today' => date('Y-m-d')
+            'title'           => 'Bahan Baku IN',
+            'categories'      => $categories,
+            'transactionId'   => $transactionId,
+            'today'           => date('Y-m-d'),
+            'recentBahanBaku' => $recentBahanBaku,
         ];
 
         $this->render('seedling_admin/bahan_baku_form', $data, 'dashboard');
