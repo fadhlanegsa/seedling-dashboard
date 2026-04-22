@@ -201,9 +201,7 @@ class SeedlingMutation extends Model {
     }
 
     private function updateReadyStock($data) {
-        // Find which seedling_type_id and batch info to carry over
         $seedlingTypeId = null;
-        $batchInfo = '';
         if ($data['source_type'] === 'PE') {
             $sql = "SELECT result_item_id, weaning_code as code, location FROM seedling_weanings WHERE id = ?";
         } else {
@@ -218,17 +216,44 @@ class SeedlingMutation extends Model {
         $seedlingTypeId = $row['result_item_id'];
         $batchInfo = "Batch: " . $row['code'] . " (Lokasi: " . ($row['location'] ?: '-') . ")";
 
-        // Upsert into stock table
-        // We use program_type = 'bibitgratis' and source_type = 'PUB'
-        $sqlCheck = "SELECT id, quantity, notes FROM stock 
-                     WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis' AND source_type = 'PUB'
-                     LIMIT 1";
-        
-        $stmt = $this->db->prepare($sqlCheck);
-        $stmt->execute([$data['nursery_id'], $seedlingTypeId]);
-        $existing = $stmt->fetch();
+        // Resolve bpdas_id — fallback from nursery if null
+        $bpdasId = $data['bpdas_id'] ?? null;
+        $nurseryId = $data['nursery_id'] ?? null;
+
+        if (empty($bpdasId) && !empty($nurseryId)) {
+            $nRow = $this->db->prepare("SELECT bpdas_id FROM nurseries WHERE id = ? LIMIT 1");
+            $nRow->execute([$nurseryId]);
+            $nursery = $nRow->fetch();
+            $bpdasId = $nursery['bpdas_id'] ?? null;
+        }
+
+        if (empty($bpdasId)) {
+            // Last resort: get any bpdas_id available
+            $bpdasRow = $this->db->query("SELECT id FROM bpdas LIMIT 1")->fetch();
+            $bpdasId = $bpdasRow['id'] ?? null;
+        }
 
         $newNotes = "Asal PUB [" . $batchInfo . "]. " . date('d/m/Y');
+
+        // Check for existing stock row — query WITHOUT source_type first (for compatibility)
+        // Then narrow down if source_type column exists
+        $colCheck = $this->db->query("SHOW COLUMNS FROM stock LIKE 'source_type'")->rowCount();
+        
+        if ($colCheck > 0) {
+            // source_type column exists — use full query
+            $sqlCheck = "SELECT id, quantity, notes FROM stock 
+                         WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis' AND source_type = 'PUB'
+                         LIMIT 1";
+        } else {
+            // source_type column missing — use basic query
+            $sqlCheck = "SELECT id, quantity, notes FROM stock 
+                         WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis'
+                         LIMIT 1";
+        }
+
+        $stmt = $this->db->prepare($sqlCheck);
+        $stmt->execute([$nurseryId, $seedlingTypeId]);
+        $existing = $stmt->fetch();
 
         if ($existing) {
             $newQty = $existing['quantity'] + $data['quantity'];
@@ -238,12 +263,19 @@ class SeedlingMutation extends Model {
             $sqlUpdate = "UPDATE stock SET quantity = ?, notes = ?, last_update_date = CURDATE() WHERE id = ?";
             $this->db->prepare($sqlUpdate)->execute([$newQty, $updatedNotes, $existing['id']]);
         } else {
-            // Use INSERT ... ON DUPLICATE KEY UPDATE as a safety net
-            $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, source_type, last_update_date, notes) 
-                          VALUES (?, ?, ?, 'bibitgratis', ?, 'PUB', CURDATE(), ?)
-                          ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), last_update_date = CURDATE()";
+            if ($colCheck > 0) {
+                // source_type column exists
+                $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, source_type, last_update_date, notes) 
+                              VALUES (?, ?, ?, 'bibitgratis', ?, 'PUB', CURDATE(), ?)
+                              ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), last_update_date = CURDATE()";
+            } else {
+                // source_type column does NOT exist — omit it
+                $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, last_update_date, notes) 
+                              VALUES (?, ?, ?, 'bibitgratis', ?, CURDATE(), ?)
+                              ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), last_update_date = CURDATE()";
+            }
             $this->db->prepare($sqlInsert)->execute([
-                $data['bpdas_id'], $data['nursery_id'], $seedlingTypeId, $data['quantity'], $newNotes
+                $bpdasId, $nurseryId, $seedlingTypeId, $data['quantity'], $newNotes
             ]);
         }
     }
