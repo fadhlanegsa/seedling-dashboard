@@ -73,21 +73,27 @@
                             <!-- Right Column -->
                             <div class="col-md-6 pl-md-5">
                                 <div class="form-group row mb-3">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">No. Kwitansi/Surat</label>
+                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Pengirim (Vendor)</label>
                                     <div class="col-sm-7">
-                                        <input type="text" name="receipt_number" class="form-control" value="<?= htmlspecialchars($data['receipt_number'] ?? '') ?>">
+                                        <input type="text" name="sender" class="form-control" value="<?= htmlspecialchars($data['sender'] ?? '') ?>">
                                     </div>
                                 </div>
                                 <div class="form-group row mb-3">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Vendor / Pengirim</label>
+                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Penerima (Staff)</label>
                                     <div class="col-sm-7">
-                                        <input type="text" name="vendor_name" class="form-control" value="<?= htmlspecialchars($data['vendor_name'] ?? $data['sender'] ?? '') ?>">
+                                        <input type="text" name="receiver" class="form-control" value="<?= htmlspecialchars($data['receiver'] ?? '') ?>">
                                     </div>
                                 </div>
                                 <div class="form-group row mb-3">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">PIC / Penerima</label>
+                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Mandor</label>
                                     <div class="col-sm-7">
-                                        <input type="text" name="pic" class="form-control" value="<?= htmlspecialchars($data['pic'] ?? $data['receiver'] ?? '') ?>">
+                                        <input type="text" name="foreman" class="form-control" value="<?= htmlspecialchars($data['foreman'] ?? '') ?>">
+                                    </div>
+                                </div>
+                                <div class="form-group row mb-3">
+                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Pelaksana / Manager</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" name="manager" class="form-control" value="<?= htmlspecialchars($data['manager'] ?? '') ?>">
                                     </div>
                                 </div>
 
@@ -95,8 +101,8 @@
                                 <div class="form-group row mb-3 mt-4">
                                     <label class="col-sm-5 col-form-label font-weight-bold text-danger"><i class="fas fa-clipboard-list mr-1"></i> Alasan Edit <span class="text-danger">*</span></label>
                                     <div class="col-sm-7">
-                                        <textarea name="edit_reason" class="form-control border-danger" rows="4" required placeholder="Wajib diisi! Contoh: Koreksi jumlah karena typo, perubahan vendor, dll..."></textarea>
-                                        <small class="text-danger font-weight-bold">Wajib diisi untuk keperluan Audit Trail.</small>
+                                        <textarea name="edit_reason" class="form-control border-danger" rows="2" required placeholder="Wajib diisi!"></textarea>
+                                        <small class="text-danger font-weight-bold">Audit Trail.</small>
                                     </div>
                                 </div>
                             </div>

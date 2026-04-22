@@ -62,46 +62,36 @@ class SeedlingEditController extends Controller {
         }
 
         $newData = [
-            'item_id' => $this->post('item_id'),
-            'transaction_type' => $oldData['transaction_type'], // should not change
-            'quantity' => floatval($this->post('quantity')),
-            'date' => sanitize($this->post('date')),
-            'vendor_name' => sanitize($this->post('vendor_name')),
-            'pic' => sanitize($this->post('pic')),
-            'receipt_number' => sanitize($this->post('receipt_number')),
-            'notes' => sanitize($this->post('notes')),
+            'item_id'          => (int)$this->post('item_id'),
+            'quantity'         => floatval($this->post('quantity')),
+            'transaction_date' => sanitize($this->post('date')),
+            'sender'           => sanitize($this->post('sender')),
+            'receiver'         => sanitize($this->post('receiver')),
+            'foreman'          => sanitize($this->post('foreman')),
+            'manager'          => sanitize($this->post('manager')),
+            'notes'            => sanitize($this->post('notes')),
         ];
 
         // Delta check validation
         $delta = $newData['quantity'] - $oldData['quantity'];
-        // If it's decreasing stock (IN drops, or OUT increases), we must verify remaining stock
-        $stockModel = $this->model('Stock');
-        // Actually, Bahan Baku uses a dynamic stock calculation: 
-        // SUM(IN) - SUM(OUT) grouped by item_id
         
-        $stockCheck = $this->db->prepare("SELECT 
-            (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='IN' AND item_id = ? AND bpdas_id=? AND nursery_id=?) -
-            (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='OUT' AND item_id = ? AND bpdas_id=? AND nursery_id=?) as cur_stock");
-        
-        $stockCheck->execute([
-            $oldData['item_id'], $oldData['bpdas_id'], $oldData['nursery_id'],
-            $oldData['item_id'], $oldData['bpdas_id'], $oldData['nursery_id']
-        ]);
-        $currentStock = $stockCheck->fetchColumn() ?: 0;
-        
-        // Wait, if transaction type is IN, decreasing it reduces currentStock
-        // If OUT, increasing it reduces currentStock
-        if ($oldData['transaction_type'] === 'IN') {
-            $the_delta = $newData['quantity'] - $oldData['quantity']; 
-            if ($currentStock + $the_delta < 0) {
+        // If decreasing stock (quantity drops), check if enough stock remains
+        if ($delta < 0) {
+            $stockModel = $this->model('BahanBaku');
+            $stocks = $stockModel->getStockBalance(['nursery_id' => $oldData['nursery_id']]);
+            
+            $currentStock = 0;
+            foreach ($stocks as $s) {
+                if ($s['id'] == $oldData['item_id']) {
+                    $currentStock = (float)$s['current_stock'];
+                    break;
+                }
+            }
+            
+            if ($currentStock + $delta < 0) {
                 $this->setFlash('error', 'Validasi Gagal! Stok tidak cukup. Penggunaan di hilir melebih batas edit Anda.');
                 $this->redirect("seedling-edit/edit-bahan-baku/$id");
-            }
-        } else {
-            $the_delta = $oldData['quantity'] - $newData['quantity'];
-            if ($currentStock + $the_delta < 0) {
-                $this->setFlash('error', 'Validasi Gagal! Sisa stok tidak cukup untuk penggunaan ini.');
-                $this->redirect("seedling-edit/edit-bahan-baku/$id");
+                return;
             }
         }
 
