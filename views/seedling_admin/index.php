@@ -487,6 +487,7 @@
                                     <th>Item Barang</th>
                                     <th class="text-right">Jumlah Masuk</th>
                                     <th>Gudang/Unit</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="small">
@@ -496,6 +497,10 @@
                                         <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
                                         <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'], 2) ?></td>
                                         <td class="p-2"><?= $row['item_unit'] ?></td>
+                                        <td class="p-2 text-center">
+                                            <a href="<?= url('seedling-edit/edit-bahan-baku/' . $row['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bahan-baku/' . $row['id']) ?>" data-title="Bahan Baku <?= $row['item_name'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
