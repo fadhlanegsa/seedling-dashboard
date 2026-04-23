@@ -28,11 +28,23 @@
                         <th>Provinsi:</th>
                         <td><?= htmlspecialchars($user['province_name'] ?? '-') ?></td>
                     </tr>
+                    <tr>
+                        <th>Status Wewenang (ACC):</th>
+                        <td>
+                            <?php if (!empty($can_approve)): ?>
+                                <span class="badge badge-success"><i class="fas fa-check-circle"></i> Aktif</span>
+                                <div class="small text-muted mt-1">Anda diizinkan memproses ACC/Tolak permintaan bibit.</div>
+                            <?php else: ?>
+                                <span class="badge badge-secondary"><i class="fas fa-times-circle"></i> Tidak Aktif</span>
+                                <div class="small text-muted mt-1">Wewenang ACC/Tolak hanya dilakukan oleh BPDAS Induk.</div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                 </table>
             </div>
             <div class="card-footer">
                 <small class="text-muted">
-                    <i class="fas fa-info-circle"></i> Info persemaian dan wewenang (ACC/Tolak) dikelola sepenuhnya oleh BPDAS Induk.
+                    <i class="fas fa-info-circle"></i> Pengaturan wewenang (ACC/Tolak) dikelola sepenuhnya oleh BPDAS Induk.
                 </small>
             </div>
         </div>

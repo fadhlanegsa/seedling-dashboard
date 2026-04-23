@@ -30,16 +30,21 @@ class OperatorController extends Controller {
         }
 
         $stockModel = $this->model('Stock');
+        $requestModel = $this->model('Request');
         $programType = $this->get('program_type');
         $stocks = $stockModel->getByNurseryPaginated($userData['nursery_id'], 1, 100, $programType);
+
+        // Total distributed for this nursery (current year)
+        $totalDistributed = $requestModel->getTotalDistributedByNurseryId($userData['nursery_id'], (int)date('Y'));
         
         $data = [
-            'title' => 'Dashboard Operator Persemaian',
-            'user' => $userData,
-            'stocks' => $stocks,
-            'nursery_name' => $userData['nursery_name'],
-            'bpdas_name' => $userData['bpdas_name'],
-            'currentProgram' => $programType
+            'title'            => 'Dashboard Operator Persemaian',
+            'user'             => $userData,
+            'stocks'           => $stocks,
+            'nursery_name'     => $userData['nursery_name'],
+            'bpdas_name'       => $userData['bpdas_name'],
+            'currentProgram'   => $programType,
+            'totalDistributed' => $totalDistributed
         ];
         
         $this->render('operator/dashboard', $data, 'dashboard');
@@ -711,9 +716,14 @@ public function uploadDeliveryPhoto() {
         $userModel = $this->model('User');
         $userData = $userModel->getUserWithNursery($userSession['id']);
         
+        // Fetch BPDAS to get delegation status
+        $bpdasModel = $this->model('BPDAS');
+        $bpdas = $bpdasModel->find($userData['bpdas_id']);
+        
         $data = [
             'title' => 'Profil Operator Persemaian',
-            'user' => $userData
+            'user' => $userData,
+            'can_approve' => $bpdas['can_operator_approve'] ?? 0
         ];
         
         $this->render('operator/profile', $data, 'dashboard');

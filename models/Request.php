@@ -684,4 +684,114 @@ class Request extends Model {
         
         return $stmt->fetchAll();
     }
+
+    /**
+     * Get total distributed seedlings grouped by BPDAS (for Admin)
+     * "Terdistribusi" = status 'delivered'
+     *
+     * @param int|null $bpdasId  Filter by specific BPDAS (null = all)
+     * @param int|null $year     Filter by year (null = all time)
+     * @param string|null $programType
+     * @return array
+     */
+    public function getTotalDistributedByBPDAS($bpdasId = null, $year = null, $programType = null) {
+        $sql = "SELECT
+                    b.id as bpdas_id,
+                    b.name as bpdas_name,
+                    p.name as province_name,
+                    COUNT(r.id) as total_requests,
+                    COALESCE(SUM(
+                        COALESCE((SELECT NULLIF(SUM(ri.quantity),0) FROM request_items ri WHERE ri.request_id = r.id), r.quantity, 0)
+                    ), 0) as total_distributed
+                FROM {$this->table} r
+                JOIN bpdas b ON r.bpdas_id = b.id
+                JOIN provinces p ON b.province_id = p.id
+                WHERE r.status = 'delivered'";
+
+        $params = [];
+
+        if ($bpdasId) {
+            $sql .= " AND r.bpdas_id = ?";
+            $params[] = $bpdasId;
+        }
+
+        if ($year) {
+            $sql .= " AND YEAR(r.updated_at) = ?";
+            $params[] = (int)$year;
+        }
+
+        if ($programType) {
+            $sql .= " AND r.program_type = ?";
+            $params[] = $programType;
+        }
+
+        $sql .= " GROUP BY b.id, b.name, p.name ORDER BY total_distributed DESC";
+
+        return $this->query($sql, $params);
+    }
+
+    /**
+     * Get total distributed seedlings grouped by Nursery (for BPDAS)
+     *
+     * @param int $bpdasId
+     * @param int|null $year
+     * @param string|null $programType
+     * @return array
+     */
+    public function getTotalDistributedByNursery($bpdasId, $year = null, $programType = null) {
+        $sql = "SELECT
+                    n.id as nursery_id,
+                    n.name as nursery_name,
+                    COUNT(r.id) as total_requests,
+                    COALESCE(SUM(
+                        COALESCE((SELECT NULLIF(SUM(ri.quantity),0) FROM request_items ri WHERE ri.request_id = r.id), r.quantity, 0)
+                    ), 0) as total_distributed
+                FROM {$this->table} r
+                JOIN nurseries n ON r.nursery_id = n.id
+                WHERE r.bpdas_id = ?
+                AND r.status = 'delivered'";
+
+        $params = [$bpdasId];
+
+        if ($year) {
+            $sql .= " AND YEAR(r.updated_at) = ?";
+            $params[] = (int)$year;
+        }
+
+        if ($programType) {
+            $sql .= " AND r.program_type = ?";
+            $params[] = $programType;
+        }
+
+        $sql .= " GROUP BY n.id, n.name ORDER BY total_distributed DESC";
+
+        return $this->query($sql, $params);
+    }
+
+    /**
+     * Get total distributed for a single nursery (for Operator stat card)
+     *
+     * @param int $nurseryId
+     * @param int|null $year
+     * @return int
+     */
+    public function getTotalDistributedByNurseryId($nurseryId, $year = null) {
+        $sql = "SELECT COALESCE(SUM(
+                    COALESCE((SELECT NULLIF(SUM(ri.quantity),0) FROM request_items ri WHERE ri.request_id = r.id), r.quantity, 0)
+                ), 0) as total
+                FROM {$this->table} r
+                WHERE r.nursery_id = ?
+                AND r.status = 'delivered'";
+
+        $params = [$nurseryId];
+
+        if ($year) {
+            $sql .= " AND YEAR(r.updated_at) = ?";
+            $params[] = (int)$year;
+        }
+
+        $result = $this->queryOne($sql, $params);
+        return (int)($result['total'] ?? 0);
+    }
 }
+

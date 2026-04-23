@@ -24,26 +24,44 @@ class AdminController extends Controller {
         $requestModel = $this->model('Request');
 
         $programType = $this->get('program_type');
+        $filterBpdasId = $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null;
+        $filterYear    = $this->get('year') ? (int)$this->get('year') : (int)date('Y');
 
         // Get statistics
         $stats = [
             'total_bpdas'           => $bpdasModel->getActiveCount(),
             'total_seedling_types'  => $seedlingTypeModel->getActiveCount(),
             'total_national_stock'  => $stockModel->getTotalNationalStock($programType),
-            'pending_requests'      => $requestModel->getPendingCount(null, $programType)
+            'pending_requests'      => $requestModel->getPendingCount(null, $programType),
+            'total_distributed'     => $requestModel->getTotalDistributed()
         ];
 
         // Get data for charts
         $stockByProvince = $bpdasModel->getStockByProvince($programType);
         $topSeedlings    = $stockModel->getTopSeedlingTypes(10, $programType);
 
+        // Get distribution recap (filterable by BPDAS & Year)
+        $distributedByBPDAS = $requestModel->getTotalDistributedByBPDAS($filterBpdasId, $filterYear, $programType);
+        $bpdasList = $bpdasModel->getAllWithProvince();
+
+        // Generate available years for dropdown (current year down to 5 years ago)
+        $availableYears = [];
+        for ($y = (int)date('Y'); $y >= (int)date('Y') - 5; $y--) {
+            $availableYears[] = $y;
+        }
+
         $data = [
-            'title'             => 'Dashboard Admin',
-            'stats'             => $stats,
-            'stockByProvince'   => $stockByProvince,
-            'topSeedlings'      => $topSeedlings,
-            'distributionStats' => $requestModel->getMonthlyDistributionStats(date('Y')),
-            'currentProgram'    => $programType
+            'title'               => 'Dashboard Admin',
+            'stats'               => $stats,
+            'stockByProvince'     => $stockByProvince,
+            'topSeedlings'        => $topSeedlings,
+            'distributionStats'   => $requestModel->getMonthlyDistributionStats($filterYear),
+            'currentProgram'      => $programType,
+            'distributedByBPDAS'  => $distributedByBPDAS,
+            'bpdasList'           => $bpdasList,
+            'filterBpdasId'       => $filterBpdasId,
+            'filterYear'          => $filterYear,
+            'availableYears'      => $availableYears
         ];
 
         $this->render('admin/dashboard', $data, 'dashboard');

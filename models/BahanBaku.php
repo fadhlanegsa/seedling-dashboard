@@ -9,13 +9,7 @@ require_once CORE_PATH . 'Model.php';
 class BahanBaku extends Model {
     protected $table = 'bahan_baku_transactions';
 
-    /**
-     * Helper to execute non-SELECT queries
-     */
-    private function execute($sql, $params = []) {
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
-    }
+
 
     /**
      * Get all categories with codes from master table

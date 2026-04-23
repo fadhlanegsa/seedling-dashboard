@@ -64,7 +64,76 @@
             <p>Permintaan Disetujui</p>
         </div>
     </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #8e44ad;">
+            <i class="fas fa-truck"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= formatNumber(array_sum(array_column($distributedByNursery ?? [], 'total_distributed'))) ?></h3>
+            <p>Bibit Terdistribusi (<?= $filterYear ?>)</p>
+        </div>
+    </div>
 </div>
+
+<!-- Distribution Recap by Nursery -->
+<div class="card mt-4 mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap" style="gap:0.5rem;">
+        <h3 style="margin:0;"><i class="fas fa-truck" style="color:#8e44ad;"></i> Rekap Distribusi per Persemaian</h3>
+        <form action="<?= url('bpdas/dashboard') ?>" method="GET" class="form-inline" style="gap:0.5rem;">
+            <?php if (!empty($currentProgram)): ?>
+                <input type="hidden" name="program_type" value="<?= htmlspecialchars($currentProgram) ?>">
+            <?php endif; ?>
+            <select name="year" class="form-control form-control-sm">
+                <?php foreach ($availableYears as $yr): ?>
+                    <option value="<?= $yr ?>" <?= ($filterYear == $yr) ? 'selected' : '' ?>><?= $yr ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <?php if (!empty($distributedByNursery)): ?>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Persemaian</th>
+                        <th class="text-center">Jumlah Permintaan</th>
+                        <th class="text-right">Total Bibit Diserahkan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $grandTotal = 0; ?>
+                    <?php foreach ($distributedByNursery as $i => $row): ?>
+                        <?php $grandTotal += $row['total_distributed']; ?>
+                        <tr>
+                            <td><?= $i + 1 ?></td>
+                            <td><strong><?= htmlspecialchars($row['nursery_name']) ?></strong></td>
+                            <td class="text-center"><?= formatNumber($row['total_requests']) ?></td>
+                            <td class="text-right"><span class="badge badge-pill" style="background:#8e44ad;color:white;font-size:1em;"><?= formatNumber($row['total_distributed']) ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr class="font-weight-bold" style="background:#f0eaf5;">
+                        <td colspan="3" class="text-right">TOTAL (Tahun <?= $filterYear ?>)</td>
+                        <td class="text-right" style="color:#8e44ad;font-size:1.1em;"><?= formatNumber($grandTotal) ?> bibit</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <?php else: ?>
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-truck fa-3x mb-3" style="opacity:0.2;"></i>
+                <p>Belum ada data distribusi untuk tahun <?= $filterYear ?>.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+
 
 
 <!-- Nursery Stock Breakdown -->

@@ -49,6 +49,20 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-4">
+        <div class="card text-white h-100" style="background:#8e44ad;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">Bibit Terdistribusi (<?= date('Y') ?>)</h6>
+                        <h2 class="mt-2 mb-0"><?= number_format($totalDistributed ?? 0) ?></h2>
+                    </div>
+                    <i class="fas fa-truck fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Stock List -->

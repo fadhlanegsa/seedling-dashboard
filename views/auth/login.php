@@ -6,6 +6,7 @@
     <title>Login - Dashboard Stok Bibit Indonesia</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         * {
             margin: 0;
@@ -22,7 +23,8 @@
             justify-content: center;
             padding: 2rem;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         body::before {
@@ -359,6 +361,10 @@
                         <input type="checkbox" name="remember" value="1">
                         <span>Ingat saya</span>
                     </label>
+                </div>
+                
+                <div class="form-group" style="display: flex; justify-content: center;">
+                    <div class="g-recaptcha" data-sitekey="<?= RECAPTCHA_SITE_KEY ?>"></div>
                 </div>
 
                 <button type="submit" class="btn-login">

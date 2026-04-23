@@ -65,6 +65,38 @@ class AuthController extends Controller {
             $this->redirect('auth/login');
             return;
         }
+
+        // Validate reCAPTCHA
+        $recaptchaResponse = $this->post('g-recaptcha-response');
+        if (empty($recaptchaResponse)) {
+            $this->setFlash('error', 'Silakan centang reCAPTCHA untuk membuktikan Anda bukan robot.');
+            $this->redirect('auth/login');
+            return;
+        }
+
+        $recaptchaVerifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
+        $recaptchaData = [
+            'secret' => RECAPTCHA_SECRET_KEY,
+            'response' => $recaptchaResponse,
+            'remoteip' => $_SERVER['REMOTE_ADDR']
+        ];
+
+        $options = [
+            'http' => [
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($recaptchaData)
+            ]
+        ];
+        $context  = stream_context_create($options);
+        $verifyResult = file_get_contents($recaptchaVerifyUrl, false, $context);
+        $captchaSuccess = json_decode($verifyResult);
+
+        if (!$captchaSuccess || !$captchaSuccess->success) {
+            $this->setFlash('error', 'Verifikasi reCAPTCHA gagal. Silakan coba lagi.');
+            $this->redirect('auth/login');
+            return;
+        }
         
         // Authenticate user
         $userModel = $this->model('User');

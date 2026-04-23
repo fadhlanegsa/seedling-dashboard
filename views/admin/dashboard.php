@@ -65,6 +65,16 @@
             <p>Permintaan Pending</p>
         </div>
     </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #8e44ad;">
+            <i class="fas fa-truck"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= formatNumber($stats['total_distributed'] ?? 0) ?></h3>
+            <p>Total Bibit Terdistribusi</p>
+        </div>
+    </div>
 </div>
 
 <!-- Charts Section -->
@@ -113,8 +123,73 @@
     </div>
 </div>
 
-
-
+<!-- Distribution Recap Section -->
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap" style="gap:0.5rem;">
+        <h3 style="margin:0;"><i class="fas fa-truck" style="color:#8e44ad;"></i> Rekap Bibit Terdistribusi per BPDAS</h3>
+        <form action="<?= url('admin/dashboard') ?>" method="GET" class="form-inline" style="gap:0.5rem;">
+            <?php if (!empty($currentProgram)): ?>
+                <input type="hidden" name="program_type" value="<?= htmlspecialchars($currentProgram) ?>">
+            <?php endif; ?>
+            <select name="bpdas_id" id="filter_bpdas" class="form-control form-control-sm" style="min-width:180px;">
+                <option value="">Semua BPDAS & BPTH</option>
+                <?php foreach ($bpdasList as $b): ?>
+                    <option value="<?= $b['id'] ?>" <?= ($filterBpdasId == $b['id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($b['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <select name="year" id="filter_year" class="form-control form-control-sm">
+                <?php foreach ($availableYears as $yr): ?>
+                    <option value="<?= $yr ?>" <?= ($filterYear == $yr) ? 'selected' : '' ?>><?= $yr ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
+            <a href="<?= url('admin/dashboard') ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-undo"></i> Reset</a>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <?php if (!empty($distributedByBPDAS)): ?>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>BPDAS / BPTH</th>
+                        <th>Provinsi</th>
+                        <th class="text-center">Jumlah Permintaan</th>
+                        <th class="text-right">Total Bibit Diserahkan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $grandTotal = 0; ?>
+                    <?php foreach ($distributedByBPDAS as $i => $row): ?>
+                        <?php $grandTotal += $row['total_distributed']; ?>
+                        <tr>
+                            <td><?= $i + 1 ?></td>
+                            <td><strong><?= htmlspecialchars($row['bpdas_name']) ?></strong></td>
+                            <td><small class="text-muted"><?= htmlspecialchars($row['province_name']) ?></small></td>
+                            <td class="text-center"><?= formatNumber($row['total_requests']) ?></td>
+                            <td class="text-right"><span class="badge badge-pill" style="background:#8e44ad;color:white;font-size:1em;"><?= formatNumber($row['total_distributed']) ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr class="font-weight-bold" style="background:#f0eaf5;">
+                        <td colspan="4" class="text-right">TOTAL (Tahun <?= $filterYear ?>)</td>
+                        <td class="text-right" style="color:#8e44ad;font-size:1.1em;"><?= formatNumber($grandTotal) ?> bibit</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <?php else: ?>
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-truck fa-3x mb-3" style="opacity:0.2;"></i>
+                <p>Belum ada data distribusi untuk filter yang dipilih.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 
 
 <script nonce="<?= cspNonce() ?>">

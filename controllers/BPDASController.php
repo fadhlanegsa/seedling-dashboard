@@ -25,6 +25,13 @@ class BPDASController extends Controller {
         $requestModel = $this->model('Request');
         
         $programType = $this->get('program_type');
+        $filterYear  = $this->get('year') ? (int)$this->get('year') : (int)date('Y');
+
+        // Generate available years for dropdown
+        $availableYears = [];
+        for ($y = (int)date('Y'); $y >= (int)date('Y') - 5; $y--) {
+            $availableYears[] = $y;
+        }
         
         // Get statistics
         $stockStats = $stockModel->getBPDASStatistics($bpdasId, $programType);
@@ -50,17 +57,23 @@ class BPDASController extends Controller {
         unset($nursery);
 
         // Get recent deliveries (gallery)
-        $recentDeliveries = $requestModel->getRecentDeliveries($bpdasId, 8); // Limit 8 for 2 rows
+        $recentDeliveries = $requestModel->getRecentDeliveries($bpdasId, 8);
+
+        // Get distribution recap by nursery (for this BPDAS)
+        $distributedByNursery = $requestModel->getTotalDistributedByNursery($bpdasId, $filterYear, $programType);
         
         $data = [
-            'title' => 'Dashboard BPDAS',
-            'stockStats' => $stockStats,
-            'requestStats' => $requestStats,
-            'recentStock' => $recentStock,
-            'pendingRequests' => $pendingRequests,
-            'nurseries' => $nurseries,
-            'recentDeliveries' => $recentDeliveries,
-            'currentProgram' => $programType
+            'title'               => 'Dashboard BPDAS',
+            'stockStats'          => $stockStats,
+            'requestStats'        => $requestStats,
+            'recentStock'         => $recentStock,
+            'pendingRequests'     => $pendingRequests,
+            'nurseries'           => $nurseries,
+            'recentDeliveries'    => $recentDeliveries,
+            'currentProgram'      => $programType,
+            'distributedByNursery'=> $distributedByNursery,
+            'filterYear'          => $filterYear,
+            'availableYears'      => $availableYears
         ];
         
         $this->render('bpdas/dashboard', $data, 'dashboard');

@@ -40,6 +40,8 @@ define('CSRF_TOKEN_NAME', 'csrf_token');
 define('PASSWORD_MIN_LENGTH', 6);
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 900); // 15 minutes
+define('RECAPTCHA_SITE_KEY', '6Ld54sUsAAAAAOP4EAIokN6WJDW_Z1qmZElt7GUU');
+define('RECAPTCHA_SECRET_KEY', '6Ld54sUsAAAAAPoxsXEq-ByCxoxsDRgzPLYCi5T4');
 
 // File Upload Settings
 define('UPLOAD_PATH', APP_PATH . '/public/uploads/');
