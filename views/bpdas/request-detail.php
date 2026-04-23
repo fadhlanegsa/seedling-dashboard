@@ -65,7 +65,7 @@
                                     <tbody>
                                         <?php foreach ($request['items'] as $item): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($item['seedling_name'] ?? 'Item #' . $item['seedling_type_id']) ?></td>
+                                            <td><?= htmlspecialchars($item['seedling_name'] ?? 'Bibit Dihapus/Tidak Diketahui') ?></td>
                                             <td class="text-right"><?= formatNumber($item['quantity']) ?></td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -84,7 +84,7 @@
                         </tr>
                         <tr>
                             <th>Jumlah Diminta:</th>
-                            <td><strong><?= formatNumber($request['quantity'] ?? 0) ?></strong> bibit</td>
+                            <td><strong><?= formatNumber($request['quantity'] ?: $request['total_quantity'] ?: 0) ?></strong> bibit</td>
                         </tr>
                     <?php endif; ?>
                     <tr>

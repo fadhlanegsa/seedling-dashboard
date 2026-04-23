@@ -234,4 +234,22 @@ class User extends Model {
         
         return $this->query($sql);
     }
+    
+    /**
+     * Log login activity
+     * 
+     * @param int|null $userId User ID if known
+     * @param string $username Username attempted
+     * @param string $status 'success' or 'failed'
+     * @return bool
+     */
+    public function logLogin($userId, $username, $status) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        
+        $sql = "INSERT INTO login_logs (user_id, username, ip_address, user_agent, status) 
+                VALUES (?, ?, ?, ?, ?)";
+        
+        return $this->execute($sql, [$userId, $username, $ip, $userAgent, $status]);
+    }
 }

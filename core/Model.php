@@ -249,6 +249,23 @@ class Model {
             return null;
         }
     }
+
+    /**
+     * Execute a query and return success status
+     * 
+     * @param string $sql
+     * @param array $params
+     * @return bool
+     */
+    public function execute($sql, $params = []) {
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($params);
+        } catch (PDOException $e) {
+            logError("Model Execute Error: " . $e->getMessage());
+            return false;
+        }
+    }
     
     /**
      * Insert Audit Trail

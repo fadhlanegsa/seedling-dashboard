@@ -172,7 +172,7 @@
                         <h6><i class="fas fa-times-circle"></i> Permintaan Ditolak</h6>
                         <p class="mb-2">
                             <strong>Tanggal Penolakan:</strong> 
-                            <?= formatDate($request['rejection_date'], DATETIME_FORMAT) ?>
+                            <?= formatDate($request['approval_date'], DATETIME_FORMAT) ?>
                         </p>
                         <?php if (!empty($request['rejection_reason'])): ?>
                             <p class="mb-0">

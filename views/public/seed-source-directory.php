@@ -167,9 +167,27 @@ function escapeHTML(str) {
 // Initialize map
 const map = L.map('map').setView([-2.5, 118], 5); // Center of Indonesia
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+// Base Layers
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+});
+
+const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom: 19
+});
+
+const baseMaps = {
+    "Standard": osm,
+    "Satelit": satellite
+};
+
+// Add default layer
+osm.addTo(map);
+
+// Add layer control
+L.control.layers(baseMaps).addTo(map);
 
 // Marker cluster group
 const markers = L.markerClusterGroup();

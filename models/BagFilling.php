@@ -17,7 +17,7 @@ class BagFilling extends Model {
         $prefix = "PB-" . date('Ym');
         $sql = "SELECT filling_code FROM {$this->table} 
                 WHERE filling_code LIKE ? 
-                ORDER BY filling_code DESC LIMIT 1";
+                ORDER BY LENGTH(filling_code) DESC, filling_code DESC LIMIT 1";
         
         $last = $this->queryOne($sql, [$prefix . '%']);
 
@@ -25,7 +25,10 @@ class BagFilling extends Model {
             return $prefix . "001";
         }
 
-        $lastNumber = (int)substr($last['filling_code'], -3);
+        $lastId = $last['filling_code'];
+        $lastNumberStr = str_replace($prefix, '', $lastId);
+        $lastNumber = (int)$lastNumberStr;
+        
         $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         
         return $prefix . $newNumber;
@@ -40,6 +43,16 @@ class BagFilling extends Model {
     public function saveBagFilling($fillingData, $mediaItems) {
         try {
             $this->beginTransaction();
+
+            // Double check for duplicate ID
+            if (!empty($fillingData['filling_code'])) {
+                $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE filling_code = ? LIMIT 1", [$fillingData['filling_code']]);
+                if ($existing) {
+                    $fillingData['filling_code'] = $this->generateFillingID();
+                }
+            } else {
+                $fillingData['filling_code'] = $this->generateFillingID();
+            }
 
             $fillingId = $this->create($fillingData);
             if (!$fillingId) {

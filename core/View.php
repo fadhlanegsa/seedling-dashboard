@@ -124,7 +124,7 @@ class View {
      * @return bool
      */
     public function isActive($path) {
-        $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '';
         $basePath = BASE_PATH;
         $currentPath = str_replace($basePath, '', $currentPath);
         

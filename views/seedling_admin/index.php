@@ -156,361 +156,464 @@
             </div>
         </div>
     </div>
+    <!-- TABBED CONTENT NAVIGATION -->
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm border" id="dashboardTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active font-weight-bold px-4" id="ready-stock-tab" data-toggle="pill" href="#ready-stock" role="tab">
+                <i class="fas fa-store-alt mr-2"></i> Stok Bibit Jadi
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link font-weight-bold px-4" id="history-tab" data-toggle="pill" href="#history" role="tab">
+                <i class="fas fa-history mr-2"></i> Log Produksi & Mutasi
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link font-weight-bold px-4" id="inventory-tab" data-toggle="pill" href="#inventory" role="tab">
+                <i class="fas fa-archive mr-2"></i> Inventory & Bahan Baku
+            </a>
+        </li>
+    </ul>
 
-    <!-- READY STOCK SECTION (BIBIT JADI) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 border-top-primary">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="m-0 font-weight-bold text-gray-800"><i class="fas fa-store-alt text-primary mr-2"></i> Stok Bibit Jadi (Siap Salur)</h5>
-                    <div class="badge badge-pill badge-light border px-3">Update Real-time</div>
-                </div>
-                <div class="card-body p-4 bg-light-soft">
-                    <div class="row">
-                        <?php if (empty($readyStock)): ?>
-                            <div class="col-12 text-center py-5 text-muted">
-                                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
-                                <p>Belum ada stok bibit siap salur di persemaian ini.</p>
+    <div class="tab-content" id="dashboardTabsContent">
+        <!-- TAB 1: READY STOCK -->
+        <div class="tab-pane fade show active" id="ready-stock" role="tabpanel">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 border-top-primary">
+                        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <h5 class="m-0 font-weight-bold text-gray-800"><i class="fas fa-store-alt text-primary mr-2"></i> Stok Bibit Jadi (Siap Salur)</h5>
                             </div>
-                        <?php else: ?>
-                            <?php foreach ($readyStock as $rs): ?>
-                                <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                                    <div class="seedling-card h-100 shadow-hover transition-all">
-                                        <div class="card-body p-3">
-                                            <div class="d-flex align-items-start justify-content-between mb-3">
-                                                <div class="seedling-icon-wrapper">
-                                                    <i class="fas fa-leaf"></i>
-                                                </div>
-                                                <div class="text-right">
-                                                    <div class="qty-badge"><?= number_format($rs['quantity'], 0) ?> <small>btg</small></div>
-                                                </div>
-                                            </div>
-                                            <h6 class="font-weight-bold text-dark mb-1"><?= $rs['seedling_name'] ?></h6>
-                                            <div class="d-flex flex-wrap" style="gap: 5px;">
-                                                <span class="<?= $rs['program_type'] === 'bibitgratis' ? 'badge-custom-green' : 'badge-custom-blue' ?>">
-                                                    <?= $rs['program_type'] === 'bibitgratis' ? 'PUB' : strtoupper($rs['program_type']) ?>
-                                                </span>
-                                            </div>
-                                        </div>
+                            
+                            <div class="d-flex align-items-center mt-2 mt-md-0" style="gap: 10px;">
+                                <!-- Search Box -->
+                                <div class="input-group input-group-sm" style="width: 250px;">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted small"></i></span>
                                     </div>
+                                    <input type="text" id="searchStock" class="form-control border-left-0 shadow-none" placeholder="Cari nama bibit atau program...">
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                                
+                                <!-- View Toggle -->
+                                <div class="btn-group btn-group-sm border rounded shadow-sm overflow-hidden" role="group">
+                                    <button type="button" class="btn btn-white border-0 py-1 px-3 active-view" id="setViewCard" title="Card View">
+                                        <i class="fas fa-th-large"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-white border-0 py-1 px-3" id="setViewTable" title="Table View">
+                                        <i class="fas fa-list"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0 bg-white">
+                            <!-- CARD VIEW CONTAINER -->
+                            <div id="stockCardView" class="p-4 bg-light-soft">
+                                <div class="row" id="stockCardContainer">
+                                    <?php if (empty($readyStock)): ?>
+                                        <div class="col-12 text-center py-5 text-muted no-results">
+                                            <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                                            <p>Belum ada stok bibit siap salur.</p>
+                                        </div>
+                                    <?php else: ?>
+                                        <?php foreach ($readyStock as $rs): ?>
+                                            <div class="col-xl-3 col-lg-4 col-md-6 mb-4 stock-item-card" data-name="<?= strtolower($rs['seedling_name']) ?>" data-program="<?= strtolower($rs['program_type']) ?>">
+                                                <div class="seedling-card h-100 shadow-hover transition-all">
+                                                    <div class="card-body p-3">
+                                                        <div class="d-flex align-items-start justify-content-between mb-3">
+                                                            <div class="seedling-icon-wrapper">
+                                                                <i class="fas fa-leaf"></i>
+                                                            </div>
+                                                            <div class="text-right">
+                                                                <div class="qty-badge"><?= number_format($rs['quantity'], 0) ?> <small>btg</small></div>
+                                                            </div>
+                                                        </div>
+                                                        <h6 class="font-weight-bold text-dark mb-1"><?= $rs['seedling_name'] ?></h6>
+                                                        <div class="d-flex flex-wrap" style="gap: 5px;">
+                                                            <span class="<?= $rs['program_type'] === 'bibitgratis' ? 'badge-custom-green' : 'badge-custom-blue' ?>">
+                                                                <?= $rs['program_type'] === 'bibitgratis' ? 'PUB' : strtoupper($rs['program_type']) ?>
+                                                            </span>
+                                                            <?php if($user['role'] === 'admin'): ?>
+                                                                <span class="badge-custom-info">
+                                                                    <i class="fas fa-map-marker-alt mr-1"></i> <?= $rs['nursery_name'] ?? 'Persemaian' ?>
+                                                                </span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- TABLE VIEW CONTAINER (Hidden by default) -->
+                            <div id="stockTableView" class="d-none">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0">
+                                        <thead class="bg-light x-small text-uppercase font-weight-bold text-dark">
+                                            <tr>
+                                                <th class="pl-4">Nama Bibit</th>
+                                                <th>BPDAS / Persemaian</th>
+                                                <th>Program</th>
+                                                <th class="text-right pr-4">Jumlah Stok (btg)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="small" id="stockTableBody">
+                                            <?php if (empty($readyStock)): ?>
+                                                <tr><td colspan="4" class="text-center py-5 text-muted">Belum ada data</td></tr>
+                                            <?php else: ?>
+                                                <?php foreach ($readyStock as $rs): ?>
+                                                    <tr class="stock-item-row" data-name="<?= strtolower($rs['seedling_name']) ?>" data-program="<?= strtolower($rs['program_type']) ?>">
+                                                        <td class="pl-4">
+                                                            <div class="font-weight-bold text-dark"><?= $rs['seedling_name'] ?></div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="x-small font-weight-bold"><?= $rs['bpdas_name'] ?? '-' ?></div>
+                                                            <div class="x-small text-muted"><?= $rs['nursery_name'] ?? '-' ?></div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="<?= $rs['program_type'] === 'bibitgratis' ? 'badge-custom-green' : 'badge-custom-blue' ?>">
+                                                                <?= $rs['program_type'] === 'bibitgratis' ? 'PUB' : strtoupper($rs['program_type']) ?>
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-right pr-4 font-weight-bold text-primary h6 mb-0">
+                                                            <?= number_format($rs['quantity'], 0) ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- No Results Placeholder -->
+                            <div id="searchNoResults" class="text-center py-5 text-muted d-none">
+                                <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                                <p>Tidak ada hasil yang cocok dengan pencarian Anda.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- INVENTORY SECTION (FULL WIDTH) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header py-3 bg-white border-bottom">
-                    <h6 class="m-0 font-weight-bold text-dark"><i class="fas fa-archive mr-2 text-primary"></i> Saldo Stok Bahan Baku (Inventory)</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0">
-                            <thead class="bg-light x-small text-uppercase font-weight-bold text-dark">
-                                <tr>
-                                    <th>Bahan Baku / Kategori</th>
-                                    <th class="text-right">Total Masuk</th>
-                                    <th class="text-right">Total Keluar</th>
-                                    <th class="text-right">Sisa Stok</th>
-                                    <th>Satuan</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small">
-                                <?php foreach ($stockBalance as $stock): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="font-weight-bold"><?= $stock['name'] ?></div>
-                                            <span class="text-muted x-small"><?= $stock['category'] ?></span>
-                                        </td>
-                                        <td class="text-right font-weight-bold text-muted"><?= number_format($stock['total_in'], 2) ?></td>
-                                        <td class="text-right font-weight-bold text-danger"><?= number_format($stock['total_out'], 2) ?></td>
-                                        <td class="text-right font-weight-bold <?= $stock['current_stock'] <= 0 ? 'text-danger' : 'text-success' ?>" style="font-size: 1.1rem;">
-                                            <?= number_format($stock['current_stock'], 2) ?>
-                                        </td>
-                                        <td><small class="font-weight-bold text-uppercase text-muted"><?= $stock['unit'] ?></small></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- PRODUCTION HISTORY GRID (3 COLUMNS) -->
-    <div class="row">
-        <!-- Mixing (MT) -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100 border-0 overflow-hidden">
-                <div class="card-header py-2 bg-success text-white small font-weight-bold">
-                    <i class="fas fa-mortar-pestle mr-1"></i> Mixing Media (MT)
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0 table-hover table-striped">
-                        <tbody class="small">
-                            <?php if (!empty($recentProductions)): ?>
-                                <?php foreach (array_slice($recentProductions, 0, 5) as $prod): ?>
-                                    <tr>
-                                        <td class="p-2 border-bottom">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <span class="badge badge-success px-2"><?= $prod['production_code'] ?></span>
-                                                <div class="d-flex align-items-center">
-                                                    <a href="<?= url('seedling-edit/edit-media-mixing/' . $prod['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-media-mixing/' . $prod['id']) ?>" data-title="Mixing Media <?= $prod['production_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="font-weight-bold text-dark"><?= number_format($prod['total_production'], 2) ?> <small>m3</small></div>
-                                            <div class="text-muted x-small italic"><?= $prod['notes'] ?: '-' ?></div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Polybag Fillings (PB) -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100 border-0 overflow-hidden">
-                <div class="card-header py-2 bg-info text-white small font-weight-bold">
-                    <i class="fas fa-fill-drip mr-1"></i> Pengisian Kantong (PB)
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0 table-hover table-striped">
-                        <tbody class="small">
-                            <?php if (!empty($recentFillings)): ?>
-                                <?php foreach (array_slice($recentFillings, 0, 5) as $pb): ?>
-                                    <tr>
-                                        <td class="p-2 border-bottom">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <span class="badge badge-info px-2"><?= $pb['filling_code'] ?></span>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pb['filling_date']) ?></span>
-                                                    <a href="<?= url('seedling-edit/edit-bag-filling/' . $pb['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bag-filling/' . $pb['id']) ?>" data-title="Pengisian Kantong <?= $pb['filling_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="font-weight-bold text-dark"><?= $pb['bag_name'] ?></div>
-                                            <div class="d-flex justify-content-between align-items-center x-small mt-1">
-                                                <span class="text-muted">Stok Tersedia:</span>
-                                                <span class="text-primary font-weight-bold"><?= number_format($pb['remaining_stock'], 0) ?> poly</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tanam Benih (PC) -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100 border-0 overflow-hidden">
-                <div class="card-header py-2 bg-warning text-dark font-weight-bold small">
-                    <i class="fas fa-seedling mr-1"></i> Penaburan Benih (PC)
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0 table-hover table-striped">
-                        <tbody class="small">
-                            <?php if (!empty($recentSowings)): ?>
-                                <?php foreach (array_slice($recentSowings, 0, 5) as $pc): ?>
-                                    <tr>
-                                        <td class="p-2 border-bottom">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <span class="badge badge-warning text-dark px-2 font-weight-bold"><?= $pc['sowing_code'] ?></span>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pc['sowing_date']) ?></span>
-                                                    <a href="<?= url('seedling-edit/edit-seed-sowing/' . $pc['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-seed-sowing/' . $pc['id']) ?>" data-title="Penaburan Benih <?= $pc['sowing_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="font-weight-bold text-dark"><?= $pc['seed_name'] ?></div>
-                                            <div class="d-flex justify-content-between x-small">
-                                                <span class="font-weight-bold text-primary"><?= number_format($pc['total_polybags'], 0) ?> btg</span>
-                                                <span class="text-muted"><?= number_format($pc['seed_quantity'], 1) ?> <?= $pc['seed_unit'] ?></span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Panen (PA) -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100 border-0 overflow-hidden">
-                <div class="card-header py-2 bg-primary text-white small font-weight-bold">
-                    <i class="fas fa-leaf mr-1"></i> Panen Anakan (PA)
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0 table-hover table-striped">
-                        <tbody class="small">
-                            <?php if (!empty($recentHarvests)): ?>
-                                <?php foreach (array_slice($recentHarvests, 0, 5) as $pa): ?>
-                                    <tr>
-                                        <td class="p-2 border-bottom">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <span class="badge badge-primary px-2"><?= $pa['harvest_code'] ?></span>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pa['harvest_date']) ?></span>
-                                                    <a href="<?= url('seedling-edit/edit-harvesting/' . $pa['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-harvesting/' . $pa['id']) ?>" data-title="Panen Anakan <?= $pa['harvest_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="font-weight-bold text-dark"><?= $pa['seed_name'] ?></div>
-                                            <div class="d-flex justify-content-between x-small">
-                                                <span class="text-muted">PA-Code: <?= $pa['harvest_code'] ?></span>
-                                                <span class="text-success font-weight-bold text-success"><?= number_format($pa['remaining_stock'], 0) ?> sisa</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Weaning (PE/ET) -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100 border-0 overflow-hidden">
-                <div class="card-header py-2 bg-teal text-white small font-weight-bold">
-                    <i class="fas fa-expand-arrows-alt mr-1"></i> Sapih Bibit (PE/ET)
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0 table-hover table-striped">
-                        <tbody class="small">
-                            <?php if (!empty($recentWeanings)): ?>
-                                <?php foreach (array_slice($recentWeanings, 0, 5) as $pe): ?>
-                                    <tr>
-                                        <td class="p-2 border-bottom">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <span class="badge badge-teal text-white px-2"><?= $pe['weaning_code'] ?></span>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pe['weaning_date']) ?></span>
-                                                    <?php $isEntres = strpos($pe['weaning_code'], 'ET-') === 0; ?>
-                                                    <a href="<?= url('seedling-edit/' . ($isEntres ? 'edit-entres' : 'edit-weaning') . '/' . $pe['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/' . ($isEntres ? 'delete-entres' : 'delete-weaning') . '/' . $pe['id']) ?>" data-title="Sapih/Entres <?= $pe['weaning_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="font-weight-bold text-dark"><?= $pe['result_name'] ?></div>
-                                            <div class="d-flex justify-content-between">
-                                                <span class="x-small text-muted">Dari: <?= $pe['harvest_code'] ?></span>
-                                                <span class="text-success font-weight-bold"><?= number_format($pe['remaining_stock'], 0) ?> btg</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
         
-        <!-- Out Mutation (BO) -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100 border-0 overflow-hidden">
-                <div class="card-header py-2 bg-danger text-white small font-weight-bold">
-                    <i class="fas fa-exchange-alt mr-1"></i> Log Mutasi (BO-PUB)
+        <!-- TAB 2: PRODUCTION HISTORY -->
+        <div class="tab-pane fade" id="history" role="tabpanel">
+            <div class="row">
+                <!-- Mixing (MT) -->
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="card-header py-2 bg-success text-white small font-weight-bold">
+                            <i class="fas fa-mortar-pestle mr-1"></i> Mixing Media (MT)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0 table-hover table-striped">
+                                <tbody class="small">
+                                    <?php if (!empty($recentProductions)): ?>
+                                        <?php foreach (array_slice($recentProductions, 0, 5) as $prod): ?>
+                                            <tr>
+                                                <td class="p-2 border-bottom">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="badge badge-success px-2"><?= $prod['production_code'] ?></span>
+                                                        <div class="d-flex align-items-center">
+                                                            <a href="<?= url('seedling-edit/edit-media-mixing/' . $prod['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-media-mixing/' . $prod['id']) ?>" data-title="Mixing Media <?= $prod['production_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="font-weight-bold text-dark"><?= number_format($prod['total_production'], 2) ?> <small>m3</small></div>
+                                                    <div class="text-muted x-small italic"><?= $prod['notes'] ?: '-' ?></div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0 table-hover table-striped">
-                        <tbody class="small">
-                            <?php if (!empty($recentMutations)): ?>
-                                <?php foreach (array_slice($recentMutations, 0, 5) as $bo): ?>
-                                    <tr>
-                                        <td class="p-2 border-bottom">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <span class="badge-source"><?= $bo['source_code'] ?></span>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($bo['mutation_date']) ?></span>
-                                                    <a href="<?= url('seedling-edit/edit-mutation/' . $bo['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-mutation/' . $bo['id']) ?>" data-title="Mutasi <?= $bo['source_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="font-weight-bold text-dark"><?= $bo['seedling_name'] ?></div>
-                                            <div class="d-flex justify-content-between x-small">
-                                                <span class="font-weight-bold <?= $bo['mutation_type'] === 'MATI' ? 'text-danger' : 'text-primary' ?>"><?= $bo['mutation_type'] ?></span>
-                                                <span class="text-danger font-weight-bold"><?= number_format($bo['quantity'], 0) ?> btg</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+
+                <!-- Polybag Fillings (PB) -->
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="card-header py-2 bg-info text-white small font-weight-bold">
+                            <i class="fas fa-fill-drip mr-1"></i> Pengisian Kantong (PB)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0 table-hover table-striped">
+                                <tbody class="small">
+                                    <?php if (!empty($recentFillings)): ?>
+                                        <?php foreach (array_slice($recentFillings, 0, 5) as $pb): ?>
+                                            <tr>
+                                                <td class="p-2 border-bottom">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="badge badge-info px-2"><?= $pb['filling_code'] ?></span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pb['filling_date']) ?></span>
+                                                            <a href="<?= url('seedling-edit/edit-bag-filling/' . $pb['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bag-filling/' . $pb['id']) ?>" data-title="Pengisian Kantong <?= $pb['filling_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="font-weight-bold text-dark"><?= $pb['bag_name'] ?></div>
+                                                    <div class="d-flex justify-content-between align-items-center x-small mt-1">
+                                                        <span class="text-muted">Stok Tersedia:</span>
+                                                        <span class="text-primary font-weight-bold"><?= number_format($pb['remaining_stock'], 0) ?> poly</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tanam Benih (PC) -->
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="card-header py-2 bg-warning text-dark font-weight-bold small">
+                            <i class="fas fa-seedling mr-1"></i> Penaburan Benih (PC)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0 table-hover table-striped">
+                                <tbody class="small">
+                                    <?php if (!empty($recentSowings)): ?>
+                                        <?php foreach (array_slice($recentSowings, 0, 5) as $pc): ?>
+                                            <tr>
+                                                <td class="p-2 border-bottom">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="badge badge-warning text-dark px-2 font-weight-bold"><?= $pc['sowing_code'] ?></span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pc['sowing_date']) ?></span>
+                                                            <a href="<?= url('seedling-edit/edit-seed-sowing/' . $pc['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-seed-sowing/' . $pc['id']) ?>" data-title="Penaburan Benih <?= $pc['sowing_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="font-weight-bold text-dark"><?= $pc['seed_name'] ?></div>
+                                                    <div class="d-flex justify-content-between x-small">
+                                                        <span class="font-weight-bold text-primary"><?= number_format($pc['total_polybags'], 0) ?> btg</span>
+                                                        <span class="text-muted"><?= number_format($pc['seed_quantity'], 1) ?> <?= $pc['seed_unit'] ?></span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panen (PA) -->
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="card-header py-2 bg-primary text-white small font-weight-bold">
+                            <i class="fas fa-leaf mr-1"></i> Panen Anakan (PA)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0 table-hover table-striped">
+                                <tbody class="small">
+                                    <?php if (!empty($recentHarvests)): ?>
+                                        <?php foreach (array_slice($recentHarvests, 0, 5) as $pa): ?>
+                                            <tr>
+                                                <td class="p-2 border-bottom">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="badge badge-primary px-2"><?= $pa['harvest_code'] ?></span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pa['harvest_date']) ?></span>
+                                                            <a href="<?= url('seedling-edit/edit-harvesting/' . $pa['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-harvesting/' . $pa['id']) ?>" data-title="Panen Anakan <?= $pa['harvest_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="font-weight-bold text-dark"><?= $pa['seed_name'] ?></div>
+                                                    <div class="d-flex justify-content-between x-small">
+                                                        <span class="text-muted">PA-Code: <?= $pa['harvest_code'] ?></span>
+                                                        <span class="text-success font-weight-bold text-success"><?= number_format($pa['remaining_stock'], 0) ?> sisa</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weaning (PE/ET) -->
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="card-header py-2 bg-teal text-white small font-weight-bold">
+                            <i class="fas fa-expand-arrows-alt mr-1"></i> Sapih Bibit (PE/ET)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0 table-hover table-striped">
+                                <tbody class="small">
+                                    <?php if (!empty($recentWeanings)): ?>
+                                        <?php foreach (array_slice($recentWeanings, 0, 5) as $pe): ?>
+                                            <tr>
+                                                <td class="p-2 border-bottom">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="badge badge-teal text-white px-2"><?= $pe['weaning_code'] ?></span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($pe['weaning_date']) ?></span>
+                                                            <?php $isEntres = strpos($pe['weaning_code'], 'ET-') === 0; ?>
+                                                            <a href="<?= url('seedling-edit/' . ($isEntres ? 'edit-entres' : 'edit-weaning') . '/' . $pe['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/' . ($isEntres ? 'delete-entres' : 'delete-weaning') . '/' . $pe['id']) ?>" data-title="Sapih/Entres <?= $pe['weaning_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="font-weight-bold text-dark"><?= $pe['result_name'] ?></div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="x-small text-muted">Dari: <?= $pe['harvest_code'] ?></span>
+                                                        <span class="text-success font-weight-bold"><?= number_format($pe['remaining_stock'], 0) ?> btg</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Out Mutation (BO) -->
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="card-header py-2 bg-danger text-white small font-weight-bold">
+                            <i class="fas fa-exchange-alt mr-1"></i> Log Mutasi (BO-PUB)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0 table-hover table-striped">
+                                <tbody class="small">
+                                    <?php if (!empty($recentMutations)): ?>
+                                        <?php foreach (array_slice($recentMutations, 0, 5) as $bo): ?>
+                                            <tr>
+                                                <td class="p-2 border-bottom">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="badge-source"><?= $bo['source_code'] ?></span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($bo['mutation_date']) ?></span>
+                                                            <a href="<?= url('seedling-edit/edit-mutation/' . $bo['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-mutation/' . $bo['id']) ?>" data-title="Mutasi <?= $bo['source_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="font-weight-bold text-dark"><?= $bo['seedling_name'] ?></div>
+                                                    <div class="d-flex justify-content-between x-small">
+                                                        <span class="font-weight-bold <?= $bo['mutation_type'] === 'MATI' ? 'text-danger' : 'text-primary' ?>"><?= $bo['mutation_type'] ?></span>
+                                                        <span class="text-danger font-weight-bold"><?= number_format($bo['quantity'], 0) ?> btg</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td class="text-center py-4 text-muted">Belum ada record</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Bahan Baku IN Full Row -->
-        <div class="col-12 mb-4">
-            <div class="card shadow-sm border-0 border-top-primary">
-                <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold small text-dark"><i class="fas fa-receipt mr-2 text-primary"></i> Transaksi Pengadaan Bahan Terbaru</h6>
-                    <a href="<?= url('seedling-admin/master-data') ?>" class="btn btn-sm btn-link font-weight-bold p-0">Lihat Semua</a>
+        <!-- TAB 3: INVENTORY & TRANSACTIONS -->
+        <div class="tab-pane fade" id="inventory" role="tabpanel">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header py-3 bg-white border-bottom">
+                            <h6 class="m-0 font-weight-bold text-dark"><i class="fas fa-archive mr-2 text-primary"></i> Saldo Stok Bahan Baku (Inventory)</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped mb-0">
+                                    <thead class="bg-light x-small text-uppercase font-weight-bold text-dark">
+                                        <tr>
+                                            <th>Bahan Baku / Kategori</th>
+                                            <th class="text-right">Total Masuk</th>
+                                            <th class="text-right">Total Keluar</th>
+                                            <th class="text-right">Sisa Stok</th>
+                                            <th>Satuan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="small">
+                                        <?php foreach ($stockBalance as $stock): ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="font-weight-bold"><?= $stock['name'] ?></div>
+                                                    <span class="text-muted x-small"><?= $stock['category'] ?></span>
+                                                </td>
+                                                <td class="text-right font-weight-bold text-muted"><?= number_format($stock['total_in'], 2) ?></td>
+                                                <td class="text-right font-weight-bold text-danger"><?= number_format($stock['total_out'], 2) ?></td>
+                                                <td class="text-right font-weight-bold <?= $stock['current_stock'] <= 0 ? 'text-danger' : 'text-success' ?>" style="font-size: 1.1rem;">
+                                                    <?= number_format($stock['current_stock'], 2) ?>
+                                                </td>
+                                                <td><small class="font-weight-bold text-uppercase text-muted"><?= $stock['unit'] ?></small></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead class="bg-light x-small text-muted font-weight-bold text-uppercase text-dark">
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Item Barang</th>
-                                    <th class="text-right">Jumlah Masuk</th>
-                                    <th>Gudang/Unit</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small">
-                                <?php foreach (array_slice($recentTransactions, 0, 5) as $row): ?>
-                                    <tr>
-                                        <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
-                                        <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
-                                        <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'], 2) ?></td>
-                                        <td class="p-2"><?= $row['item_unit'] ?></td>
-                                        <td class="p-2 text-center">
-                                            <a href="<?= url('seedling-edit/edit-bahan-baku/' . $row['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bahan-baku/' . $row['id']) ?>" data-title="Bahan Baku <?= $row['item_name'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+            </div>
+
+            <!-- Bahan Baku IN Full Row -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-0 border-top-primary">
+                        <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold small text-dark"><i class="fas fa-receipt mr-2 text-primary"></i> Transaksi Pengadaan Bahan Terbaru</h6>
+                            <a href="<?= url('seedling-admin/master-data') ?>" class="btn btn-sm btn-link font-weight-bold p-0">Lihat Semua</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="bg-light x-small text-muted font-weight-bold text-uppercase text-dark">
+                                        <tr>
+                                            <th>Tanggal</th>
+                                            <th>Item Barang</th>
+                                            <th class="text-right">Jumlah Masuk</th>
+                                            <th>Gudang/Unit</th>
+                                            <th class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="small">
+                                        <?php foreach (array_slice($recentTransactions, 0, 5) as $row): ?>
+                                            <tr>
+                                                <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
+                                                <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
+                                                <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'], 2) ?></td>
+                                                <td class="p-2"><?= $row['item_unit'] ?></td>
+                                                <td class="p-2 text-center">
+                                                    <a href="<?= url('seedling-edit/edit-bahan-baku/' . $row['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bahan-baku/' . $row['id']) ?>" data-title="Bahan Baku <?= $row['item_name'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <script>
@@ -695,6 +798,26 @@ document.addEventListener('DOMContentLoaded', function() {
             padding: 8px 10px;
         }
     }
+    .active-view { background-color: #4e73df !important; color: white !important; }
+    .btn-white { background-color: white; color: #4e73df; border: 1px solid #4e73df; }
+    .btn-white:hover { background-color: #f8f9fc; }
+    
+    .bg-light-soft { background-color: #fbfcfe; }
+    /* Tabs Styling */
+    .nav-pills .nav-link {
+        color: #4a5568;
+        border-radius: 8px;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #ebf4ff !important;
+        color: #4e73df !important;
+        border-color: #4e73df !important;
+    }
+    .nav-pills .nav-link:hover:not(.active) {
+        background-color: #f8f9fc;
+    }
 </style>
 
 <!-- Delete Confirmation Modal -->
@@ -743,6 +866,83 @@ document.addEventListener('DOMContentLoaded', function() {
             
             $('#deleteModal').modal('show');
         });
+    });
+
+    // --- STOCK VIEW TOGGLE & SEARCH ---
+    const searchInput = document.getElementById('searchStock');
+    const btnSetCard = document.getElementById('setViewCard');
+    const btnSetTable = document.getElementById('setViewTable');
+    const cardView = document.getElementById('stockCardView');
+    const tableView = document.getElementById('stockTableView');
+    const noResults = document.getElementById('searchNoResults');
+
+    // Toggle logic
+    function switchView(to) {
+        if (to === 'table') {
+            cardView.classList.add('d-none');
+            tableView.classList.remove('d-none');
+            btnSetTable.classList.add('active-view');
+            btnSetCard.classList.remove('active-view');
+            localStorage.setItem('stock_view_pref', 'table');
+        } else {
+            tableView.classList.add('d-none');
+            cardView.classList.remove('d-none');
+            btnSetCard.classList.add('active-view');
+            btnSetTable.classList.remove('active-view');
+            localStorage.setItem('stock_view_pref', 'card');
+        }
+    }
+
+    btnSetCard.addEventListener('click', () => switchView('card'));
+    btnSetTable.addEventListener('click', () => switchView('table'));
+
+    // Persistent preference
+    const pref = localStorage.getItem('stock_view_pref');
+    if (pref) switchView(pref);
+
+    // Live Search logic
+    searchInput.addEventListener('input', function() {
+        const term = this.value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.stock-item-card');
+        const rows = document.querySelectorAll('.stock-item-row');
+        let visibleCount = 0;
+
+        // Filter cards
+        cards.forEach(card => {
+            const name = card.getAttribute('data-name');
+            const program = card.getAttribute('data-program');
+            if (name.includes(term) || program.includes(term)) {
+                card.classList.remove('d-none');
+                visibleCount++;
+            } else {
+                card.classList.add('d-none');
+            }
+        });
+
+        // Filter rows
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name');
+            const program = row.getAttribute('data-program');
+            if (name.includes(term) || program.includes(term)) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        });
+
+        // Toggle no results
+        if (visibleCount === 0 && term !== '') {
+            noResults.classList.remove('d-none');
+            cardView.classList.add('d-none');
+            tableView.classList.add('d-none');
+        } else {
+            noResults.classList.add('d-none');
+            if (btnSetCard.classList.contains('active-view')) {
+                cardView.classList.remove('d-none');
+            } else {
+                tableView.classList.remove('d-none');
+            }
+        }
     });
 });
 </script>

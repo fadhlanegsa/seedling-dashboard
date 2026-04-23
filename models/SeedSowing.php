@@ -17,7 +17,7 @@ class SeedSowing extends Model {
         $prefix = "PC-" . date('Ym');
         $sql = "SELECT sowing_code FROM {$this->table} 
                 WHERE sowing_code LIKE ? 
-                ORDER BY sowing_code DESC LIMIT 1";
+                ORDER BY LENGTH(sowing_code) DESC, sowing_code DESC LIMIT 1";
         
         $last = $this->queryOne($sql, [$prefix . '%']);
 
@@ -25,7 +25,10 @@ class SeedSowing extends Model {
             return $prefix . "001";
         }
 
-        $lastNumber = (int)substr($last['sowing_code'], -3);
+        $lastId = $last['sowing_code'];
+        $lastNumberStr = str_replace($prefix, '', $lastId);
+        $lastNumber = (int)$lastNumberStr;
+        
         $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         
         return $prefix . $newNumber;
@@ -41,6 +44,16 @@ class SeedSowing extends Model {
     public function saveSowing($sowingData, $polybagItems, $materialItems) {
         try {
             $this->beginTransaction();
+
+            // Double check for duplicate ID
+            if (!empty($sowingData['sowing_code'])) {
+                $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE sowing_code = ? LIMIT 1", [$sowingData['sowing_code']]);
+                if ($existing) {
+                    $sowingData['sowing_code'] = $this->generateSowingID();
+                }
+            } else {
+                $sowingData['sowing_code'] = $this->generateSowingID();
+            }
 
             // 1. Create main sowing record
             $sowingId = $this->create($sowingData);

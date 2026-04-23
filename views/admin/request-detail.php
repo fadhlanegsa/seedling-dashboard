@@ -50,14 +50,25 @@
                         <th>Tanggal Permintaan:</th>
                         <td><?= isset($request['created_at']) ? formatDate($request['created_at'], DATETIME_FORMAT) : '-' ?></td>
                     </tr>
+                    <?php if (empty($request['items'])): ?>
                     <tr>
                         <th>Jenis Bibit:</th>
                         <td><strong><?= htmlspecialchars($request['seedling_name'] ?? '-') ?></strong></td>
                     </tr>
                     <tr>
                         <th>Jumlah Diminta:</th>
-                        <td><strong><?= formatNumber($request['quantity'] ?? $request['total_quantity'] ?? 0) ?></strong> bibit</td>
+                        <td><strong><?= formatNumber($request['quantity'] ?: $request['total_quantity'] ?: 0) ?></strong> bibit</td>
                     </tr>
+                    <?php else: ?>
+                    <tr>
+                        <th>Jenis Bibit:</th>
+                        <td><strong>Permintaan Multi-Item</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Total Jumlah Diminta:</th>
+                        <td><strong><?= formatNumber($request['total_quantity'] ?: $request['quantity'] ?: 0) ?></strong> bibit</td>
+                    </tr>
+                    <?php endif; ?>
                     <?php if (!empty($request['items'])): ?>
                     <tr>
                         <td colspan="2" class="p-0 border-top-0">
@@ -75,7 +86,7 @@
                                         <?php foreach ($request['items'] as $item): ?>
                                         <tr>
                                             <td>
-                                                <?= htmlspecialchars($item['seedling_name']) ?><br>
+                                                <?= htmlspecialchars($item['seedling_name'] ?? 'Bibit Dihapus/Tidak Diketahui') ?><br>
                                                 <small class="text-muted"><em><?= htmlspecialchars($item['scientific_name'] ?? '') ?></em></small>
                                             </td>
                                             <td>

@@ -122,7 +122,7 @@ class Request extends Model {
     public function getRequestItems($requestId) {
         $sql = "SELECT ri.*, st.name as seedling_name, st.scientific_name, st.category
                 FROM request_items ri
-                INNER JOIN seedling_types st ON ri.seedling_type_id = st.id
+                LEFT JOIN seedling_types st ON ri.seedling_type_id = st.id
                 WHERE ri.request_id = ?
                 ORDER BY ri.id ASC";
         

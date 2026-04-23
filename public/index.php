@@ -55,13 +55,13 @@ require_once CORE_PATH . 'View.php';
 require_once CORE_PATH . 'Controller.php';
 
 // Simple router
-$request = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$scriptName = $_SERVER['SCRIPT_NAME'];
+$request = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '';
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = dirname($scriptName); // e.g., /seedling-dashboard/seedling-dashboard/public
 $appRoot = str_replace('/public', '', $basePath); // e.g., /seedling-dashboard/seedling-dashboard
 
 // The path we want is everything after the appRoot, minus the potential /public prefix
-$path = $request;
+$path = (string)$request;
 if ($appRoot !== '/' && strpos($path, $appRoot) === 0) {
     $path = substr($path, strlen($appRoot));
 }

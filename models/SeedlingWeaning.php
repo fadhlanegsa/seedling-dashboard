@@ -9,19 +9,21 @@ class SeedlingWeaning extends Model {
     public function generateWeaningCode() {
         $prefix = 'PE-' . date('Ym');
         $sql = "SELECT weaning_code FROM {$this->table} 
-                WHERE weaning_code LIKE '{$prefix}%' 
-                ORDER BY weaning_code DESC LIMIT 1";
-        $result = $this->query($sql);
+                WHERE weaning_code LIKE ? 
+                ORDER BY LENGTH(weaning_code) DESC, weaning_code DESC LIMIT 1";
+        $result = $this->query($sql, [$prefix . '%']);
         
         if (empty($result)) {
             return $prefix . '001';
         }
         
         $lastCode = $result[0]['weaning_code'];
-        $lastNumber = intval(substr($lastCode, -3));
-        $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        $lastNumberStr = str_replace($prefix, '', $lastCode);
+        $lastNumber = (int)$lastNumberStr;
         
-        return $prefix . $nextNumber;
+        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        
+        return $prefix . $newNumber;
     }
 
     /**
@@ -30,6 +32,16 @@ class SeedlingWeaning extends Model {
     public function saveWeaning($weaningData, $polybagItems, $materialItems) {
         try {
             $this->db->beginTransaction();
+
+            // Double check for duplicate ID
+            if (!empty($weaningData['weaning_code'])) {
+                $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE weaning_code = ? LIMIT 1", [$weaningData['weaning_code']]);
+                if ($existing) {
+                    $weaningData['weaning_code'] = $this->generateWeaningCode();
+                }
+            } else {
+                $weaningData['weaning_code'] = $this->generateWeaningCode();
+            }
 
             // 1. Insert Master Weaning
             $sql = "INSERT INTO {$this->table} 

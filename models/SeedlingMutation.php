@@ -10,7 +10,9 @@ class SeedlingMutation extends Model {
 
     public function generateMutationCode() {
         $prefix = 'BO-' . date('Ym');
-        $sql = "SELECT mutation_code FROM {$this->table} WHERE mutation_code LIKE ? ORDER BY mutation_code DESC LIMIT 1";
+        $sql = "SELECT mutation_code FROM {$this->table} 
+                WHERE mutation_code LIKE ? 
+                ORDER BY LENGTH(mutation_code) DESC, mutation_code DESC LIMIT 1";
         $result = $this->query($sql, [$prefix . '%']);
         
         if (empty($result)) {
@@ -18,7 +20,9 @@ class SeedlingMutation extends Model {
         }
 
         $lastCode = $result[0]['mutation_code'];
-        $lastNumber = (int)substr($lastCode, -3);
+        $lastNumberStr = str_replace($prefix, '', $lastCode);
+        $lastNumber = (int)$lastNumberStr;
+        
         $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         
         return $prefix . $newNumber;
@@ -28,6 +32,16 @@ class SeedlingMutation extends Model {
         // === STEP 1: Save the mutation record ===
         try {
             $this->db->beginTransaction();
+
+            // Double check for duplicate ID
+            if (!empty($data['mutation_code'])) {
+                $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE mutation_code = ? LIMIT 1", [$data['mutation_code']]);
+                if ($existing) {
+                    $data['mutation_code'] = $this->generateMutationCode();
+                }
+            } else {
+                $data['mutation_code'] = $this->generateMutationCode();
+            }
 
             $sql = "INSERT INTO {$this->table} (
                         mutation_code, mutation_date, source_type, source_id, 

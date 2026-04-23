@@ -71,6 +71,9 @@ class AuthController extends Controller {
         $user = $userModel->authenticate($username, $password);
         
         if ($user) {
+            // Log successful login
+            $userModel->logLogin($user['id'], $username, 'success');
+            
             // Reset rate limit on successful login
             resetRateLimit('login');
             
@@ -95,6 +98,13 @@ class AuthController extends Controller {
             
             $this->redirectToDashboard();
         } else {
+            // Try to find if user exists to log their ID even on failure
+            $existingUser = $userModel->queryOne("SELECT id FROM users WHERE username = ? OR email = ? OR phone = ? OR nik = ? LIMIT 1", [$username, $username, $username, $username]);
+            $userId = $existingUser ? $existingUser['id'] : null;
+            
+            // Log failed login
+            $userModel->logLogin($userId, $username, 'failed');
+            
             $this->setFlash('error', 'Username atau password salah');
             $this->redirect('auth/login');
         }

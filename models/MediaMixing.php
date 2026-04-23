@@ -17,7 +17,7 @@ class MediaMixing extends Model {
         $prefix = "MT-" . date('Ym');
         $sql = "SELECT production_code FROM {$this->table} 
                 WHERE production_code LIKE ? 
-                ORDER BY production_code DESC LIMIT 1";
+                ORDER BY LENGTH(production_code) DESC, production_code DESC LIMIT 1";
         
         $last = $this->queryOne($sql, [$prefix . '%']);
 
@@ -25,7 +25,10 @@ class MediaMixing extends Model {
             return $prefix . "001";
         }
 
-        $lastNumber = (int)substr($last['production_code'], -3);
+        $lastId = $last['production_code'];
+        $lastNumberStr = str_replace($prefix, '', $lastId);
+        $lastNumber = (int)$lastNumberStr;
+        
         $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         
         return $prefix . $newNumber;
@@ -40,6 +43,16 @@ class MediaMixing extends Model {
     public function saveProduction($productionData, $items) {
         try {
             $this->beginTransaction();
+
+            // Double check for duplicate ID
+            if (!empty($productionData['production_code'])) {
+                $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE production_code = ? LIMIT 1", [$productionData['production_code']]);
+                if ($existing) {
+                    $productionData['production_code'] = $this->generateProductionID();
+                }
+            } else {
+                $productionData['production_code'] = $this->generateProductionID();
+            }
 
             $productionId = $this->create($productionData);
             if (!$productionId) {

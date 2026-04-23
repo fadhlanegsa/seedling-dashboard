@@ -136,14 +136,18 @@ class BahanBaku extends Model {
         $prefix = "BI-" . date('Ym');
         $sql = "SELECT transaction_id FROM {$this->table} 
                 WHERE transaction_id LIKE ? 
-                ORDER BY transaction_id DESC LIMIT 1";
+                ORDER BY LENGTH(transaction_id) DESC, transaction_id DESC LIMIT 1";
         $last = $this->queryOne($sql, [$prefix . '%']);
 
         if (!$last) {
             return $prefix . "001";
         }
 
-        $lastNumber = (int)substr($last['transaction_id'], -3);
+        // Robust extraction: get the number after the prefix
+        $lastId = $last['transaction_id'];
+        $lastNumberStr = str_replace($prefix, '', $lastId);
+        $lastNumber = (int)$lastNumberStr;
+        
         $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         
         return $prefix . $newNumber;
@@ -155,6 +159,15 @@ class BahanBaku extends Model {
      * @return bool|string
      */
     public function saveTransaction($data) {
+        // Double check for duplicate ID before saving
+        if (!empty($data['transaction_id'])) {
+            $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE transaction_id = ? LIMIT 1", [$data['transaction_id']]);
+            if ($existing) {
+                $data['transaction_id'] = $this->generateTransactionID();
+            }
+        } else {
+            $data['transaction_id'] = $this->generateTransactionID();
+        }
         return $this->create($data);
     }
 

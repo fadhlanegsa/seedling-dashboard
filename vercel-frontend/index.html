@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayo Tanam Pohon - Bibit Gratis</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS (CDN for Static Deployment) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sage: {
+                            50: '#f0f7f0',  // Mint Cream
+                            100: '#e1efe1',
+                            200: '#c5e0c5',
+                            300: '#9bca9b',
+                            400: '#6ea96e',
+                            500: '#4e8c4e',
+                            600: '#3d703d',
+                            700: '#335833',
+                            800: '#2b472b',
+                            900: '#243a24',
+                            950: '#111f11',
+                        },
+                        earth: {
+                            100: '#f5f0eb',
+                            500: '#8b5a2b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'grow': 'grow 2s ease-out forwards',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        grow: {
+                            '0%': { transform: 'scaleY(0)', transformOrigin: 'bottom' },
+                            '100%': { transform: 'scaleY(1)', transformOrigin: 'bottom' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles for Animations -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-sage-50 text-sage-900 font-sans antialiased overflow-x-hidden">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-full bg-sage-600 flex items-center justify-center text-white">
+                        <i class="fas fa-leaf text-xl"></i>
+                    </div>
+                    <span class="font-serif font-bold text-2xl text-sage-800 tracking-tight">Bibit Gratis</span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#beranda" class="text-sage-700 hover:text-sage-900 font-medium transition-colors">Beranda</a>
+                    <a href="#statistik" class="text-sage-700 hover:text-sage-900 font-medium transition-colors">Statistik</a>
+                    <a href="#layanan" class="text-sage-700 hover:text-sage-900 font-medium transition-colors">Layanan</a>
+                    <a href="#berita" class="text-sage-700 hover:text-sage-900 font-medium transition-colors">Kabar Kehutanan</a>
+                    <a href="https://bibitgratis.com/public/request-form" class="bg-sage-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-sage-700 transition-colors shadow-lg shadow-sage-600/30">
+                        Ajukan Permintaan
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-sage-700 hover:text-sage-900 focus:outline-none">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu (Hidden by default) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-md shadow-lg absolute w-full transition-all">
+            <div class="px-2 pt-2 pb-6 space-y-1 sm:px-3 flex flex-col items-center">
+                <a href="#beranda" class="mobile-link block px-3 py-2 rounded-md text-base font-medium text-sage-800 hover:bg-sage-100 w-full text-center">Beranda</a>
+                <a href="#statistik" class="mobile-link block px-3 py-2 rounded-md text-base font-medium text-sage-800 hover:bg-sage-100 w-full text-center">Statistik</a>
+                <a href="#layanan" class="mobile-link block px-3 py-2 rounded-md text-base font-medium text-sage-800 hover:bg-sage-100 w-full text-center">Layanan</a>
+                <a href="#berita" class="mobile-link block px-3 py-2 rounded-md text-base font-medium text-sage-800 hover:bg-sage-100 w-full text-center">Kabar Kehutanan</a>
+                <a href="https://bibitgratis.com/public/request-form" class="mt-4 block w-[90%] text-center bg-sage-600 text-white px-6 py-3 rounded-full font-medium hover:bg-sage-700">
+                    Ajukan Permintaan
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- App Content Injected via JS -->
+    <div id="app"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -16,19 +16,21 @@ class SeedlingEntres extends Model {
     public function generateEntresCode() {
         $prefix = 'ET-' . date('Ym');
         $sql = "SELECT entres_code FROM {$this->table} 
-                WHERE entres_code LIKE '{$prefix}%' 
-                ORDER BY entres_code DESC LIMIT 1";
-        $result = $this->query($sql);
+                WHERE entres_code LIKE ? 
+                ORDER BY LENGTH(entres_code) DESC, entres_code DESC LIMIT 1";
+        $result = $this->query($sql, [$prefix . '%']);
         
         if (empty($result)) {
             return $prefix . '001';
         }
         
         $lastCode = $result[0]['entres_code'];
-        $lastNumber = intval(substr($lastCode, -3));
-        $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        $lastNumberStr = str_replace($prefix, '', $lastCode);
+        $lastNumber = (int)$lastNumberStr;
         
-        return $prefix . $nextNumber;
+        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        
+        return $prefix . $newNumber;
     }
 
     /**
@@ -63,6 +65,16 @@ class SeedlingEntres extends Model {
     public function saveEntres($entresData, $materialItems) {
         try {
             $this->db->beginTransaction();
+
+            // Double check for duplicate ID
+            if (!empty($entresData['entres_code'])) {
+                $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE entres_code = ? LIMIT 1", [$entresData['entres_code']]);
+                if ($existing) {
+                    $entresData['entres_code'] = $this->generateEntresCode();
+                }
+            } else {
+                $entresData['entres_code'] = $this->generateEntresCode();
+            }
 
             // 1. Insert Master Entres
             $sql = "INSERT INTO {$this->table} 

@@ -9,20 +9,33 @@ class SeedlingHarvest extends Model {
     public function generateHarvestCode() {
         $prefix = 'PA-' . date('Ym');
         $sql = "SELECT harvest_code FROM {$this->table} 
-                WHERE harvest_code LIKE '{$prefix}%' 
-                ORDER BY harvest_code DESC LIMIT 1";
-        $result = $this->query($sql);
+                WHERE harvest_code LIKE ? 
+                ORDER BY LENGTH(harvest_code) DESC, harvest_code DESC LIMIT 1";
+        $result = $this->query($sql, [$prefix . '%']);
         
         if (empty($result)) {
             return $prefix . '001';
         }
         
-        // Extract the last 3 digits
         $lastCode = $result[0]['harvest_code'];
-        $lastNumber = intval(substr($lastCode, -3));
-        $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        $lastNumberStr = str_replace($prefix, '', $lastCode);
+        $lastNumber = (int)$lastNumberStr;
         
-        return $prefix . $nextNumber;
+        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        
+        return $prefix . $newNumber;
+    }
+
+    public function saveHarvest($data) {
+        if (!empty($data['harvest_code'])) {
+            $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE harvest_code = ? LIMIT 1", [$data['harvest_code']]);
+            if ($existing) {
+                $data['harvest_code'] = $this->generateHarvestCode();
+            }
+        } else {
+            $data['harvest_code'] = $this->generateHarvestCode();
+        }
+        return $this->create($data);
     }
 
     /**

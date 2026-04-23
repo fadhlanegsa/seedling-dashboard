@@ -46,6 +46,46 @@ class PublicController extends Controller {
     }
     
     /**
+     * API: Landing page data (stats and news) for Vercel Frontend
+     */
+    public function apiLandingData() {
+        // Allow CORS for the frontend
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: GET");
+        header("Access-Control-Allow-Headers: Content-Type");
+        
+        $stockModel = $this->model('Stock');
+        $requestModel = $this->model('Request');
+        $bpdasModel = $this->model('BPDAS');
+        $provinceModel = $this->model('Province');
+        $nurseryModel = $this->model('Nursery');
+        
+        // Get aggregate statistics
+        $stats = [
+            'total_stock' => $stockModel->getTotalNationalStock(),
+            'total_requests' => $requestModel->getTotalCount(),
+            'total_distributed' => $requestModel->getTotalDistributed(),
+            'total_bpdas' => $bpdasModel->getActiveCount(),
+            'total_provinces' => $provinceModel->count(),
+            'total_nurseries' => $nurseryModel->getActiveCount(),
+            'approved_requests' => $requestModel->count(['status' => 'approved']),
+            'completed_requests' => $requestModel->count(['status' => 'completed'])
+        ];
+
+        // Get latest news (up to 9) for Pusat/BPDAS/BPTH tab filter
+        $newsModel = $this->model('News');
+        $latestNews = $newsModel->getAll(null, 9);
+        
+        $this->json([
+            'success' => true,
+            'data' => [
+                'stats' => $stats,
+                'news' => $latestNews
+            ]
+        ]);
+    }
+    
+    /**
      * Public user dashboard
      */
     public function dashboard() {
