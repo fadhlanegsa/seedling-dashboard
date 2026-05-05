@@ -88,6 +88,10 @@ class EmailSender {
      * @return bool
      */
     private function send($to, $subject, $message) {
+        if (!defined('ENABLE_EMAIL') || !ENABLE_EMAIL) {
+            return true; // Email disabled, pretend it sent successfully
+        }
+
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=UTF-8',
@@ -97,6 +101,11 @@ class EmailSender {
         ];
         
         try {
+            if (!function_exists('mail')) {
+                logError("mail() function not available on this server.");
+                return false;
+            }
+            
             $result = mail($to, $subject, $message, implode("\r\n", $headers));
             
             if (!$result) {
@@ -104,7 +113,7 @@ class EmailSender {
             }
             
             return $result;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             logError("Email error: " . $e->getMessage());
             return false;
         }

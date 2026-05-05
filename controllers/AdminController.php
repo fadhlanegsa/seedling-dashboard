@@ -193,7 +193,7 @@ class AdminController extends Controller {
 
         $userData = [
             'username'  => $username,
-            'email'     => $bpdas['email'] ?? $username . '@bpdas.id',
+            'email'     => !empty($bpdas['email']) ? $bpdas['email'] : $username . '@bpdas.id',
             'password'  => $password,
             'full_name' => $bpdas['contact_person'] ?? 'Admin ' . $bpdas['name'],
             'phone'     => $bpdas['phone'],

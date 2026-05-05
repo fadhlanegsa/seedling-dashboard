@@ -322,7 +322,7 @@
                                                             <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-media-mixing/' . $prod['id']) ?>" data-title="Mixing Media <?= $prod['production_code'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
                                                         </div>
                                                     </div>
-                                                    <div class="font-weight-bold text-dark"><?= number_format($prod['total_production'], 2) ?> <small>m3</small></div>
+                                                    <div class="font-weight-bold text-dark"><?= number_format($prod['total_production'] ?? 0, 2) ?> <small>m3</small></div>
                                                     <div class="text-muted x-small italic"><?= $prod['notes'] ?: '-' ?></div>
                                                 </td>
                                             </tr>
@@ -360,7 +360,7 @@
                                                     <div class="font-weight-bold text-dark"><?= $pb['bag_name'] ?></div>
                                                     <div class="d-flex justify-content-between align-items-center x-small mt-1">
                                                         <span class="text-muted">Stok Tersedia:</span>
-                                                        <span class="text-primary font-weight-bold"><?= number_format($pb['remaining_stock'], 0) ?> poly</span>
+                                                        <span class="text-primary font-weight-bold"><?= number_format($pb['remaining_stock'] ?? 0, 0) ?> poly</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -397,8 +397,8 @@
                                                     </div>
                                                     <div class="font-weight-bold text-dark"><?= $pc['seed_name'] ?></div>
                                                     <div class="d-flex justify-content-between x-small">
-                                                        <span class="font-weight-bold text-primary"><?= number_format($pc['total_polybags'], 0) ?> btg</span>
-                                                        <span class="text-muted"><?= number_format($pc['seed_quantity'], 1) ?> <?= $pc['seed_unit'] ?></span>
+                                                        <span class="font-weight-bold text-primary"><?= number_format($pc['total_polybags'] ?? 0, 0) ?> btg</span>
+                                                        <span class="text-muted"><?= number_format($pc['seed_quantity'] ?? 0, 1) ?> <?= $pc['seed_unit'] ?></span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -436,7 +436,7 @@
                                                     <div class="font-weight-bold text-dark"><?= $pa['seed_name'] ?></div>
                                                     <div class="d-flex justify-content-between x-small">
                                                         <span class="text-muted">PA-Code: <?= $pa['harvest_code'] ?></span>
-                                                        <span class="text-success font-weight-bold text-success"><?= number_format($pa['remaining_stock'], 0) ?> sisa</span>
+                                                        <span class="text-success font-weight-bold text-success"><?= number_format($pa['remaining_stock'] ?? 0, 0) ?> sisa</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -475,7 +475,7 @@
                                                     <div class="font-weight-bold text-dark"><?= $pe['result_name'] ?></div>
                                                     <div class="d-flex justify-content-between">
                                                         <span class="x-small text-muted">Dari: <?= $pe['harvest_code'] ?></span>
-                                                        <span class="text-success font-weight-bold"><?= number_format($pe['remaining_stock'], 0) ?> btg</span>
+                                                        <span class="text-success font-weight-bold"><?= number_format($pe['remaining_stock'] ?? 0, 0) ?> btg</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -513,7 +513,7 @@
                                                     <div class="font-weight-bold text-dark"><?= $bo['seedling_name'] ?></div>
                                                     <div class="d-flex justify-content-between x-small">
                                                         <span class="font-weight-bold <?= $bo['mutation_type'] === 'MATI' ? 'text-danger' : 'text-primary' ?>"><?= $bo['mutation_type'] ?></span>
-                                                        <span class="text-danger font-weight-bold"><?= number_format($bo['quantity'], 0) ?> btg</span>
+                                                        <span class="text-danger font-weight-bold"><?= number_format($bo['quantity'] ?? 0, 0) ?> btg</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -556,10 +556,10 @@
                                                     <div class="font-weight-bold"><?= $stock['name'] ?></div>
                                                     <span class="text-muted x-small"><?= $stock['category'] ?></span>
                                                 </td>
-                                                <td class="text-right font-weight-bold text-muted"><?= number_format($stock['total_in'], 2) ?></td>
-                                                <td class="text-right font-weight-bold text-danger"><?= number_format($stock['total_out'], 2) ?></td>
+                                                <td class="text-right font-weight-bold text-muted"><?= number_format($stock['total_in'] ?? 0, 2) ?></td>
+                                                <td class="text-right font-weight-bold text-danger"><?= number_format($stock['total_out'] ?? 0, 2) ?></td>
                                                 <td class="text-right font-weight-bold <?= $stock['current_stock'] <= 0 ? 'text-danger' : 'text-success' ?>" style="font-size: 1.1rem;">
-                                                    <?= number_format($stock['current_stock'], 2) ?>
+                                                    <?= number_format($stock['current_stock'] ?? 0, 2) ?>
                                                 </td>
                                                 <td><small class="font-weight-bold text-uppercase text-muted"><?= $stock['unit'] ?></small></td>
                                             </tr>
@@ -578,7 +578,7 @@
                     <div class="card shadow-sm border-0 border-top-primary">
                         <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">
                             <h6 class="m-0 font-weight-bold small text-dark"><i class="fas fa-receipt mr-2 text-primary"></i> Transaksi Pengadaan Bahan Terbaru</h6>
-                            <a href="<?= url('seedling-admin/master-data') ?>" class="btn btn-sm btn-link font-weight-bold p-0">Lihat Semua</a>
+                            <a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="btn btn-sm btn-link font-weight-bold p-0">Lihat Semua</a>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -597,7 +597,7 @@
                                             <tr>
                                                 <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
                                                 <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
-                                                <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'], 2) ?></td>
+                                                <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'] ?? 0, 2) ?></td>
                                                 <td class="p-2"><?= $row['item_unit'] ?></td>
                                                 <td class="p-2 text-center">
                                                     <a href="<?= url('seedling-edit/edit-bahan-baku/' . $row['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>

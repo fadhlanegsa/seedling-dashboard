@@ -71,6 +71,11 @@ class User extends Model {
             $data['role'] = 'public';
         }
         
+        // Convert empty string email to null to avoid unique constraint violations
+        if (isset($data['email']) && trim($data['email']) === '') {
+            $data['email'] = null;
+        }
+        
         return $this->create($data);
     }
     

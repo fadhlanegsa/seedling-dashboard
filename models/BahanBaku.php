@@ -62,6 +62,35 @@ class BahanBaku extends Model {
     }
 
     /**
+     * Check if master item already exists by name or seedling_type_id
+     * @param string $name
+     * @param int|null $seedlingTypeId
+     * @param int|null $excludeId
+     * @return bool
+     */
+    public function checkDuplicateMaster($name, $seedlingTypeId = null, $excludeId = null) {
+        $params = [$name];
+        $sql = "SELECT id FROM bahan_baku_master WHERE (name = ?";
+        
+        if ($seedlingTypeId) {
+            $sql .= " OR seedling_type_id = ?";
+            $params[] = $seedlingTypeId;
+        }
+        
+        $sql .= ")";
+        
+        if ($excludeId) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+        
+        $sql .= " LIMIT 1";
+        
+        $result = $this->queryOne($sql, $params);
+        return $result ? true : false;
+    }
+
+    /**
      * Delete master item
      * @param int $id
      * @return bool
@@ -209,7 +238,7 @@ class BahanBaku extends Model {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
 
-        $sql .= " ORDER BY t.created_at DESC LIMIT ?";
+        $sql .= " ORDER BY t.transaction_date DESC, t.created_at DESC LIMIT ?";
         $params[] = (int)$limit;
 
         $stmt = $this->db->prepare($sql);
@@ -218,6 +247,80 @@ class BahanBaku extends Model {
         }
         $stmt->execute();
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Paginate transactions
+     * @param int $page
+     * @param int $perPage
+     * @param array $filters
+     * @return array
+     */
+    public function paginateTransactions($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT t.*, m.name as item_name, m.category as item_category, m.unit as item_unit
+                FROM {$this->table} t
+                JOIN bahan_baku_master m ON t.item_id = m.id";
+        
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} t";
+        
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "t.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "t.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" AND ", $where);
+            $countSql .= " WHERE " . implode(" AND ", $where);
+        }
+
+        $sql .= " ORDER BY t.transaction_date DESC, t.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+            
+            // Use fetchColumn for better reliability
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+            
+
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("BahanBaku Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
     }
     /**
      * Get stock balance for each material

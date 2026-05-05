@@ -374,17 +374,15 @@ class PublicController extends Controller {
                 logError("Add History Error: " . $e->getMessage());
             }
             
-            // Email notification DISABLED
-            /*
+            // Email notification (will only send if ENABLE_EMAIL is true in config.php)
             try {
                 require_once UTILS_PATH . 'EmailSender.php';
                 $emailSender = new EmailSender();
                 $request = $requestModel->getWithDetails($requestId);
                 $emailSender->sendNewRequestNotification($request);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 logError("Email notification error: " . $e->getMessage());
             }
-            */
             
             $this->setFlash('success', 'Permintaan berhasil diajukan. Silakan tunggu persetujuan dari BPDAS.');
             $this->redirect('public/my-requests');

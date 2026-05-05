@@ -117,7 +117,7 @@
             <div class="card shadow border-0 border-top-primary">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between bg-light">
                     <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-history mr-2"></i> Riwayat Transaksi Bahan Baku IN</h6>
-                    <span class="badge badge-primary badge-pill"><?= count($recentBahanBaku ?? []) ?> Entri</span>
+                    <span class="badge badge-primary badge-pill"><?= $pagination['total'] ?? 0 ?> Total Entri</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -172,6 +172,50 @@
                         </table>
                     </div>
                 </div>
+                <?php if (!empty($pagination) && $pagination['totalPages'] > 1): ?>
+                <div class="card-footer bg-light py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="small text-muted font-italic">
+                            Menampilkan <?= count($recentBahanBaku) ?> dari <?= $pagination['total'] ?> transaksi
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0">
+                                <!-- Previous -->
+                                <li class="page-item <?= $pagination['page'] <= 1 ? 'disabled' : '' ?>">
+                                    <a class="page-link" href="<?= url('seedling-admin/bahan-baku-form?page=' . ($pagination['page'] - 1)) ?>" tabindex="-1">Sebelumnya</a>
+                                </li>
+                                
+                                <!-- Page Numbers -->
+                                <?php 
+                                $start = max(1, $pagination['page'] - 2);
+                                $end = min($pagination['totalPages'], $pagination['page'] + 2);
+                                
+                                if ($start > 1) {
+                                    echo '<li class="page-item"><a class="page-link" href="'.url('seedling-admin/bahan-baku-form?page=1').'">1</a></li>';
+                                    if ($start > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                }
+                                
+                                for ($i = $start; $i <= $end; $i++): 
+                                ?>
+                                    <li class="page-item <?= $i == $pagination['page'] ? 'active' : '' ?>">
+                                        <a class="page-link" href="<?= url('seedling-admin/bahan-baku-form?page=' . $i) ?>"><?= $i ?></a>
+                                    </li>
+                                <?php endfor; ?>
+                                
+                                <?php if ($end < $pagination['totalPages']): ?>
+                                    <?php if ($end < $pagination['totalPages'] - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>'; ?>
+                                    <li class="page-item"><a class="page-link" href="<?= url('seedling-admin/bahan-baku-form?page=' . $pagination['totalPages']) ?>"><?= $pagination['totalPages'] ?></a></li>
+                                <?php endif; ?>
+                                
+                                <!-- Next -->
+                                <li class="page-item <?= $pagination['page'] >= $pagination['totalPages'] ? 'disabled' : '' ?>">
+                                    <a class="page-link" href="<?= url('seedling-admin/bahan-baku-form?page=' . ($pagination['page'] + 1)) ?>">Berikutnya</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

@@ -49,6 +49,7 @@ define('MAX_FILE_SIZE', 5242880); // 5MB in bytes
 define('ALLOWED_FILE_TYPES', ['pdf', 'jpg', 'jpeg', 'png']);
 
 // Email Configuration (Update with your SMTP settings)
+define('ENABLE_EMAIL', false); // Set to true to enable email notifications
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
 define('SMTP_USERNAME', 'your-email@gmail.com');

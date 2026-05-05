@@ -485,7 +485,7 @@ class BPDASController extends Controller {
                 require_once UTILS_PATH . 'EmailSender.php';
                 $emailSender = new EmailSender();
                 $emailSender->sendRejectionNotification($request, $reason);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 // Log error but don't fail the rejection
                 error_log('Email notification failed: ' . $e->getMessage());
             }
@@ -573,7 +573,7 @@ class BPDASController extends Controller {
                 require_once UTILS_PATH . 'EmailSender.php';
                 $emailSender = new EmailSender();
                 $emailSender->sendCancellationNotification($request, $reason);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 logError('Cancellation email failed: ' . $e->getMessage());
             }
             

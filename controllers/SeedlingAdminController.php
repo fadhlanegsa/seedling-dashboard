@@ -198,14 +198,19 @@ class SeedlingAdminController extends Controller {
         } elseif ($user['role'] === 'bpdas') {
             $filters['bpdas_id'] = $user['bpdas_id'];
         }
-        $recentBahanBaku = $bahanBakuModel->getRecentTransactions(20, $filters);
+
+        // Handle Pagination
+        $page = (int)($this->get('page', 1));
+        $perPage = 20; 
+        $pagination = $bahanBakuModel->paginateTransactions($page, $perPage, $filters);
 
         $data = [
             'title'           => 'Bahan Baku IN',
             'categories'      => $categories,
             'transactionId'   => $transactionId,
             'today'           => date('Y-m-d'),
-            'recentBahanBaku' => $recentBahanBaku,
+            'recentBahanBaku' => $pagination['data'],
+            'pagination'      => $pagination,
         ];
 
         $this->render('seedling_admin/bahan_baku_form', $data, 'dashboard');
@@ -314,6 +319,13 @@ class SeedlingAdminController extends Controller {
 
         if (empty($data['category_code']) || empty($data['name'])) {
             $this->setFlash('error', 'Kategori dan Nama Item harus diisi');
+            $this->redirect('seedling-admin/master-data-form' . ($id ? '/' . $id : ''));
+            return;
+        }
+
+        // Check for duplicates
+        if ($bahanBakuModel->checkDuplicateMaster($data['name'], $data['seedling_type_id'], $id)) {
+            $this->setFlash('error', 'Gagal: Item dengan nama atau jenis bibit tersebut sudah ada.');
             $this->redirect('seedling-admin/master-data-form' . ($id ? '/' . $id : ''));
             return;
         }
