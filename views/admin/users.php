@@ -14,17 +14,31 @@
 <!-- Role Filter -->
 <div class="card mb-3">
     <div class="card-body">
-        <div class="filter-buttons">
-            <a href="<?= url('admin/users') ?>" 
-               class="btn btn-sm <?= !$currentRole ? 'btn-primary' : 'btn-outline-primary' ?>">
-                Semua
-            </a>
-            <?php foreach (USER_ROLES as $roleKey => $roleLabel): ?>
-                <a href="<?= url('admin/users?role=' . $roleKey) ?>" 
-                   class="btn btn-sm <?= $currentRole == $roleKey ? 'btn-primary' : 'btn-outline-primary' ?>">
-                    <?= htmlspecialchars($roleLabel) ?>
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="filter-buttons mb-2 mb-md-0">
+                <a href="<?= url('admin/users') ?>" 
+                   class="btn btn-sm <?= !$currentRole ? 'btn-primary' : 'btn-outline-primary' ?>">
+                    Semua
                 </a>
-            <?php endforeach; ?>
+                <?php foreach (USER_ROLES as $roleKey => $roleLabel): ?>
+                    <a href="<?= url('admin/users?role=' . $roleKey) ?>" 
+                       class="btn btn-sm <?= $currentRole == $roleKey ? 'btn-primary' : 'btn-outline-primary' ?>">
+                        <?= htmlspecialchars($roleLabel) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+            
+            <form action="<?= url('admin/users') ?>" method="GET" class="form-inline">
+                <?php if ($currentRole): ?>
+                    <input type="hidden" name="role" value="<?= htmlspecialchars($currentRole) ?>">
+                <?php endif; ?>
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari username, nama, email..." value="<?= htmlspecialchars($search ?? '') ?>">
+                    <div class="input-group-append">
+                        <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-search"></i> Cari</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -105,9 +119,10 @@
 if (isset($pagination)) {
     require_once VIEWS_PATH . 'helpers/pagination.php';
     
-    // Preserve role filter in pagination
+    // Preserve role and search filter in pagination
     $queryParams = [
-        'role' => $currentRole ?? null
+        'role' => $currentRole ?? null,
+        'search' => $search ?? null
     ];
     
     renderPagination($pagination, 'admin/users', $queryParams);

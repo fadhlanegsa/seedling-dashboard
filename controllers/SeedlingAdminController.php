@@ -82,22 +82,34 @@ class SeedlingAdminController extends Controller {
             $filters['bpdas_id'] = $user['bpdas_id'];
         }
         
-        $recentTransactions = $bahanBakuModel->getRecentTransactions(10, $filters);
-        $recentProductions = $mixingModel->getRecentProductions(10, $filters);
-        $recentFillings = $fillingModel->getRecentFillings(10, $filters);
-        $recentSowings = $sowingModel->getRecentSowings(10, $filters);
-        $recentHarvests = $harvestModel->getRecentHarvests(10, $filters);
+        // Retrieve pagination parameters (default to page 1, 10 per page)
+        $page_mt = (int)($this->get('page_mt') ?? 1);
+        $page_pb = (int)($this->get('page_pb') ?? 1);
+        $page_pc = (int)($this->get('page_pc') ?? 1);
+        $page_pa = (int)($this->get('page_pa') ?? 1);
+        $page_pe = (int)($this->get('page_pe') ?? 1);
+        $page_et = (int)($this->get('page_et') ?? 1);
+        $page_bo = (int)($this->get('page_bo') ?? 1);
+        $page_in = (int)($this->get('page_in') ?? 1);
+        $perPage = 10; 
 
+        // Paginated data for each category
+        $recentTransactions = $bahanBakuModel->paginateTransactions($page_in, $perPage, $filters);
+        $recentProductions = $mixingModel->paginateProductions($page_mt, $perPage, $filters);
+        $recentFillings = $fillingModel->paginateFillings($page_pb, $perPage, $filters);
+        $recentSowings = $sowingModel->paginateSowings($page_pc, $perPage, $filters);
+        $recentHarvests = $harvestModel->paginateHarvests($page_pa, $perPage, $filters);
+        
         $weaningModel = $this->model('SeedlingWeaning');
-        $recentWeanings = $weaningModel->getRecentWeanings(10, $filters);
-
+        $recentWeanings = $weaningModel->paginateWeanings($page_pe, $perPage, $filters);
+        
         $entresModel = $this->model('SeedlingEntres');
-        $recentEntres = $entresModel->getRecentEntres(10, $filters);
+        $recentEntres = $entresModel->paginateEntres($page_et, $perPage, $filters);
 
         $stockBalance = $bahanBakuModel->getStockBalance($filters);
 
         $mutationModel = $this->model('SeedlingMutation');
-        $recentMutations = $mutationModel->getRecentMutations(10, $filters);
+        $recentMutations = $mutationModel->paginateMutations($page_bo, $perPage, $filters);
 
         $stockModel = $this->model('Stock');
         if (!empty($filters['nursery_id'])) {
@@ -411,7 +423,7 @@ class SeedlingAdminController extends Controller {
             'transaction_id'   => $this->post('transaction_id'),
             'transaction_date' => $this->post('transaction_date'),
             'item_id'          => (int)$this->post('item_id'),
-            'quantity'         => (float)$this->post('quantity'),
+            'quantity'         => (float)str_replace(',', '.', str_replace('.', '', $this->post('quantity'))),
             'notes'            => sanitize($this->post('notes')),
             'sender'           => sanitize($this->post('sender')),
             'receiver'         => sanitize($this->post('receiver')),
@@ -1134,7 +1146,8 @@ class SeedlingAdminController extends Controller {
         $entresData = [
             'entres_code'    => $this->post('entres_code'),
             'entres_date'    => $this->post('entres_date'),
-            'harvest_id'     => $weaningId, // We use harvest_id column for weaning_id
+            'harvest_id'     => null,
+            'weaning_id'     => $weaningId,
             'result_item_id' => $resultItemId,
             'used_quantity'  => $usedQty,
             'location'       => sanitize($this->post('location')),
@@ -1145,7 +1158,6 @@ class SeedlingAdminController extends Controller {
             'nursery_id'     => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
             'created_by'     => $user['id']
         ];
-
         // Process supporting Bahan Baku
         $materialItems = [];
         if (isset($_POST['mat_id']) && is_array($_POST['mat_id'])) {

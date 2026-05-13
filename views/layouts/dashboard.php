@@ -72,7 +72,7 @@ $user = currentUser();
                 </a>
                 <ul class="navbar-menu">
                     <li><a href="<?= url('') ?>">Beranda</a></li>
-                    <li><span style="color: white;">Halo, <?= htmlspecialchars($user['full_name']) ?></span></li>
+                    <li><span style="color: white;">Halo, <?= htmlspecialchars($user['full_name'] ?? 'Tamu') ?></span></li>
                     <li><a href="<?= url('auth/logout') ?>" class="btn btn-danger btn-sm">Logout</a></li>
                 </ul>
             </nav>
@@ -93,13 +93,13 @@ $user = currentUser();
         <!-- Sidebar -->
         <aside class="dashboard-sidebar">
             <div class="user-info">
-                <h4><?= htmlspecialchars($user['full_name']) ?></h4>
-                <p><?= ucfirst($user['role']) ?></p>
+                <h4><?= htmlspecialchars($user['full_name'] ?? 'Tamu') ?></h4>
+                <p><?= ucfirst($user['role'] ?? 'guest') ?></p>
             </div>
             
             <nav class="sidebar">
                 <ul class="sidebar-menu">
-                    <?php if ($user['role'] === 'admin'): ?>
+                    <?php if (($user['role'] ?? '') === 'admin'): ?>
                         <li><a href="<?= url('admin/dashboard') ?>" class="<?= $this->activeClass('admin/dashboard') ?>">
                             <i class="fas fa-chart-line"></i> Dashboard
                         </a></li>
@@ -130,7 +130,7 @@ $user = currentUser();
                         <li><a href="<?= url('admin/kabar-kehutanan') ?>" class="<?= $this->activeClass('admin/kabar-kehutanan') ?>">
                             <i class="fas fa-newspaper"></i> Kabar Kehutanan
                         </a></li>
-                    <?php elseif ($user['role'] === 'bpdas'): ?>
+                    <?php elseif (($user['role'] ?? '') === 'bpdas'): ?>
                         <li><a href="<?= url('bpdas/dashboard') ?>" class="<?= $this->activeClass('bpdas/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
                         </a></li>
@@ -149,7 +149,7 @@ $user = currentUser();
                         <li><a href="<?= url('bpdas/kabar-kehutanan') ?>" class="<?= $this->activeClass('bpdas/kabar-kehutanan') ?>">
                             <i class="fas fa-newspaper"></i> Kabar Kehutanan
                         </a></li>
-                    <?php elseif ($user['role'] === 'operator_persemaian'): ?>
+                    <?php elseif (($user['role'] ?? '') === 'operator_persemaian'): ?>
                         <li><a href="<?= url('operator/dashboard') ?>" class="<?= $this->activeClass('operator/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
                         </a></li>
@@ -181,7 +181,7 @@ $user = currentUser();
                         <?php endif; ?>
 
                         <!-- Penatausahaan Bibit Module (Visible only to Admin, BPDAS, Operator) -->
-                        <?php if (in_array($user['role'], ['admin', 'bpdas', 'operator_persemaian'])): ?>
+                        <?php if (in_array($user['role'] ?? '', ['admin', 'bpdas', 'operator_persemaian'])): ?>
                             <li class="nav-section-header mt-3 px-3 small text-muted font-weight-bold">PENATAUSAHAAN BIBIT</li>
                             <li><a href="<?= url('seedling-admin') ?>" class="<?= $this->activeClass('seedling-admin') ?>">
                                 <i class="fas fa-microscope"></i> Ringkasan
@@ -190,7 +190,7 @@ $user = currentUser();
                                 <i class="fas fa-database"></i> Database
                             </a></li>
                             
-                            <?php if (in_array($user['role'], ['admin', 'operator_persemaian'])): ?>
+                            <?php if (in_array($user['role'] ?? '', ['admin', 'operator_persemaian'])): ?>
                                 <li><a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="<?= $this->activeClass('seedling-admin/bahan-baku-form') ?>">
                                     <i class="fas fa-layer-group"></i> Bahan Baku IN
                                 </a></li>
@@ -243,7 +243,7 @@ $user = currentUser();
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="<?= asset('js/main.js') ?>"></script>
     <script src="<?= asset('js/datatables.js') ?>"></script>
-    <?php if ($user['role'] === 'admin'): ?>
+    <?php if (($user['role'] ?? '') === 'admin'): ?>
     <script src="<?= asset('js/charts.js') ?>"></script>
     <script>
         // Auto-inject Nursery Selector for Admins on PUB Form Pages

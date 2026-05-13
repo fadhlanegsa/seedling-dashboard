@@ -152,6 +152,79 @@ class MediaMixing extends Model {
     }
 
     /**
+     * Paginate productions
+     * @param int $page
+     * @param int $perPage
+     * @param array $filters
+     * @return array
+     */
+    public function paginateProductions($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT p.*, u.full_name as creator_name,
+                EXISTS(SELECT 1 FROM bag_filling_media WHERE media_production_id = p.id) as is_locked
+                FROM {$this->table} p
+                JOIN users u ON p.created_by = u.id";
+                
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} p";
+        
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "p.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "p.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" AND ", $where);
+            $countSql .= " WHERE " . implode(" AND ", $where);
+        }
+
+        $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+            
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("MediaMixing Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
+    }
+
+    /**
      * Get available mixed media productions (with remaining stock)
      * @param array $filters
      * @return array

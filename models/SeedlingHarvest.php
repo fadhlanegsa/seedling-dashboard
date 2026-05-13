@@ -44,7 +44,16 @@ class SeedlingHarvest extends Model {
      * @param array $filters
      * @return array
      */
-    public function getRecentHarvests($limit = 10, $filters = []) {
+    /**
+    * Paginate harvests
+    * @param int $page
+    * @param int $perPage
+    * @param array $filters
+    * @return array
+    */
+    public function paginateHarvests($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        
         $sql = "SELECT h.*, s.sowing_code, h.location,
                 m.name as seed_name, 'pcs' as seed_unit,
                 (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock,
@@ -64,6 +73,8 @@ class SeedlingHarvest extends Model {
                     GROUP BY harvest_id
                 ) e ON h.id = e.harvest_id";
         
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} h";
+        
         $where = [];
         $params = [];
         
@@ -71,25 +82,50 @@ class SeedlingHarvest extends Model {
             $where[] = "h.nursery_id = ?";
             $params[] = $filters['nursery_id'];
         }
-        
         if (!empty($filters['bpdas_id'])) {
             $where[] = "h.bpdas_id = ?";
             $params[] = $filters['bpdas_id'];
         }
-
         if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
+            $sql .= " WHERE " . implode(' AND ', $where);
+            $countSql .= " WHERE " . implode(' AND ', $where);
         }
-
-        $sql .= " HAVING remaining_stock > 0 ORDER BY h.created_at DESC LIMIT ?";
-        $params[] = (int)$limit;
-
-        $stmt = $this->db->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k + 1, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        $sql .= " HAVING remaining_stock > 0 ORDER BY h.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+            
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+            
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("SeedlingHarvest Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
         }
-        $stmt->execute();
-        return $stmt->fetchAll();
     }
 
     /**

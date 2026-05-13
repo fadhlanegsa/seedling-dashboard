@@ -153,19 +153,16 @@ class SeedlingWeaning extends Model {
             $where[] = "w.nursery_id = ?";
             $params[] = $filters['nursery_id'];
         }
-        
         if (!empty($filters['bpdas_id'])) {
             $where[] = "w.bpdas_id = ?";
             $params[] = $filters['bpdas_id'];
         }
-
         if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
+            $sql .= " WHERE " . implode(' AND ', $where);
         }
-
         $sql .= " ORDER BY w.created_at DESC LIMIT ?";
         $params[] = (int)$limit;
-
+        
         $stmt = $this->db->prepare($sql);
         foreach ($params as $k => $v) {
             $stmt->bindValue($k + 1, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
@@ -173,6 +170,84 @@ class SeedlingWeaning extends Model {
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    /**
+     * Paginate weanings
+     * @param int $page
+     * @param int $perPage
+     * @param array $filters
+     * @return array
+     */
+    public function paginateWeanings($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT w.*, h.harvest_code, st.name as result_name,
+                (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock,
+                (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
+                 EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
+                FROM {$this->table} w
+                JOIN seedling_harvests h ON w.harvest_id = h.id
+                JOIN seedling_types st ON w.result_item_id = st.id
+                LEFT JOIN (
+                    SELECT harvest_id, SUM(used_quantity) as entres_stock
+                    FROM seedling_entres
+                    GROUP BY harvest_id
+                ) e ON w.id = e.harvest_id
+                LEFT JOIN (
+                    SELECT source_id, SUM(quantity) as mutation_stock
+                    FROM seedling_mutations
+                    WHERE source_type = 'PE'
+                    GROUP BY source_id
+                ) m ON w.id = m.source_id";
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} w";
+        $where = [];
+        $params = [];
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "w.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "w.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(' AND ', $where);
+            $countSql .= " WHERE " . implode(' AND ', $where);
+        }
+        $sql .= " ORDER BY w.created_at DESC LIMIT ? OFFSET ?";
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("SeedlingWeaning Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
+    }
+
     /**
      * Get available weanings (sisa stok bibit di polybag) for Entres
      * @param array $filters

@@ -55,6 +55,9 @@ $(document).ready(function() {
     if ($('#usersTable').length) {
         $('#usersTable').DataTable($.extend({}, defaultConfig, {
             order: [[1, 'asc']],
+            paging: false,
+            searching: false,
+            info: false,
             columnDefs: [
                 { orderable: false, targets: -1 }
             ]

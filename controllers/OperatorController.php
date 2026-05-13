@@ -747,10 +747,10 @@ public function uploadDeliveryPhoto() {
         $id = $userSession['id'];
 
         $updateData = [
-            'username' => sanitizeInput($this->post('username')),
-            'full_name' => sanitizeInput($this->post('full_name')),
+            'username' => sanitize($this->post('username')),
+            'full_name' => sanitize($this->post('full_name')),
             'email' => filter_var($this->post('email'), FILTER_SANITIZE_EMAIL),
-            'phone' => sanitizeInput($this->post('phone'))
+            'phone' => sanitize($this->post('phone'))
         ];
 
         // Validations

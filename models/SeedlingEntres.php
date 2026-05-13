@@ -78,8 +78,8 @@ class SeedlingEntres extends Model {
 
             // 1. Insert Master Entres
             $sql = "INSERT INTO {$this->table} 
-                    (entres_code, entres_date, harvest_id, result_item_id, used_quantity, location, mandor, manager, notes, bpdas_id, nursery_id, created_by)
-                    VALUES (:entres_code, :entres_date, :harvest_id, :result_item_id, :used_quantity, :location, :mandor, :manager, :notes, :bpdas_id, :nursery_id, :created_by)";
+                    (entres_code, entres_date, harvest_id, weaning_id, result_item_id, used_quantity, location, mandor, manager, notes, bpdas_id, nursery_id, created_by)
+                    VALUES (:entres_code, :entres_date, :harvest_id, :weaning_id, :result_item_id, :used_quantity, :location, :mandor, :manager, :notes, :bpdas_id, :nursery_id, :created_by)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($entresData);
@@ -140,11 +140,14 @@ class SeedlingEntres extends Model {
      * Get recent entres for dashboard
      */
     public function getRecentEntres($limit = 10, $filters = []) {
-        $sql = "SELECT e.*, w.weaning_code, st.name as result_name,
+        $sql = "SELECT e.*, 
+                COALESCE(w.weaning_code, h.harvest_code) as source_code,
+                st.name as result_name,
                 (e.used_quantity - COALESCE(m.mutation_stock, 0)) as remaining_stock,
                 EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = e.id AND source_type = 'ET') as is_locked
                 FROM {$this->table} e
-                JOIN seedling_weanings w ON e.harvest_id = w.id
+                LEFT JOIN seedling_weanings w ON e.weaning_id = w.id
+                LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
                 JOIN seedling_types st ON e.result_item_id = st.id
                 LEFT JOIN (
                     SELECT source_id, SUM(quantity) as mutation_stock
@@ -179,6 +182,88 @@ class SeedlingEntres extends Model {
         }
         $stmt->execute();
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Paginate entres
+     * @param int $page
+     * @param int $perPage
+     * @param array $filters
+     * @return array
+     */
+    public function paginateEntres($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT e.*, 
+                COALESCE(w.weaning_code, h.harvest_code) as source_code,
+                st.name as result_name,
+                (e.used_quantity - COALESCE(m.mutation_stock, 0)) as remaining_stock,
+                EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = e.id AND source_type = 'ET') as is_locked
+                FROM {$this->table} e
+                LEFT JOIN seedling_weanings w ON e.weaning_id = w.id
+                LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                JOIN seedling_types st ON e.result_item_id = st.id
+                LEFT JOIN (
+                    SELECT source_id, SUM(quantity) as mutation_stock
+                    FROM seedling_mutations
+                    WHERE source_type = 'ET'
+                    GROUP BY source_id
+                ) m ON e.id = m.source_id";
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} e";
+        
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "e.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "e.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" AND ", $where);
+            $countSql .= " WHERE " . implode(" AND ", $where);
+        }
+
+        $sql .= " ORDER BY e.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("SeedlingEntres Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
     }
 
     /**

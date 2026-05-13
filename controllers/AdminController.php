@@ -442,15 +442,17 @@ class AdminController extends Controller {
     public function users() {
         $page = $this->get('page', 1);
         $role = $this->get('role');
+        $search = $this->get('search');
 
         $userModel = $this->model('User');
-        $result    = $userModel->paginate($page, ITEMS_PER_PAGE, $role);
+        $result    = $userModel->paginate($page, ITEMS_PER_PAGE, $role, $search);
 
         $data = [
             'title'       => 'Kelola Pengguna',
             'users'       => $result['data'],
             'pagination'  => $result,
-            'currentRole' => $role
+            'currentRole' => $role,
+            'search'      => $search
         ];
 
         $this->render('admin/users', $data, 'dashboard');

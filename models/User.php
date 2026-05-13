@@ -71,12 +71,26 @@ class User extends Model {
             $data['role'] = 'public';
         }
         
-        // Convert empty string email to null to avoid unique constraint violations
-        if (isset($data['email']) && trim($data['email']) === '') {
-            $data['email'] = null;
-        }
+        // Email opsional: semua bentuk "kosong" disimpan sebagai NULL
+        // NULL di kolom UNIQUE diizinkan di MySQL (banyak baris bisa NULL)
+        $data['email'] = $this->sanitizeEmail($data['email'] ?? null);
         
         return $this->create($data);
+    }
+    
+    /**
+     * Sanitize email: kembalikan NULL jika kosong, string valid jika diisi
+     * Ini penting agar registrasi tanpa email tidak crash di DB.
+     * 
+     * @param mixed $email
+     * @return string|null
+     */
+    private function sanitizeEmail($email) {
+        if ($email === null || $email === false) {
+            return null;
+        }
+        $email = trim((string)$email);
+        return $email === '' ? null : strtolower($email);
     }
     
     /**
@@ -122,20 +136,32 @@ class User extends Model {
      * @param string $role Filter by role (optional)
      * @return array
      */
-    public function paginate($page = 1, $perPage = ITEMS_PER_PAGE, $role = null) {
+    public function paginate($page = 1, $perPage = ITEMS_PER_PAGE, $role = null, $search = null) {
         $offset = ($page - 1) * $perPage;
         
         $sql = "SELECT u.*, b.name as bpdas_name 
                 FROM {$this->table} u
-                LEFT JOIN bpdas b ON u.bpdas_id = b.id";
+                LEFT JOIN bpdas b ON u.bpdas_id = b.id
+                WHERE 1=1";
         
-        $countSql = "SELECT COUNT(*) as total FROM {$this->table} u";
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} u LEFT JOIN bpdas b ON u.bpdas_id = b.id WHERE 1=1";
         $params = [];
         
         if ($role) {
-            $sql .= " WHERE u.role = ?";
-            $countSql .= " WHERE u.role = ?";
+            $sql .= " AND u.role = ?";
+            $countSql .= " AND u.role = ?";
             $params[] = $role;
+        }
+
+        if ($search) {
+            $searchPattern = "%{$search}%";
+            $searchQuery = " AND (u.username LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR b.name LIKE ?)";
+            $sql .= $searchQuery;
+            $countSql .= $searchQuery;
+            $params[] = $searchPattern;
+            $params[] = $searchPattern;
+            $params[] = $searchPattern;
+            $params[] = $searchPattern;
         }
         
         $sql .= " ORDER BY u.created_at DESC LIMIT ? OFFSET ?";

@@ -166,7 +166,7 @@ class EmailSender {
                     </div>
                     <div class="detail">
                         <span class="label">Jenis Bibit:</span>
-                        <span><?= $request['seedling_name'] ?></span>
+                        <span><?= $request['seedling_name'] ?? '' ?></span>
                     </div>
                     <div class="detail">
                         <span class="label">Jumlah:</span>
@@ -237,7 +237,7 @@ class EmailSender {
                     </div>
                     <div class="detail">
                         <span class="label">Jenis Bibit:</span>
-                        <span><?= $request['seedling_name'] ?></span>
+                        <span><?= $request['seedling_name'] ?? '' ?></span>
                     </div>
                     <div class="detail">
                         <span class="label">Jumlah:</span>
@@ -323,7 +323,7 @@ class EmailSender {
                     </div>
                     <div class="detail">
                         <span class="label">Jenis Bibit:</span>
-                        <span><?= $request['seedling_name'] ?></span>
+                        <span><?= $request['seedling_name'] ?? '' ?></span>
                     </div>
                     <div class="detail">
                         <span class="label">Jumlah:</span>

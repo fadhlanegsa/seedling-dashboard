@@ -311,8 +311,8 @@
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0 table-hover table-striped">
                                 <tbody class="small">
-                                    <?php if (!empty($recentProductions)): ?>
-                                        <?php foreach (array_slice($recentProductions, 0, 5) as $prod): ?>
+                                    <?php if (!empty($recentProductions['data'])): ?>
+                                        <?php foreach ($recentProductions['data'] as $prod): ?>
                                             <tr>
                                                 <td class="p-2 border-bottom">
                                                     <div class="d-flex justify-content-between mb-1">
@@ -333,6 +333,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($recentProductions['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentProductions['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_mt' => $recentProductions['page'] - 1])) ?>#history"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentProductions['page'] ?> / <?= $recentProductions['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentProductions['page'] >= $recentProductions['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_mt' => $recentProductions['page'] + 1])) ?>#history"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -345,8 +360,8 @@
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0 table-hover table-striped">
                                 <tbody class="small">
-                                    <?php if (!empty($recentFillings)): ?>
-                                        <?php foreach (array_slice($recentFillings, 0, 5) as $pb): ?>
+                                    <?php if (!empty($recentFillings['data'])): ?>
+                                        <?php foreach ($recentFillings['data'] as $pb): ?>
                                             <tr>
                                                 <td class="p-2 border-bottom">
                                                     <div class="d-flex justify-content-between mb-1">
@@ -371,6 +386,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($recentFillings['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentFillings['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pb' => $recentFillings['page'] - 1])) ?>#history"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentFillings['page'] ?> / <?= $recentFillings['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentFillings['page'] >= $recentFillings['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pb' => $recentFillings['page'] + 1])) ?>#history"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -383,8 +413,8 @@
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0 table-hover table-striped">
                                 <tbody class="small">
-                                    <?php if (!empty($recentSowings)): ?>
-                                        <?php foreach (array_slice($recentSowings, 0, 5) as $pc): ?>
+                                    <?php if (!empty($recentSowings['data'])): ?>
+                                        <?php foreach ($recentSowings['data'] as $pc): ?>
                                             <tr>
                                                 <td class="p-2 border-bottom">
                                                     <div class="d-flex justify-content-between mb-1">
@@ -409,6 +439,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($recentSowings['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentSowings['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pc' => $recentSowings['page'] - 1])) ?>#history"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentSowings['page'] ?> / <?= $recentSowings['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentSowings['page'] >= $recentSowings['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pc' => $recentSowings['page'] + 1])) ?>#history"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -421,8 +466,8 @@
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0 table-hover table-striped">
                                 <tbody class="small">
-                                    <?php if (!empty($recentHarvests)): ?>
-                                        <?php foreach (array_slice($recentHarvests, 0, 5) as $pa): ?>
+                                    <?php if (!empty($recentHarvests['data'])): ?>
+                                        <?php foreach ($recentHarvests['data'] as $pa): ?>
                                             <tr>
                                                 <td class="p-2 border-bottom">
                                                     <div class="d-flex justify-content-between mb-1">
@@ -447,6 +492,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($recentHarvests['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentHarvests['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pa' => $recentHarvests['page'] - 1])) ?>#history"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentHarvests['page'] ?> / <?= $recentHarvests['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentHarvests['page'] >= $recentHarvests['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pa' => $recentHarvests['page'] + 1])) ?>#history"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -459,8 +519,8 @@
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0 table-hover table-striped">
                                 <tbody class="small">
-                                    <?php if (!empty($recentWeanings)): ?>
-                                        <?php foreach (array_slice($recentWeanings, 0, 5) as $pe): ?>
+                                    <?php if (!empty($recentWeanings['data'])): ?>
+                                        <?php foreach ($recentWeanings['data'] as $pe): ?>
                                             <tr>
                                                 <td class="p-2 border-bottom">
                                                     <div class="d-flex justify-content-between mb-1">
@@ -486,6 +546,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($recentWeanings['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentWeanings['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pe' => $recentWeanings['page'] - 1])) ?>#history"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentWeanings['page'] ?> / <?= $recentWeanings['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentWeanings['page'] >= $recentWeanings['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_pe' => $recentWeanings['page'] + 1])) ?>#history"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
@@ -498,8 +573,8 @@
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0 table-hover table-striped">
                                 <tbody class="small">
-                                    <?php if (!empty($recentMutations)): ?>
-                                        <?php foreach (array_slice($recentMutations, 0, 5) as $bo): ?>
+                                    <?php if (!empty($recentMutations['data'])): ?>
+                                        <?php foreach ($recentMutations['data'] as $bo): ?>
                                             <tr>
                                                 <td class="p-2 border-bottom">
                                                     <div class="d-flex justify-content-between mb-1">
@@ -524,6 +599,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($recentMutations['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentMutations['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_bo' => $recentMutations['page'] - 1])) ?>#history"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentMutations['page'] ?> / <?= $recentMutations['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentMutations['page'] >= $recentMutations['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_bo' => $recentMutations['page'] + 1])) ?>#history"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -593,22 +683,41 @@
                                         </tr>
                                     </thead>
                                     <tbody class="small">
-                                        <?php foreach (array_slice($recentTransactions, 0, 5) as $row): ?>
-                                            <tr>
-                                                <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
-                                                <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
-                                                <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'] ?? 0, 2) ?></td>
-                                                <td class="p-2"><?= $row['item_unit'] ?></td>
-                                                <td class="p-2 text-center">
-                                                    <a href="<?= url('seedling-edit/edit-bahan-baku/' . $row['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
-                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bahan-baku/' . $row['id']) ?>" data-title="Bahan Baku <?= $row['item_name'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
+                                        <?php if (!empty($recentTransactions['data'])): ?>
+                                            <?php foreach ($recentTransactions['data'] as $row): ?>
+                                                <tr>
+                                                    <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
+                                                    <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
+                                                    <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'] ?? 0, 2) ?></td>
+                                                    <td class="p-2"><?= $row['item_unit'] ?></td>
+                                                    <td class="p-2 text-center">
+                                                        <a href="<?= url('seedling-edit/edit-bahan-baku/' . $row['id']) ?>" class="btn btn-xs btn-outline-primary py-0 px-1 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                                        <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="<?= url('seedling-edit/delete-bahan-baku/' . $row['id']) ?>" data-title="Bahan Baku <?= $row['item_name'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada transaksi</td></tr>
+                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+                        <?php if ($recentTransactions['totalPages'] > 1): ?>
+                            <div class="card-footer py-2 bg-white border-top-0 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination pagination-xs mb-0">
+                                        <li class="page-item <?= ($recentTransactions['page'] <= 1) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_in' => $recentTransactions['page'] - 1])) ?>#inventory"><i class="fas fa-chevron-left"></i></a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link"><?= $recentTransactions['page'] ?> / <?= $recentTransactions['totalPages'] ?></span></li>
+                                        <li class="page-item <?= ($recentTransactions['page'] >= $recentTransactions['totalPages']) ? 'disabled' : '' ?>">
+                                            <a class="page-link" href="<?= url('seedling-admin') . '?' . http_build_query(array_merge($_GET, ['page_in' => $recentTransactions['page'] + 1])) ?>#inventory"><i class="fas fa-chevron-right"></i></a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -618,6 +727,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    // ── Auto-activate tab from URL hash (#history / #inventory) ──
+    const hash = window.location.hash;
+    if (hash) {
+        const tabLink = document.querySelector('#dashboardTabs a[href="' + hash + '"]');
+        if (tabLink) {
+            document.querySelectorAll('#dashboardTabs .nav-link').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#dashboardTabsContent .tab-pane').forEach(el => el.classList.remove('show', 'active'));
+            tabLink.classList.add('active');
+            const target = document.querySelector(hash);
+            if (target) target.classList.add('show', 'active');
+        }
+    }
+
     const filterBpdas = document.getElementById('filter_bpdas');
     const filterNursery = document.getElementById('filter_nursery');
 

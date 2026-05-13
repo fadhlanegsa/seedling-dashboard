@@ -169,6 +169,78 @@ class SeedSowing extends Model {
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    /**
+     * Paginate seed sowings
+     * @param int $page
+     * @param int $perPage
+     * @param array $filters
+     * @return array
+     */
+    public function paginateSowings($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT s.*, m.name as seed_name, m.unit as seed_unit,
+                (SELECT SUM(quantity) FROM seed_sowing_polybags WHERE sowing_id = s.id) as total_polybags,
+                EXISTS(SELECT 1 FROM seedling_harvests WHERE sowing_id = s.id) as is_locked
+                FROM {$this->table} s
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id";
+        
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} s";
+        
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "s.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "s.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" AND ", $where);
+            $countSql .= " WHERE " . implode(" AND ", $where);
+        }
+        $sql .= " ORDER BY s.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+            
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+            
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("SeedSowing Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
+    }
+
     /**
      * Get available seed sowings for harvesting
      * @param array $filters

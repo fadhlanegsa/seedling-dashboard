@@ -38,7 +38,7 @@
                     <div class="col-12">
                         <div class="form-group mb-0">
                             <label class="text-muted mb-1">Alamat</label>
-                            <p class="mb-0"><?= htmlspecialchars($user['nursery_address']) ?></p>
+                            <p class="mb-0"><?= htmlspecialchars($user['nursery_address'] ?? '') ?></p>
                         </div>
                     </div>
                 </div>
@@ -58,32 +58,32 @@
                     
                     <div class="form-group">
                         <label class="form-label required">Username</label>
-                        <input type="text" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" disabled>
+                        <input type="text" class="form-control" value="<?= htmlspecialchars($user['username'] ?? '') ?>" disabled>
                         <small class="form-text text-muted">Username tidak dapat diubah</small>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label required">Nama Lengkap</label>
                         <input type="text" name="full_name" class="form-control" 
-                               value="<?= htmlspecialchars($user['full_name']) ?>" required>
+                               value="<?= htmlspecialchars($user['full_name'] ?? '') ?>" required>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label required">Email</label>
                         <input type="email" name="email" class="form-control" 
-                               value="<?= htmlspecialchars($user['email']) ?>" required>
+                               value="<?= htmlspecialchars($user['email'] ?? '') ?>" required>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label required">No. Telepon</label>
                         <input type="tel" name="phone" class="form-control" 
-                               value="<?= htmlspecialchars($user['phone']) ?>" required>
+                               value="<?= htmlspecialchars($user['phone'] ?? '') ?>" required>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label required">NIK</label>
                         <input type="text" name="nik" class="form-control" 
-                               value="<?= htmlspecialchars($user['nik']) ?>" 
+                               value="<?= htmlspecialchars($user['nik'] ?? '') ?>" 
                                pattern="\d{16}" maxlength="16" required>
                         <small class="form-text text-muted">16 digit angka</small>
                     </div>
@@ -158,8 +158,8 @@
                     <div class="mb-3">
                         <i class="fas fa-user-circle fa-5x text-primary"></i>
                     </div>
-                    <h5><?= htmlspecialchars($user['full_name']) ?></h5>
-                    <p class="text-muted">@<?= htmlspecialchars($user['username']) ?></p>
+                    <h5><?= htmlspecialchars($user['full_name'] ?? '') ?></h5>
+                    <p class="text-muted">@<?= htmlspecialchars($user['username'] ?? '') ?></p>
                     
                     <span class="badge badge-success badge-lg">
                         <i class="fas fa-check"></i> Akun Aktif
@@ -171,15 +171,15 @@
                 <div class="text-left">
                     <p class="mb-2">
                         <i class="fas fa-envelope"></i> 
-                        <?= htmlspecialchars($user['email']) ?>
+                        <?= htmlspecialchars($user['email'] ?? '') ?>
                     </p>
                     <p class="mb-2">
                         <i class="fas fa-phone"></i> 
-                        <?= htmlspecialchars($user['phone']) ?>
+                        <?= htmlspecialchars($user['phone'] ?? '') ?>
                     </p>
                     <p class="mb-0">
                         <i class="fas fa-id-card"></i> 
-                        <?= htmlspecialchars($user['nik']) ?>
+                        <?= htmlspecialchars($user['nik'] ?? '') ?>
                     </p>
                 </div>
             </div>

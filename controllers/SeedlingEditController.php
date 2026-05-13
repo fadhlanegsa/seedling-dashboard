@@ -802,7 +802,7 @@ class SeedlingEditController extends Controller {
     }
 
     public function deleteBahanBaku($id) {
-        $this->handleDeletion('BahanBaku', 'deleteTransaction', $id, 'seedling-admin');
+        $this->handleDeletion('BahanBaku', 'deleteTransaction', $id, 'seedling-admin/bahan-baku-form');
     }
 
     public function deleteMediaMixing($id) {

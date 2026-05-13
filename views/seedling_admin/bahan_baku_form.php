@@ -52,7 +52,7 @@
                                 <div class="form-group row mb-4">
                                     <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Jumlah ( <span id="unit-label">kg</span> )</label>
                                     <div class="col-sm-7">
-                                        <input type="number" step="0.01" name="quantity" class="form-control" placeholder="0.00" required>
+                                        <input type="text" name="quantity" class="form-control" placeholder="Contoh: 3500 atau 3,5" required>
                                     </div>
                                 </div>
                                 <div class="form-group row mb-4">

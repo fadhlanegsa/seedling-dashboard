@@ -828,6 +828,8 @@ select.form-control {
 .brand-logo-img {
     height: 50px;
     width: auto;
+    max-width: 100%;
+    object-fit: contain;
     margin-right: 10px;
     flex-shrink: 0;
 }
@@ -2142,6 +2144,8 @@ select.form-control {
 
 .brand-logo-img {
     height: 45px !important;
+    width: auto !important;
+    object-fit: contain !important;
     margin-right: 12px !important;
     flex-shrink: 0;
 }

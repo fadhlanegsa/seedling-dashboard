@@ -323,6 +323,74 @@ class SeedlingMutation extends Model {
     }
 
     /**
+     * Paginate mutations
+     */
+    public function paginateMutations($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT m.*, 
+                CASE 
+                    WHEN m.source_type = 'PE' THEN (SELECT weaning_code FROM seedling_weanings WHERE id = m.source_id)
+                    WHEN m.source_type = 'ET' THEN (SELECT entres_code FROM seedling_entres WHERE id = m.source_id)
+                END as source_code,
+                CASE 
+                    WHEN m.source_type = 'PE' THEN (SELECT st.name FROM seedling_weanings w JOIN seedling_types st ON w.result_item_id = st.id WHERE w.id = m.source_id)
+                    WHEN m.source_type = 'ET' THEN (SELECT st.name FROM seedling_entres e JOIN seedling_types st ON e.result_item_id = st.id WHERE e.id = m.source_id)
+                END as seedling_name
+                FROM {$this->table} m
+                WHERE 1=1";
+        
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} m WHERE 1=1";
+        $params = [];
+        if (!empty($filters['nursery_id'])) {
+            $sql .= " AND m.nursery_id = ?";
+            $countSql .= " AND m.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        if (!empty($filters['bpdas_id'])) {
+            $sql .= " AND m.bpdas_id = ?";
+            $countSql .= " AND m.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+        
+        $sql .= " ORDER BY m.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("SeedlingMutation Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
+    }
+
+    /**
      * Delete Mutation & Revert Stock
      */
     public function deleteMutation($id, $userId, $reason) {

@@ -213,9 +213,13 @@ class HomeController extends Controller {
         }
     }
     /**
-     * Public Map Distribution
+     * Public Map Distribution (Restricted to Internal Staff)
      */
     public function distribution() {
+        if (!isLoggedIn() || !in_array(currentUser()['role'] ?? '', ['admin', 'bpdas', 'operator_persemaian'])) {
+            $this->redirect('');
+            return;
+        }
         $provinceModel = $this->model('Province');
         $bpdasModel = $this->model('BPDAS');
         $seedlingTypeModel = $this->model('SeedlingType');
@@ -235,9 +239,13 @@ class HomeController extends Controller {
     }
     
     /**
-     * AJAX: Get map data for public visualization
+     * AJAX: Get map data for public visualization (Restricted)
      */
     public function getMapData() {
+        if (!isLoggedIn() || !in_array(currentUser()['role'] ?? '', ['admin', 'bpdas', 'operator_persemaian'])) {
+            $this->json(['success' => false, 'message' => 'Unauthorized access']);
+            return;
+        }
         $filters = [
             'province_id' => $this->get('province_id'),
             'bpdas_id' => $this->get('bpdas_id'),

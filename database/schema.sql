@@ -30,20 +30,22 @@ CREATE TABLE provinces (
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(100) NULL DEFAULT NULL, -- Opsional: masyarakat tidak wajib punya email
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     nik VARCHAR(16), -- NIK for public users
     address TEXT, -- User address
-    role ENUM('admin', 'bpdas', 'public') NOT NULL DEFAULT 'public',
+    role ENUM('admin', 'bpdas', 'operator_persemaian', 'public') NOT NULL DEFAULT 'public',
     bpdas_id INT NULL, -- Foreign key for BPDAS users
+    nursery_id INT NULL, -- Foreign key for Operator users
+    user_type ENUM('perorangan', 'kelompok') NULL DEFAULT 'perorangan', -- Jenis pemohon publik
     is_active TINYINT(1) DEFAULT 1,
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_email (email), -- NULL tidak dianggap duplikat di MySQL (bisa banyak NULL)
     INDEX idx_role (role),
-    INDEX idx_email (email),
     INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

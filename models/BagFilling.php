@@ -159,6 +159,86 @@ class BagFilling extends Model {
     }
 
     /**
+     * Paginate fillings
+     * @param int $page
+     * @param int $perPage
+     * @param array $filters
+     * @return array
+     */
+    public function paginateFillings($page = 1, $perPage = 10, $filters = []) {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT f.*, m.name as bag_name, m.unit as bag_unit,
+                (f.total_production - COALESCE(used.total_used, 0)) as remaining_stock,
+                (EXISTS(SELECT 1 FROM seed_sowing_polybags WHERE bag_filling_id = f.id) OR 
+                 EXISTS(SELECT 1 FROM seedling_weaning_polybags WHERE bag_filling_id = f.id)) as is_locked
+                FROM {$this->table} f
+                JOIN bahan_baku_master m ON f.bag_item_id = m.id
+                LEFT JOIN (
+                    SELECT bag_filling_id, SUM(quantity) as total_used
+                    FROM seed_sowing_polybags
+                    GROUP BY bag_filling_id
+                ) used ON f.id = used.bag_filling_id";
+                
+        $countSql = "SELECT COUNT(*) as total FROM {$this->table} f";
+        
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['nursery_id'])) {
+            $where[] = "f.nursery_id = ?";
+            $params[] = $filters['nursery_id'];
+        }
+        
+        if (!empty($filters['bpdas_id'])) {
+            $where[] = "f.bpdas_id = ?";
+            $params[] = $filters['bpdas_id'];
+        }
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" AND ", $where);
+            $countSql .= " WHERE " . implode(" AND ", $where);
+        }
+
+        $sql .= " ORDER BY f.created_at DESC LIMIT ? OFFSET ?";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k + 1, $v);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll();
+            
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k + 1, $v);
+            }
+            $countStmt->execute();
+            $total = (int)$countStmt->fetchColumn();
+
+            return [
+                'data' => $data,
+                'total' => $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => ceil($total / $perPage)
+            ];
+        } catch (PDOException $e) {
+            logError("BagFilling Paginate Error: " . $e->getMessage());
+            return [
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 0
+            ];
+        }
+    }
+
+    /**
      * Get available filled polybags (with remaining stock)
      * @param array $filters
      * @return array

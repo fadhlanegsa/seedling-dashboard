@@ -174,15 +174,18 @@ class AuthController extends Controller {
         }
         
         $data = [
-            'username' => sanitize($this->post('username')),
-            'email' => sanitize($this->post('email')),
-            'password' => $this->post('password'),
+            'username'         => sanitize($this->post('username')),
+            'email'            => sanitize($this->post('email')),
+            'password'         => $this->post('password'),
             'password_confirm' => $this->post('password_confirm'),
-            'full_name' => sanitize($this->post('full_name')),
-            'phone' => sanitize($this->post('phone')),
-            'nik' => sanitize($this->post('nik')),
-            'user_type' => $this->post('user_type')
+            'full_name'        => sanitize($this->post('full_name')),
+            'phone'            => sanitize($this->post('phone')),
+            'nik'              => sanitize($this->post('nik')),
+            'user_type'        => $this->post('user_type')
         ];
+
+        // Normalisasi email: string kosong → null (email opsional, masyarakat tidak wajib punya email)
+        $data['email'] = (isset($data['email']) && trim($data['email']) !== '') ? strtolower(trim($data['email'])) : null;
         
         // Validate required fields
         $errors = $this->validateRequired($data, [
@@ -191,7 +194,7 @@ class AuthController extends Controller {
         ]);
         
         if (!empty($errors)) {
-            $this->setFlash('error', 'Semua field harus diisi');
+            $this->setFlash('error', 'Semua field wajib harus diisi (email boleh dikosongkan)');
             $this->redirect('auth/register');
             return;
         }
@@ -203,8 +206,8 @@ class AuthController extends Controller {
             return;
         }
         
-        // Validate email
-        if (!empty($data['email']) && !$this->validateEmail($data['email'])) {
+        // Validate email format — HANYA jika email diisi (email opsional)
+        if ($data['email'] !== null && !$this->validateEmail($data['email'])) {
             $this->setFlash('error', 'Format email tidak valid');
             $this->redirect('auth/register');
             return;
@@ -240,9 +243,9 @@ class AuthController extends Controller {
             return;
         }
         
-        // Check if email exists
-        if (!empty($data['email']) && $userModel->emailExists($data['email'])) {
-            $this->setFlash('error', 'Email sudah terdaftar');
+        // Check if email exists — HANYA jika email diisi (NULL tidak dianggap duplikat di MySQL)
+        if ($data['email'] !== null && $userModel->emailExists($data['email'])) {
+            $this->setFlash('error', 'Email sudah terdaftar. Gunakan email lain atau biarkan kosong');
             $this->redirect('auth/register');
             return;
         }

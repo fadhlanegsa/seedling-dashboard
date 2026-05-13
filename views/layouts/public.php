@@ -45,11 +45,13 @@
                             <i class="fas fa-search"></i> Cari Stok
                         </a>
                     </li>
+                    <?php if (isLoggedIn() && in_array(currentUser()['role'] ?? '', ['admin', 'bpdas', 'operator_persemaian'])): ?>
                     <li>
                         <a href="<?= url('home/distribution') ?>" class="nav-link-item <?= $this->activeClass('home/distribution') ?>">
                             <i class="fas fa-map-marked-alt"></i> Peta Sebaran
                         </a>
                     </li>
+                    <?php endif; ?>
                     <li>
                         <a href="<?= url('home/howto') ?>" class="nav-link-item <?= $this->activeClass('home/howto') ?>">
                             <i class="fas fa-info-circle"></i> Info Layanan
