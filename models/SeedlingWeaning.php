@@ -43,10 +43,19 @@ class SeedlingWeaning extends Model {
                 $weaningData['weaning_code'] = $this->generateWeaningCode();
             }
 
+            // Inherit seed_source_id from sowing via harvest
+            $sourceQ = $this->queryOne("
+                SELECT s.seed_source_id 
+                FROM seedling_harvests h 
+                JOIN seed_sowings s ON h.sowing_id = s.id 
+                WHERE h.id = ?", [$weaningData['harvest_id']]
+            );
+            $weaningData['seed_source_id'] = $sourceQ['seed_source_id'] ?? null;
+
             // 1. Insert Master Weaning
             $sql = "INSERT INTO {$this->table} 
-                    (weaning_code, weaning_date, harvest_id, result_item_id, weaned_quantity, location, mandor, manager, notes, bpdas_id, nursery_id, created_by)
-                    VALUES (:weaning_code, :weaning_date, :harvest_id, :result_item_id, :weaned_quantity, :location, :mandor, :manager, :notes, :bpdas_id, :nursery_id, :created_by)";
+                    (weaning_code, weaning_date, harvest_id, result_item_id, weaned_quantity, location, mandor, manager, notes, bpdas_id, nursery_id, created_by, seed_source_id)
+                    VALUES (:weaning_code, :weaning_date, :harvest_id, :result_item_id, :weaned_quantity, :location, :mandor, :manager, :notes, :bpdas_id, :nursery_id, :created_by, :seed_source_id)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($weaningData);
@@ -127,13 +136,14 @@ class SeedlingWeaning extends Model {
      * Get recent weanings for dashboard
      */
     public function getRecentWeanings($limit = 10, $filters = []) {
-        $sql = "SELECT w.*, h.harvest_code, st.name as result_name,
+        $sql = "SELECT w.*, h.harvest_code, st.name as result_name, ss.seed_source_name,
                 (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock,
                 (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
                  EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
                 FROM {$this->table} w
                 JOIN seedling_harvests h ON w.harvest_id = h.id
                 JOIN seedling_types st ON w.result_item_id = st.id
+                LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
                 LEFT JOIN (
                     SELECT harvest_id, SUM(used_quantity) as entres_stock
                     FROM seedling_entres
@@ -180,13 +190,14 @@ class SeedlingWeaning extends Model {
      */
     public function paginateWeanings($page = 1, $perPage = 10, $filters = []) {
         $offset = ($page - 1) * $perPage;
-        $sql = "SELECT w.*, h.harvest_code, st.name as result_name,
+        $sql = "SELECT w.*, h.harvest_code, st.name as result_name, ss.seed_source_name,
                 (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock,
                 (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
                  EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
                 FROM {$this->table} w
                 JOIN seedling_harvests h ON w.harvest_id = h.id
                 JOIN seedling_types st ON w.result_item_id = st.id
+                LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
                 LEFT JOIN (
                     SELECT harvest_id, SUM(used_quantity) as entres_stock
                     FROM seedling_entres
@@ -254,12 +265,13 @@ class SeedlingWeaning extends Model {
      * @return array
      */
     public function getAvailableWeanings($filters = []) {
-        $sql = "SELECT w.id, w.weaning_code, w.weaning_date, w.weaned_quantity as total_initial,
-                w.location, st.name as seed_name, 'pcs' as seed_unit,
+        $sql = "SELECT w.id, w.weaning_code, w.weaning_date, w.weaned_quantity as total_initial, w.seed_source_id,
+                w.location, st.name as seed_name, 'pcs' as seed_unit, ss.seed_source_name,
                 (COALESCE(e.entres_stock, 0) + COALESCE(m.mutation_stock, 0)) as used_total,
                 (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock
                 FROM {$this->table} w
                 JOIN seedling_types st ON w.result_item_id = st.id
+                LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
                 LEFT JOIN (
                     SELECT harvest_id, SUM(used_quantity) as entres_stock
                     FROM seedling_entres

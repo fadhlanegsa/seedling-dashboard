@@ -217,9 +217,11 @@ class BahanBaku extends Model {
      * @return array
      */
     public function getRecentTransactions($limit = 10, $filters = []) {
-        $sql = "SELECT t.*, m.name as item_name, m.category as item_category, m.unit as item_unit
+        $sql = "SELECT t.*, m.name as item_name, m.category as item_category, m.unit as item_unit,
+                       ss.seed_source_name
                 FROM {$this->table} t
-                JOIN bahan_baku_master m ON t.item_id = m.id";
+                JOIN bahan_baku_master m ON t.item_id = m.id
+                LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id";
         
         $where = [];
         $params = [];
@@ -259,9 +261,11 @@ class BahanBaku extends Model {
     public function paginateTransactions($page = 1, $perPage = 10, $filters = []) {
         $offset = ($page - 1) * $perPage;
         
-        $sql = "SELECT t.*, m.name as item_name, m.category as item_category, m.unit as item_unit
+        $sql = "SELECT t.*, m.name as item_name, m.category as item_category, m.unit as item_unit,
+                       ss.seed_source_name
                 FROM {$this->table} t
-                JOIN bahan_baku_master m ON t.item_id = m.id";
+                JOIN bahan_baku_master m ON t.item_id = m.id
+                LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id";
         
         $countSql = "SELECT COUNT(*) as total FROM {$this->table} t";
         
@@ -446,5 +450,59 @@ class BahanBaku extends Model {
             logError("Bahan Baku Delete Error: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Get seed stock balance grouped by seed_source_id specifically for Penaburan
+     * @param array $filters
+     * @return array
+     */
+    public function getSeedStockWithSource($filters = []) {
+        $nurseryId = $filters['nursery_id'] ?? null;
+        $bpdasId = $filters['bpdas_id'] ?? null;
+
+        $whereIn = [];
+        $whereOut = [];
+        if ($nurseryId) {
+            $whereIn[] = "t.nursery_id = $nurseryId";
+            $whereOut[] = "s.nursery_id = $nurseryId";
+        }
+        if ($bpdasId) {
+            $whereIn[] = "t.bpdas_id = $bpdasId";
+            $whereOut[] = "s.bpdas_id = $bpdasId";
+        }
+
+        $whereInStr = !empty($whereIn) ? " AND " . implode(" AND ", $whereIn) : "";
+        $whereOutStr = !empty($whereOut) ? " AND " . implode(" AND ", $whereOut) : "";
+
+        $sql = "SELECT 
+                    m.id as item_id, 
+                    m.name as item_name, 
+                    m.unit, 
+                    t.seed_source_id, 
+                    ss.seed_source_name,
+                    SUM(t.quantity) as total_in,
+                    (
+                        SELECT COALESCE(SUM(seed_quantity), 0) 
+                        FROM seed_sowings s 
+                        WHERE s.seed_item_id = m.id 
+                        AND (s.seed_source_id = t.seed_source_id OR (s.seed_source_id IS NULL AND t.seed_source_id IS NULL))
+                        $whereOutStr
+                    ) as total_out
+                FROM bahan_baku_transactions t
+                JOIN bahan_baku_master m ON t.item_id = m.id
+                LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
+                WHERE m.category = 'BENIH' $whereInStr
+                GROUP BY m.id, m.name, m.unit, t.seed_source_id, ss.seed_source_name
+                HAVING (total_in - total_out) > 0
+                ORDER BY m.name ASC, ss.seed_source_name ASC";
+        
+        $results = $this->query($sql);
+        
+        // Calculate current stock
+        foreach ($results as &$r) {
+            $r['current_stock'] = $r['total_in'] - $r['total_out'];
+        }
+        return $results;
     }
 }

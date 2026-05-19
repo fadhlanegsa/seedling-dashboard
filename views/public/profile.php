@@ -91,7 +91,7 @@
                     <div class="form-group">
                         <label class="form-label">Role</label>
                         <input type="text" class="form-control" 
-                               value="<?= ucfirst($user['role']) ?>" disabled>
+                               value="<?= ucfirst($user['role'] ?? '') ?>" disabled>
                     </div>
                     
                     <div class="form-group">

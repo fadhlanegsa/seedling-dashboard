@@ -58,8 +58,14 @@
                                 <div class="input-group">
                                     <input type="text" id="display_source_name" class="form-control border-danger font-weight-bold" placeholder="Klik tombol cari untuk memilih batch bibit..." readonly required>
                                     <div class="input-group-append">
-                                        <button class="btn btn-danger px-4" type="button" onclick="openSourceModal()">
+                                        <button class="btn btn-danger px-4" type="button" onclick="openSourceModal()" title="Cari Batch">
                                             <i class="fas fa-search"></i>
+                                        </button>
+                                        <button class="btn btn-info px-3 d-none" type="button" id="btn_traceability" onclick="openTraceabilityModal()" title="Lacak Asal-Usul (Traceability)">
+                                            <i class="fas fa-info-circle"></i> Lacak
+                                        </button>
+                                        <button class="btn btn-secondary px-3 d-none" type="button" id="btn_qr" onclick="openQRModal()" title="Cetak QR Code">
+                                            <i class="fas fa-qrcode"></i> QR
                                         </button>
                                     </div>
                                 </div>
@@ -168,9 +174,44 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </div>
 
+<!-- Modal Traceability -->
+<div class="modal fade" id="traceabilityModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h6 class="modal-title font-weight-bold"><i class="fas fa-project-diagram mr-2"></i> Lacak Asal-Usul Bibit (Traceability)</h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body bg-light p-4" id="traceabilityBody">
+                <!-- Content injected via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal QR Code -->
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white border-bottom-0">
+                <h6 class="modal-title font-weight-bold"><i class="fas fa-qrcode mr-2"></i> Cetak QR Code</h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body bg-light p-4 text-center">
+                <div id="qrcode" class="d-inline-block bg-white p-2 rounded shadow-sm mb-3"></div>
+                <h6 class="font-weight-bold mb-1" id="qr_batch_code">-</h6>
+                <p class="small text-muted mb-3" id="qr_seed_name">-</p>
+                <button class="btn btn-primary btn-block shadow-sm" onclick="printThermalQR()"><i class="fas fa-print mr-1"></i> Print Stiker</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentSourceType = 'PE';
@@ -194,6 +235,8 @@ document.addEventListener('DOMContentLoaded', function() {
         originLocationLabel.innerText = '-';
         qtyInput.value = '';
         qtyInput.max = 0;
+        document.getElementById('btn_traceability').classList.add('d-none');
+        document.getElementById('btn_qr').classList.add('d-none');
 
         // Modal UX
         document.getElementById('modal_type_label').innerText = type;
@@ -260,8 +303,251 @@ document.addEventListener('DOMContentLoaded', function() {
         qtyInput.max = maxStockActive;
         qtyInput.value = '';
 
+        document.getElementById('btn_traceability').classList.remove('d-none');
+        document.getElementById('btn_qr').classList.remove('d-none');
+
         $('#sourceModal').modal('hide');
     };
+
+    let qrcode = null;
+
+    window.openQRModal = function() {
+        const sourceId = sourceIdInput.value;
+        if (!sourceId) return;
+        
+        const fullTitle = displaySourceName.value;
+        const parts = fullTitle.split(' - ');
+        const code = parts[0];
+        const name = parts.slice(1).join(' - ');
+
+        document.getElementById('qr_batch_code').innerText = code;
+        document.getElementById('qr_seed_name').innerText = name;
+
+        // Generate URL (dynamic base URL)
+        const traceUrl = `<?= url('public/trace') ?>/${currentSourceType}/${sourceId}`;
+
+        const qrContainer = document.getElementById('qrcode');
+        qrContainer.innerHTML = ''; // Clear previous
+
+        qrcode = new QRCode(qrContainer, {
+            text: traceUrl,
+            width: 150,
+            height: 150,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        $('#qrModal').modal('show');
+    };
+
+    window.printThermalQR = function() {
+        const sourceId = sourceIdInput.value;
+        if (!sourceId) return;
+        
+        const fullTitle = displaySourceName.value;
+        const parts = fullTitle.split(' - ');
+        const code = parts[0];
+        const name = parts.slice(1).join(' - ');
+        const date = new Date().toLocaleDateString('id-ID');
+        
+        const qrImg = document.querySelector('#qrcode img').src;
+        
+        const printWindow = window.open('', '_blank', 'width=400,height=400');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print QR Code</title>
+                <style>
+                    @page { margin: 0; size: 58mm 40mm; }
+                    body { 
+                        margin: 0; 
+                        padding: 2mm; 
+                        width: 54mm; 
+                        height: 36mm;
+                        font-family: monospace; 
+                        box-sizing: border-box;
+                    }
+                    .container {
+                        display: flex;
+                        width: 100%;
+                        height: 100%;
+                    }
+                    .qr-box {
+                        width: 25mm;
+                        height: 25mm;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .qr-box img {
+                        width: 100%;
+                        height: 100%;
+                    }
+                    .info-box {
+                        flex: 1;
+                        padding-left: 2mm;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                    }
+                    .title { font-weight: bold; font-size: 10px; margin-bottom: 2px; border-bottom: 1px solid #000; padding-bottom: 2px; }
+                    .detail { font-size: 8px; line-height: 1.2; }
+                    .url { font-size: 6px; margin-top: auto; text-align: center; word-break: break-all; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="qr-box">
+                        <img src="${qrImg}" />
+                    </div>
+                    <div class="info-box">
+                        <div class="title">🌳 BIBIT<br>${name.substring(0, 15)}</div>
+                        <div class="detail">
+                            Batch:<br>${code}<br>
+                            Tgl: ${date}
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+
+    window.openTraceabilityModal = function() {
+        const sourceId = sourceIdInput.value;
+        if (!sourceId) return;
+
+        $('#traceabilityModal').modal('show');
+        const modalBody = document.getElementById('traceabilityBody');
+        modalBody.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-info mb-3"></i><p class="text-muted">Melacak riwayat bibit...</p></div>';
+
+        fetch(`<?= url('seedling-admin/get-batch-traceability-ajax') ?>?source_type=${currentSourceType}&source_id=${sourceId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    renderTraceabilityData(data.data, displaySourceName.value);
+                } else {
+                    modalBody.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mr-2"></i> ${data.message || 'Data tidak ditemukan.'}</div>`;
+                }
+            })
+            .catch(err => {
+                modalBody.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle mr-2"></i> Terjadi kesalahan jaringan.</div>';
+            });
+    };
+
+    function renderTraceabilityData(data, title) {
+        const modalBody = document.getElementById('traceabilityBody');
+        
+        let html = `
+            <h5 class="font-weight-bold text-dark mb-4 border-bottom pb-2">${title}</h5>
+            <div class="row">
+        `;
+
+        // Kolom Kiri
+        html += `<div class="col-md-6 mb-3">`;
+
+        // 1. Sumber Benih
+        if (data.seed_source) {
+            html += `
+                <div class="card shadow-sm border-left-primary mb-3">
+                    <div class="card-body p-3">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1"><i class="fas fa-seedling mr-1"></i> Asal Benih / Genetik</div>
+                        <div class="h6 mb-1 font-weight-bold text-gray-800">${data.seed_source.name}</div>
+                        <div class="small text-muted">
+                            Vendor: ${data.seed_source.vendor || '-'}<br>
+                            Kab/Kota: ${data.seed_source.kabupaten || '-'}<br>
+                            Sertifikat: ${data.seed_source.sertifikat || '-'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="card shadow-sm border-left-secondary mb-3">
+                    <div class="card-body p-3">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1"><i class="fas fa-seedling mr-1"></i> Asal Benih / Genetik</div>
+                        <div class="small text-muted">Tidak ada data sumber benih yang dilacak untuk batch ini.</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 2. Riwayat Penaburan
+        if (data.sowing) {
+            html += `
+                <div class="card shadow-sm border-left-warning mb-3">
+                    <div class="card-body p-3">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1"><i class="fas fa-hand-holding-water mr-1"></i> Riwayat Penaburan (PC)</div>
+                        <div class="h6 mb-1 font-weight-bold text-gray-800">${data.sowing.code}</div>
+                        <div class="small text-muted">
+                            Tanggal: ${data.sowing.date}<br>
+                            Jumlah Benih: ${data.sowing.seed_quantity} ${data.sowing.seed_unit}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `</div>`; // End Kolom Kiri
+
+        // Kolom Kanan
+        html += `<div class="col-md-6 mb-3">`;
+
+        // 3. Riwayat Penyapihan
+        if (data.weaning) {
+            html += `
+                <div class="card shadow-sm border-left-success mb-3">
+                    <div class="card-body p-3">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1"><i class="fas fa-expand-arrows-alt mr-1"></i> Riwayat Sapih/Entres (PE/ET)</div>
+                        <div class="h6 mb-1 font-weight-bold text-gray-800">${data.weaning.code}</div>
+                        <div class="small text-muted">
+                            Tanggal: ${data.weaning.date}<br>
+                            Lokasi Awal: ${data.weaning.location || '-'}<br>
+                            Qty Sapih/Potong: ${Number(data.weaning.quantity).toLocaleString('id-ID')} btg
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 4. Komposisi Media
+        if (data.media && data.media.items.length > 0) {
+            let mediaItemsHtml = data.media.items.map(m => `<li>${m.name} &mdash; ${m.quantity} ${m.unit}</li>`).join('');
+            html += `
+                <div class="card shadow-sm border-left-info mb-3">
+                    <div class="card-body p-3">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1"><i class="fas fa-mortar-pestle mr-1"></i> Media Tanam (MT)</div>
+                        <div class="h6 mb-1 font-weight-bold text-gray-800">${data.media.code}</div>
+                        <div class="small text-muted mt-2">Komposisi:</div>
+                        <ul class="small text-muted pl-3 mb-0">
+                            ${mediaItemsHtml}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        } else if (currentSourceType === 'PE') {
+            html += `
+                <div class="card shadow-sm border-left-secondary mb-3">
+                    <div class="card-body p-3">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1"><i class="fas fa-mortar-pestle mr-1"></i> Media Tanam (MT)</div>
+                        <div class="small text-muted">Data komposisi media tidak ditemukan untuk batch ini.</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div>`; // End Kolom Kanan
+        html += `</div>`; // End Row
+
+        modalBody.innerHTML = html;
+    }
 
     // Dynamic location label based on mutation type
     const mutationType = document.getElementById('mutation_type');

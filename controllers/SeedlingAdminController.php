@@ -216,6 +216,9 @@ class SeedlingAdminController extends Controller {
         $perPage = 20; 
         $pagination = $bahanBakuModel->paginateTransactions($page, $perPage, $filters);
 
+        // Fetch Seed Sources for Dropdown
+        $seedSources = $this->db->query("SELECT id, seed_source_name FROM seed_sources WHERE is_active = 1 ORDER BY seed_source_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
         $data = [
             'title'           => 'Bahan Baku IN',
             'categories'      => $categories,
@@ -223,6 +226,7 @@ class SeedlingAdminController extends Controller {
             'today'           => date('Y-m-d'),
             'recentBahanBaku' => $pagination['data'],
             'pagination'      => $pagination,
+            'seedSources'     => $seedSources,
         ];
 
         $this->render('seedling_admin/bahan_baku_form', $data, 'dashboard');
@@ -431,7 +435,8 @@ class SeedlingAdminController extends Controller {
             'manager'          => sanitize($this->post('manager')),
             'bpdas_id'         => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['bpdas_id'],
             'nursery_id'       => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
-            'created_by'       => $user['id']
+            'created_by'       => $user['id'],
+            'seed_source_id'   => $this->post('seed_source_id') ?: null
         ];
 
         // Basic validation
@@ -661,20 +666,8 @@ class SeedlingAdminController extends Controller {
 
         $sowingCode = $sowingModel->generateSowingID();
 
-        // Get main seeds (Category BENIH)
-        $seeds = $bahanBakuModel->getItemsByCategory('BENIH');
-        $stockBalance = $bahanBakuModel->getStockBalance(['nursery_id' => $nurseryId]);
-        
-        // Map stock balance to seeds
-        foreach ($seeds as &$seed) {
-            $seed['stock'] = 0;
-            foreach ($stockBalance as $sb) {
-                if ($sb['id'] == $seed['id']) {
-                    $seed['stock'] = $sb['current_stock'];
-                    break;
-                }
-            }
-        }
+        // Get main seeds grouped by source (Category BENIH)
+        $seeds = $bahanBakuModel->getSeedStockWithSource(['nursery_id' => $nurseryId]);
 
         $data = [
             'title' => 'Penaburan Benih',
@@ -775,7 +768,8 @@ class SeedlingAdminController extends Controller {
             'notes'            => sanitize($this->post('notes')),
             'bpdas_id'         => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['bpdas_id'],
             'nursery_id'       => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
-            'created_by'       => $user['id']
+            'created_by'       => $user['id'],
+            'seed_source_id'   => $this->post('seed_source_id') ?: null
         ];
 
         // Polybags structure
@@ -1213,6 +1207,38 @@ class SeedlingAdminController extends Controller {
         $this->json([
             'success' => true,
             'data' => $data
+        ]);
+    }
+
+    /**
+     * AJAX: Get Batch Traceability Data
+     */
+    public function getBatchTraceabilityAjax() {
+        $sourceType = $this->get('source_type'); // 'PE' or 'ET'
+        $sourceId = (int)$this->get('source_id');
+
+        if (empty($sourceType) || empty($sourceId)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid parameters'
+            ]);
+            return;
+        }
+
+        $mutationModel = $this->model('SeedlingMutation');
+        $traceData = $mutationModel->getBatchTraceability($sourceType, $sourceId);
+
+        if (!$traceData['sowing'] && !$traceData['weaning']) {
+            $this->json([
+                'success' => false,
+                'message' => 'Data traceability tidak ditemukan untuk batch ini'
+            ]);
+            return;
+        }
+
+        $this->json([
+            'success' => true,
+            'data' => $traceData
         ]);
     }
 

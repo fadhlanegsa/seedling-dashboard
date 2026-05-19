@@ -113,11 +113,17 @@
                             <select name="seed_item_id" id="seed_item_id" class="form-control select2" required>
                                 <option value="">-- Pilih Jenis Benih --</option>
                                 <?php foreach ($seeds as $s): ?>
-                                    <option value="<?= $s['id'] ?>" data-unit="<?= $s['unit'] ?>" data-stock="<?= $s['stock'] ?>">
-                                        <?= $s['name'] ?> (Stok: <?= number_format($s['stock'], 2) ?> <?= $s['unit'] ?>)
+                                    <option value="<?= $s['item_id'] ?>" data-unit="<?= $s['unit'] ?>" data-stock="<?= $s['current_stock'] ?>" data-source-id="<?= $s['seed_source_id'] ?? '' ?>" data-source-name="<?= htmlspecialchars($s['seed_source_name'] ?? 'Tidak diketahui') ?>">
+                                        <?= htmlspecialchars($s['item_name']) ?> - <?= htmlspecialchars($s['seed_source_name'] ?? 'Tanpa Sumber') ?> (Stok: <?= number_format($s['current_stock'], 2) ?> <?= $s['unit'] ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <input type="hidden" name="seed_source_id" id="seed_source_id" value="">
+                        <div class="form-group" id="sumber_benih_display_group" style="display: none;">
+                            <label class="small text-muted">Sumber Benih</label>
+                            <input type="text" id="sumber_benih_display" class="form-control bg-light font-weight-bold text-success shadow-none" readonly>
                         </div>
 
                         <div class="row form-group">
@@ -255,6 +261,18 @@ document.addEventListener('DOMContentLoaded', function() {
             maxSeedStock = parseFloat(option.data('stock'));
             seedQtyInput.max = maxSeedStock;
             
+            const sourceId = option.data('source-id');
+            const sourceName = option.data('source-name');
+            document.getElementById('seed_source_id').value = sourceId || '';
+            
+            if (sourceId) {
+                document.getElementById('sumber_benih_display_group').style.display = 'block';
+                document.getElementById('sumber_benih_display').value = sourceName;
+            } else {
+                document.getElementById('sumber_benih_display_group').style.display = 'block';
+                document.getElementById('sumber_benih_display').value = 'Tanpa Sumber Benih (Legacy)';
+            }
+            
             // if current input is higher than stock, reset it
             if (parseFloat(seedQtyInput.value) > maxSeedStock) {
                 seedQtyInput.value = maxSeedStock;
@@ -264,6 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
             seedUnitDisplay.value = '';
             maxSeedStock = 0;
             seedQtyInput.max = "";
+            document.getElementById('seed_source_id').value = '';
+            document.getElementById('sumber_benih_display_group').style.display = 'none';
         }
     });
 

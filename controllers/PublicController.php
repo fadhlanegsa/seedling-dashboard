@@ -17,6 +17,82 @@ class PublicController extends Controller {
     }
     
     /**
+     * Public Traceability Page
+     * @param string $sourceType 'PE' or 'ET'
+     * @param int $sourceId
+     */
+    public function trace($sourceType = null, $sourceId = null) {
+        if (empty($sourceType) || empty($sourceId)) {
+            $this->setFlash('error', 'Parameter traceability tidak lengkap.');
+            $this->redirect('');
+            return;
+        }
+
+        // Validate type
+        if (!in_array($sourceType, ['PE', 'ET'])) {
+            $this->setFlash('error', 'Jenis sumber bibit tidak valid.');
+            $this->redirect('');
+            return;
+        }
+
+        $sourceId = (int)$sourceId;
+
+        // Load model and get trace data
+        $mutationModel = $this->model('SeedlingMutation');
+        $traceData = $mutationModel->getBatchTraceability($sourceType, $sourceId);
+
+        // Fetch basic info based on source type
+        $batchCode = '-';
+        $seedName = '-';
+        
+        $db = Database::getInstance()->getConnection();
+        
+        if ($sourceType === 'PE') {
+            $weaningModel = $this->model('SeedlingWeaning');
+            $weaningData = $db->prepare("SELECT w.weaning_code, st.name as seedling_name 
+                                               FROM seedling_weanings w 
+                                               JOIN seedling_types st ON w.result_item_id = st.id 
+                                               WHERE w.id = ?");
+            $weaningData->execute([$sourceId]);
+            $weaningInfo = $weaningData->fetch();
+            if ($weaningInfo) {
+                $batchCode = $weaningInfo['weaning_code'];
+                $seedName = $weaningInfo['seedling_name'];
+            }
+        } else {
+            $entresModel = $this->model('SeedlingEntres');
+            $entresData = $db->prepare("SELECT e.entres_code, st.name as seedling_name 
+                                              FROM seedling_entres e 
+                                              JOIN seedling_types st ON e.result_item_id = st.id 
+                                              WHERE e.id = ?");
+            $entresData->execute([$sourceId]);
+            $entresInfo = $entresData->fetch();
+            if ($entresInfo) {
+                $batchCode = $entresInfo['entres_code'];
+                $seedName = $entresInfo['seedling_name'];
+            }
+        }
+
+        if (!$traceData['sowing'] && !$traceData['weaning']) {
+            $hasData = false;
+        } else {
+            $hasData = true;
+        }
+
+        $data = [
+            'title' => 'Traceability: ' . $batchCode,
+            'batchCode' => $batchCode,
+            'seedName' => $seedName,
+            'sourceType' => $sourceType,
+            'sourceId' => $sourceId,
+            'traceData' => $traceData,
+            'hasData' => $hasData
+        ];
+        
+        $this->render('public/trace', $data, 'public');
+    }
+
+    /**
      * Landing page (public, no auth required)
      */
     public function landing() {

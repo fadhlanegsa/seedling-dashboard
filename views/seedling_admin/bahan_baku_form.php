@@ -49,6 +49,17 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="form-group row mb-4" id="seed-source-group" style="display: none;">
+                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Sumber Benih <br><small class="text-muted">(Khusus Benih)</small></label>
+                                    <div class="col-sm-7">
+                                        <select name="seed_source_id" id="seed_source_id" class="form-control custom-select">
+                                            <option value="">-- Pilih Sumber Benih (Opsional) --</option>
+                                            <?php if(isset($seedSources)): foreach ($seedSources as $source): ?>
+                                                <option value="<?= $source['id'] ?>"><?= htmlspecialchars($source['seed_source_name']) ?></option>
+                                            <?php endforeach; endif; ?>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="form-group row mb-4">
                                     <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Jumlah ( <span id="unit-label">kg</span> )</label>
                                     <div class="col-sm-7">
@@ -127,6 +138,7 @@
                                     <th class="pl-3">ID Transaksi</th>
                                     <th>Tanggal</th>
                                     <th>Nama Bahan</th>
+                                    <th>Sumber Benih</th>
                                     <th>Kategori</th>
                                     <th class="text-right">Jumlah</th>
                                     <th>Satuan</th>
@@ -141,6 +153,7 @@
                                         <td class="pl-3 font-weight-bold text-primary"><?= htmlspecialchars($row['transaction_id'] ?? '-') ?></td>
                                         <td><?= formatDate($row['transaction_date'] ?? $row['date'] ?? '-') ?></td>
                                         <td class="font-weight-bold"><?= htmlspecialchars($row['item_name'] ?? '-') ?></td>
+                                        <td><span class="text-muted"><?= htmlspecialchars($row['seed_source_name'] ?? '-') ?></span></td>
                                         <td><span class="badge badge-light border"><?= htmlspecialchars($row['item_category'] ?? '-') ?></span></td>
                                         <td class="text-right font-weight-bold text-success"><?= number_format($row['quantity'], 2) ?></td>
                                         <td class="text-muted"><?= htmlspecialchars($row['item_unit'] ?? 'kg') ?></td>
@@ -271,6 +284,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     categorySelect.addEventListener('change', function() {
         const category = this.value;
+        const seedSourceGroup = document.getElementById('seed-source-group');
+        
+        if (category === 'BENIH') {
+            seedSourceGroup.style.display = 'flex';
+        } else {
+            seedSourceGroup.style.display = 'none';
+            document.getElementById('seed_source_id').value = '';
+        }
+
         if (!category) {
             itemSelect.innerHTML = '<option value="">-- Pilih Material --</option>';
             itemSelect.disabled = true;

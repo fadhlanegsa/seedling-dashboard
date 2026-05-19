@@ -425,4 +425,116 @@ class SeedlingMutation extends Model {
             return false;
         }
     }
+
+    /**
+     * Get Batch Traceability Data
+     * Telusuri riwayat bibit dari Mutasi (PE/ET) ke sumber benih & komposisi media
+     */
+    public function getBatchTraceability($sourceType, $sourceId) {
+        $result = [
+            'seed_source' => null,
+            'sowing'      => null,
+            'weaning'     => null,
+            'media'       => null
+        ];
+
+        try {
+            // Query 1: Rantai Utama (Weaning/Entres -> Harvest -> Sowing -> Seed Source)
+            if ($sourceType === 'PE') {
+                $sqlMain = "SELECT 
+                                w.weaning_code, w.weaning_date, w.location as weaning_location, w.weaned_quantity,
+                                h.harvest_code, h.harvest_date, h.location as harvest_location,
+                                s.id as sowing_id, s.sowing_code, s.sowing_date, s.seed_quantity, 
+                                m.name as seed_name, m.scientific_name, m.unit as seed_unit,
+                                ss.seed_source_name, ss.location as seed_location, ss.certificate_number, ss.owner_name
+                            FROM seedling_weanings w
+                            LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
+                            LEFT JOIN seed_sowings s ON h.sowing_id = s.id
+                            LEFT JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                            LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id
+                            WHERE w.id = ?";
+            } else {
+                $sqlMain = "SELECT 
+                                e.entres_code as weaning_code, e.entres_date as weaning_date, e.location as weaning_location, e.used_quantity as weaned_quantity,
+                                h.harvest_code, h.harvest_date, h.location as harvest_location,
+                                s.id as sowing_id, s.sowing_code, s.sowing_date, s.seed_quantity, 
+                                m.name as seed_name, m.scientific_name, m.unit as seed_unit,
+                                ss.seed_source_name, ss.location as seed_location, ss.certificate_number, ss.owner_name
+                            FROM seedling_entres e
+                            LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                            LEFT JOIN seed_sowings s ON h.sowing_id = s.id
+                            LEFT JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                            LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id
+                            WHERE e.id = ?";
+            }
+
+            $mainData = $this->queryOne($sqlMain, [$sourceId]);
+
+            if ($mainData) {
+                $result['weaning'] = [
+                    'code' => $mainData['weaning_code'],
+                    'date' => $mainData['weaning_date'],
+                    'location' => $mainData['weaning_location'],
+                    'quantity' => $mainData['weaned_quantity']
+                ];
+                $result['sowing'] = [
+                    'code' => $mainData['sowing_code'],
+                    'date' => $mainData['sowing_date'],
+                    'seed_name' => $mainData['seed_name'],
+                    'seed_quantity' => $mainData['seed_quantity'],
+                    'seed_unit' => $mainData['seed_unit']
+                ];
+                if ($mainData['seed_source_name']) {
+                    $result['seed_source'] = [
+                        'name' => $mainData['seed_source_name'],
+                        'kabupaten' => $mainData['seed_location'],
+                        'sertifikat' => $mainData['certificate_number'],
+                        'vendor' => $mainData['owner_name']
+                    ];
+                }
+
+                // Query 2: Komposisi Media (Sowing -> Sowing Polybags -> Bag Filling -> Media Mixing -> Items)
+                if (!empty($mainData['sowing_id'])) {
+                    // Cari bag_filling_id dari seed_sowing_polybags
+                    $polybagSql = "SELECT sp.bag_filling_id 
+                                   FROM seed_sowing_polybags sp
+                                   WHERE sp.sowing_id = ? LIMIT 1";
+                    
+                    $polybagInfo = $this->queryOne($polybagSql, [$mainData['sowing_id']]);
+                    
+                    if ($polybagInfo && !empty($polybagInfo['bag_filling_id'])) {
+                        $bagFillingId = $polybagInfo['bag_filling_id'];
+                        
+                        // Trace back to Media Mixing
+                        $mediaMixingSql = "SELECT mp.id, mp.production_code 
+                                           FROM bag_filling_media bfm
+                                           JOIN media_mixing_productions mp ON bfm.media_production_id = mp.id
+                                           WHERE bfm.bag_filling_id = ? LIMIT 1";
+                        
+                        $mixingData = $this->queryOne($mediaMixingSql, [$bagFillingId]);
+
+                        if ($mixingData) {
+                            $result['media'] = [
+                                'code' => $mixingData['production_code'],
+                                'items' => []
+                            ];
+
+                            // Get ingredients
+                            $itemsSql = "SELECT mmi.quantity, bbm.name, bbm.unit
+                                         FROM media_mixing_items mmi
+                                         JOIN bahan_baku_master bbm ON mmi.item_id = bbm.id
+                                         WHERE mmi.production_id = ?";
+                            
+                            $result['media']['items'] = $this->query($itemsSql, [$mixingData['id']]);
+                        }
+                    }
+                }
+            }
+
+            return $result;
+        } catch (PDOException $e) {
+            logError("getBatchTraceability Error: " . $e->getMessage());
+            return $result;
+        }
+    }
 }

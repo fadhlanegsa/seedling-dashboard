@@ -136,11 +136,12 @@ class SeedSowing extends Model {
      * @return array
      */
     public function getRecentSowings($limit = 10, $filters = []) {
-        $sql = "SELECT s.*, m.name as seed_name, m.unit as seed_unit,
+        $sql = "SELECT s.*, m.name as seed_name, m.unit as seed_unit, ss.seed_source_name,
                 (SELECT SUM(quantity) FROM seed_sowing_polybags WHERE sowing_id = s.id) as total_polybags,
                 EXISTS(SELECT 1 FROM seedling_harvests WHERE sowing_id = s.id) as is_locked
                 FROM {$this->table} s
-                JOIN bahan_baku_master m ON s.seed_item_id = m.id";
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id";
         
         $where = [];
         $params = [];
@@ -180,11 +181,12 @@ class SeedSowing extends Model {
     public function paginateSowings($page = 1, $perPage = 10, $filters = []) {
         $offset = ($page - 1) * $perPage;
         
-        $sql = "SELECT s.*, m.name as seed_name, m.unit as seed_unit,
+        $sql = "SELECT s.*, m.name as seed_name, m.unit as seed_unit, ss.seed_source_name,
                 (SELECT SUM(quantity) FROM seed_sowing_polybags WHERE sowing_id = s.id) as total_polybags,
                 EXISTS(SELECT 1 FROM seedling_harvests WHERE sowing_id = s.id) as is_locked
                 FROM {$this->table} s
-                JOIN bahan_baku_master m ON s.seed_item_id = m.id";
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id";
         
         $countSql = "SELECT COUNT(*) as total FROM {$this->table} s";
         
@@ -247,10 +249,11 @@ class SeedSowing extends Model {
      * @return array
      */
     public function getAvailableSowings($filters = []) {
-        $sql = "SELECT s.id, s.sowing_code, s.sowing_date, s.seed_quantity,
-                m.name as seed_name, m.unit as seed_unit
+        $sql = "SELECT s.id, s.sowing_code, s.sowing_date, s.seed_quantity, s.seed_source_id,
+                m.name as seed_name, m.unit as seed_unit, ss.seed_source_name
                 FROM {$this->table} s
-                JOIN bahan_baku_master m ON s.seed_item_id = m.id";
+                JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id";
         
         $where = [];
         $params = [];
