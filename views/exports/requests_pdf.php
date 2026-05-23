@@ -109,6 +109,21 @@
                     <td><?= htmlspecialchars($user['bpdas_name'] ?? 'Seluruh BPDAS') ?></td>
                 </tr>
                 <tr>
+                    <td><strong>Tanggal</strong></td>
+                    <td>:</td>
+                    <td>
+                        <?php if(!empty($start_date) && !empty($end_date)): ?>
+                            <?= date('d/m/Y', strtotime($start_date)) ?> - <?= date('d/m/Y', strtotime($end_date)) ?>
+                        <?php elseif(!empty($start_date)): ?>
+                            Mulai <?= date('d/m/Y', strtotime($start_date)) ?>
+                        <?php elseif(!empty($end_date)): ?>
+                            Hingga <?= date('d/m/Y', strtotime($end_date)) ?>
+                        <?php else: ?>
+                            Semua Tanggal
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
                     <td><strong>Dicetak Oleh</strong></td>
                     <td>:</td>
                     <td><?= htmlspecialchars($user['full_name']) ?> (<?= ucfirst($user['role']) ?>)</td>
@@ -131,12 +146,15 @@
                 <th width="8%">No. HP</th>
                 <th width="8%">NIK</th>
                 <th width="9%">Tujuan</th>
-                <th width="15%">Detail Bibit (Jenis & Jumlah)</th>
+                <th width="12%">Detail Bibit (Jenis & Jumlah)</th>
                 <th width="6%">Total</th>
                 <th width="5%">Luas</th>
                 <th width="10%">Alamat Tanam</th>
-                <th width="10%">Koordinat</th>
-                <th width="7%">Status</th>
+                <th width="8%">Koordinat</th>
+                <th width="5%">Status</th>
+                <?php if ($include_photo): ?>
+                <th width="8%">Foto Lampiran</th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -177,11 +195,29 @@
                             <?php endif; ?>
                         </td>
                         <td class="text-center"><?= status_text($req['status'] ?? 'pending') ?></td>
+                        <?php if ($include_photo): ?>
+                        <td class="text-center">
+                            <?php 
+                            if (!empty($req['delivery_photo_path'])): 
+                                $fullPath = UPLOAD_PATH . $req['delivery_photo_path'];
+                                if (file_exists($fullPath)):
+                                    $imgData = base64_encode(file_get_contents($fullPath));
+                                    $mimeType = mime_content_type($fullPath) ?: 'image/jpeg';
+                            ?>
+                                <img src="data:<?= $mimeType ?>;base64,<?= $imgData ?>" style="max-width: 60px; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="9" class="text-center">Tidak ada data permintaan ditemukan.</td>
+                    <td colspan="<?= $include_photo ? '14' : '13' ?>" class="text-center">Tidak ada data permintaan ditemukan.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

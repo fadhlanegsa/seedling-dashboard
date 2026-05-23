@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -197,20 +198,25 @@ class ExportController extends Controller {
      */
     public function requestsExcel() {
         $user = currentUser();
-        // Cek hanya bisa diakses BPDAS/Admin
-        if ($user['role'] !== 'bpdas' && $user['role'] !== 'admin') {
+        // Cek hanya bisa diakses BPDAS/Admin/Operator
+        if ($user['role'] !== 'bpdas' && $user['role'] !== 'admin' && $user['role'] !== 'operator_persemaian') {
              $this->redirect('dashboard');
              return;
         }
 
-        $bpdasId = $user['bpdas_id'];
         $status = $this->get('status');
+        $startDate = $this->get('start_date');
+        $endDate = $this->get('end_date');
+        $includePhoto = $this->get('include_photo') === 'yes';
         
         $requestModel = $this->model('Request');
         // Ambil data (tidak peduli pagination, ambil semua karena export)
-        // Kita bisa panggil getByBPDAS yang ada di Request Model yg unpaginated
-        // Note: kalau data terlalu besar, mungkin butuh chunking
-        $requests = $requestModel->getByBPDAS($bpdasId, $status);
+        if ($user['role'] === 'operator_persemaian') {
+            $requests = $requestModel->getByNursery($user['nursery_id'], $status, $startDate, $endDate);
+        } else {
+            $bpdasId = $user['role'] === 'admin' ? null : $user['bpdas_id'];
+            $requests = $requestModel->getByBPDAS($bpdasId, $status, $startDate, $endDate);
+        }
         
         // Create Spreadsheet
         $spreadsheet = new Spreadsheet();
@@ -232,7 +238,11 @@ class ExportController extends Controller {
 
         $sheet->setCellValue('A2', 'Dicetak Oleh : ' . $user['full_name'] . ' (' . ucfirst($user['role']) . ')');
         $sheet->mergeCells('A2:E2');
-        $sheet->setCellValue('A3', 'BPDAS : ' . ($user['bpdas_name'] ?? 'Seluruh BPDAS'));
+        if ($user['role'] === 'operator_persemaian') {
+            $sheet->setCellValue('A3', 'Persemaian : ' . ($user['nursery_name'] ?? 'Persemaian'));
+        } else {
+            $sheet->setCellValue('A3', 'BPDAS : ' . ($user['bpdas_name'] ?? 'Seluruh BPDAS'));
+        }
         $sheet->mergeCells('A3:E3');
         $sheet->setCellValue('A4', 'Status Filter : ' . ($status ? status_text($status) : 'Semua Status'));
         $sheet->mergeCells('A4:E4');
@@ -245,6 +255,11 @@ class ExportController extends Controller {
             'NIK', 'No. HP', 'Tujuan Penggunaan', 'Sumber Program', 'Detail Bibit (Jenis & Jumlah)', 'Total Jumlah', 
             'Luas Lahan', 'Alamat Tanam', 'Koordinat', 'Status'
         ];
+        
+        if ($includePhoto) {
+            $headers[] = 'Foto Lampiran';
+        }
+        
         $col = 'A';
         $startRow = 7;
         foreach ($headers as $header) {
@@ -259,8 +274,9 @@ class ExportController extends Controller {
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2C3E50']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
-        // J is no longer the end, now we have O columns
-        $sheet->getStyle('A'.$startRow.':O'.$startRow)->applyFromArray($headerStyle);
+        // Apply to the dynamically determined last column
+        $lastCol = chr(ord('A') + count($headers) - 1);
+        $sheet->getStyle('A'.$startRow.':'.$lastCol.$startRow)->applyFromArray($headerStyle);
         
         // Fill Data
         $row = $startRow + 1;
@@ -305,6 +321,29 @@ class ExportController extends Controller {
             $sheet->setCellValue('N' . $row, $koordinat);
             
             $sheet->setCellValue('O' . $row, status_text($req['status'] ?? 'pending'));
+            
+            if ($includePhoto) {
+                $photoPath = !empty($req['delivery_photo_path']) ? UPLOAD_PATH . $req['delivery_photo_path'] : '';
+                if (!empty($photoPath) && file_exists($photoPath)) {
+                    $drawing = new Drawing();
+                    $drawing->setName('Foto Bukti');
+                    $drawing->setDescription('Foto Bukti Serah Terima');
+                    $drawing->setPath($photoPath);
+                    $drawing->setCoordinates('P' . $row);
+                    $drawing->setHeight(80); // Adjust height
+                    $drawing->setOffsetX(5);
+                    $drawing->setOffsetY(5);
+                    $drawing->setWorksheet($sheet);
+                    
+                    // Adjust row height to fit image
+                    $sheet->getRowDimension($row)->setRowHeight(70);
+                    // Adjust column width manually since AutoSize doesn't work well with images
+                    $sheet->getColumnDimension('P')->setWidth(20);
+                } else {
+                    $sheet->setCellValue('P' . $row, 'Tidak ada foto');
+                }
+            }
+            
             $row++;
         }
         
@@ -312,7 +351,8 @@ class ExportController extends Controller {
         $borderStyle = [
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
         ];
-        $sheet->getStyle('A'.$startRow.':O' . ($row - 1))->applyFromArray($borderStyle);
+        $lastCol = chr(ord('A') + count($headers) - 1);
+        $sheet->getStyle('A'.$startRow.':'.$lastCol . ($row - 1))->applyFromArray($borderStyle);
         
         // Alignments
         $sheet->getStyle('A'.($startRow+1).':A' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -336,16 +376,24 @@ class ExportController extends Controller {
      */
     public function requestsPDF() {
         $user = currentUser();
-        if ($user['role'] !== 'bpdas' && $user['role'] !== 'admin') {
+        if ($user['role'] !== 'bpdas' && $user['role'] !== 'admin' && $user['role'] !== 'operator_persemaian') {
              $this->redirect('dashboard');
              return;
         }
 
-        $bpdasId = $user['bpdas_id'];
         $status = $this->get('status');
+        $startDate = $this->get('start_date');
+        $endDate = $this->get('end_date');
+        $includePhoto = $this->get('include_photo') === 'yes';
         
         $requestModel = $this->model('Request');
-        $requests = $requestModel->getByBPDAS($bpdasId, $status);
+        
+        if ($user['role'] === 'operator_persemaian') {
+            $requests = $requestModel->getByNursery($user['nursery_id'], $status, $startDate, $endDate);
+        } else {
+            $bpdasId = $user['role'] === 'admin' ? null : $user['bpdas_id'];
+            $requests = $requestModel->getByBPDAS($bpdasId, $status, $startDate, $endDate);
+        }
         
         // Get details per request
         foreach($requests as &$req) {
@@ -354,7 +402,9 @@ class ExportController extends Controller {
         unset($req);
 
         // Fetch BPDAS Name if available
-        if (!isset($user['bpdas_name']) && isset($bpdasId)) {
+        if ($user['role'] === 'operator_persemaian') {
+            $user['bpdas_name'] = $user['nursery_name'] ?? 'Persemaian Anda';
+        } else if (!isset($user['bpdas_name']) && isset($bpdasId)) {
             $bpdasModel = $this->model('BPDAS');
             $bpdas = $bpdasModel->find($bpdasId);
             $user['bpdas_name'] = $bpdas ? $bpdas['name'] : 'Seluruh BPDAS';
@@ -364,6 +414,9 @@ class ExportController extends Controller {
         $data = [
             'requests' => $requests,
             'status' => $status,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'include_photo' => $includePhoto,
             'download_time' => date('d F Y H:i'),
             'user' => $user
         ];

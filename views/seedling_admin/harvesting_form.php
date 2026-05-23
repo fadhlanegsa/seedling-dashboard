@@ -121,10 +121,11 @@
                                 <th>Nama Benih</th>
                                 <th>Tanggal Tabur</th>
                                 <th>Kode Produksi (PC)</th>
+                                <th>Jumlah Tabur</th>
                             </tr>
                         </thead>
                         <tbody class="small text-dark" id="modalSowingBody">
-                            <tr><td colspan="3" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>
+                            <tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -150,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.openSowingModal = function() {
         $('#sowingModal').modal('show');
         const modalBody = document.getElementById('modalSowingBody');
-        modalBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat riwayat tabur...</td></tr>';
+        modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat riwayat tabur...</td></tr>';
 
         fetch('<?= url('seedling-admin/get-sowings-ajax') ?>')
             .then(res => res.json())
@@ -160,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     sowingData = data.data;
                     renderSowingTable(sowingData);
                 } else {
-                    modalBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada data penaburan benih (PC) yang tersedia.</td></tr>';
+                    modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada data penaburan benih (PC) yang tersedia.</td></tr>';
                 }
             });
     };
@@ -170,11 +171,13 @@ document.addEventListener('DOMContentLoaded', function() {
         modalBody.innerHTML = '';
         dataToRender.forEach(sw => {
             const dateStr = new Date(sw.sowing_date).toLocaleDateString('id-ID');
+            const qtyStr = sw.seed_quantity ? parseFloat(sw.seed_quantity).toLocaleString('id-ID') : '0';
             modalBody.innerHTML += `
                 <tr onclick="selectSowing(${sw.id})" style="cursor:pointer;">
                     <td class="font-weight-bold text-dark">${sw.seed_name}</td>
                     <td>${dateStr}</td>
                     <td class="text-muted">${sw.sowing_code}</td>
+                    <td class="font-weight-bold text-primary">${qtyStr} ${sw.seed_unit || ''}</td>
                 </tr>
             `;
         });

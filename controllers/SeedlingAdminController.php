@@ -1256,8 +1256,16 @@ class SeedlingAdminController extends Controller {
         
         $sourceType = $this->post('source_type'); // PE / ET
         $sourceId = (int)$this->post('source_id');
-        $mutationType = $this->post('mutation_type'); // MATI / NAIK KELAS / TRANSFER
+        $mutationType = $this->post('mutation_type'); // MATI / NAIK KELAS (REGULER|FOLU|RHL) / TRANSFER
         $quantity = (int)$this->post('quantity');
+
+        // Validate mutation_type whitelist
+        $allowedTypes = ['MATI', 'NAIK KELAS (REGULER)', 'NAIK KELAS (FOLU)', 'NAIK KELAS (RHL)', 'TRANSFER'];
+        if (!in_array($mutationType, $allowedTypes)) {
+            $this->setFlash('error', 'Jenis mutasi tidak valid!');
+            $this->redirect('seedling-admin/mutation-form');
+            return;
+        }
 
         if (empty($sourceId) || empty($quantity)) {
             $this->setFlash('error', 'Data bibit asal dan jumlah wajib diisi!');

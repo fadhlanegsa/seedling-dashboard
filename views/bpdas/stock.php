@@ -115,9 +115,12 @@
                             <td><?= htmlspecialchars($item['nursery_name'] ?? '-') ?></td>
                             <td>
                                 <strong><?= htmlspecialchars($item['seedling_name'] ?? '-') ?></strong><br>
-                                <?php if(($item['program_type'] ?? 'Reguler') === 'FOLU'): ?>
+                                <?php $pt = $item['program_type'] ?? 'Reguler'; ?>
+                                <?php if($pt === 'FOLU'): ?>
                                     <span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>
-                                <?php elseif(($item['program_type'] ?? '') === 'bibitgratis'): ?>
+                                <?php elseif($pt === 'RHL'): ?>
+                                    <span class="badge badge-info text-white">RHL</span>
+                                <?php elseif($pt === 'bibitgratis' || $pt === 'PUB'): ?>
                                     <span class="badge badge-primary"><i class="fas fa-seedling mr-1"></i> PUB</span>
                                 <?php else: ?>
                                     <span class="badge badge-success">Reguler</span>

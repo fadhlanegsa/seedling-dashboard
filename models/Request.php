@@ -245,7 +245,7 @@ class Request extends Model {
      * @param string $status Filter by status (optional)
      * @return array
      */
-    public function getByBPDAS($bpdasId, $status = null) {
+    public function getByBPDAS($bpdasId = null, $status = null, $startDate = null, $endDate = null) {
         $sql = "SELECT r.*, 
                 u.full_name as requester_name, u.email as requester_email,
                 u.phone as requester_phone, u.nik as requester_nik,
@@ -255,13 +255,28 @@ class Request extends Model {
                 FROM {$this->table} r
                 INNER JOIN users u ON r.user_id = u.id
                 LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
-                WHERE r.bpdas_id = ?";
+                WHERE 1=1";
         
-        $params = [$bpdasId];
+        $params = [];
+        
+        if ($bpdasId) {
+            $sql .= " AND r.bpdas_id = ?";
+            $params[] = $bpdasId;
+        }
         
         if ($status) {
             $sql .= " AND r.status = ?";
             $params[] = $status;
+        }
+        
+        if ($startDate) {
+            $sql .= " AND DATE(r.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if ($endDate) {
+            $sql .= " AND DATE(r.created_at) <= ?";
+            $params[] = $endDate;
         }
         
         $sql .= " ORDER BY r.created_at DESC";
@@ -276,7 +291,7 @@ class Request extends Model {
      * @param string $status Filter by status (optional)
      * @return array
      */
-    public function getByNursery($nurseryId, $status = null) {
+    public function getByNursery($nurseryId, $status = null, $startDate = null, $endDate = null) {
         $sql = "SELECT r.*, 
                 u.full_name as requester_name, u.email as requester_email,
                 u.phone as requester_phone, u.nik as requester_nik,
@@ -292,6 +307,16 @@ class Request extends Model {
         if ($status) {
             $sql .= " AND r.status = ?";
             $params[] = $status;
+        }
+        
+        if ($startDate) {
+            $sql .= " AND DATE(r.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if ($endDate) {
+            $sql .= " AND DATE(r.created_at) <= ?";
+            $params[] = $endDate;
         }
         
         $sql .= " ORDER BY r.created_at DESC";

@@ -8,6 +8,35 @@ require_once CORE_PATH . 'Model.php';
 class SeedlingMutation extends Model {
     protected $table = 'seedling_mutations';
 
+    /**
+     * Check if mutation_type is a NAIK KELAS variant
+     */
+    public static function isNaikKelas($type) {
+        return in_array($type, [
+            'NAIK KELAS',
+            'NAIK KELAS (REGULER)',
+            'NAIK KELAS (FOLU)',
+            'NAIK KELAS (RHL)'
+        ]);
+    }
+
+    /**
+     * Map mutation_type to stock program_type
+     * NAIK KELAS (REGULER) → 'Reguler'
+     * NAIK KELAS (FOLU)    → 'FOLU'
+     * NAIK KELAS (RHL)     → 'RHL'
+     * Legacy 'NAIK KELAS'  → 'Reguler' (backward compat)
+     */
+    public static function getProgramTypeFromMutation($mutationType) {
+        $map = [
+            'NAIK KELAS (REGULER)' => 'Reguler',
+            'NAIK KELAS (FOLU)'    => 'FOLU',
+            'NAIK KELAS (RHL)'     => 'RHL',
+            'NAIK KELAS'           => 'Reguler', // legacy fallback
+        ];
+        return $map[$mutationType] ?? 'Reguler';
+    }
+
     public function generateMutationCode() {
         $prefix = 'BO-' . date('Ym');
         $sql = "SELECT mutation_code FROM {$this->table} 
@@ -68,7 +97,7 @@ class SeedlingMutation extends Model {
         }
 
         // === STEP 2: Update Ready Stock (separate - non-blocking) ===
-        if ($data['mutation_type'] === 'NAIK KELAS') {
+        if (self::isNaikKelas($data['mutation_type'])) {
             try {
                 $this->updateReadyStock($data);
             } catch (Exception $e) {
@@ -100,10 +129,10 @@ class SeedlingMutation extends Model {
             $this->update($id, $data);
 
             // Re-calculate Ready Stock difference if it's NAIK KELAS
-            if ($oldData['mutation_type'] === 'NAIK KELAS') {
+            if (self::isNaikKelas($oldData['mutation_type'])) {
                 $this->rollbackReadyStock($oldData);
             }
-            if ($data['mutation_type'] === 'NAIK KELAS') {
+            if (self::isNaikKelas($data['mutation_type'])) {
                 $this->updateReadyStock($data);
             }
             
@@ -135,9 +164,12 @@ class SeedlingMutation extends Model {
         $seedlingTypeId = $row['result_item_id'];
 
         // Reduce stock
-        $sqlCheck = "SELECT id, quantity FROM stock WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis' AND source_type = 'PUB' LIMIT 1";
+        // Determine program_type from mutation_type for rollback
+        $programType = self::getProgramTypeFromMutation($data['mutation_type'] ?? 'NAIK KELAS');
+
+        $sqlCheck = "SELECT id, quantity FROM stock WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = ? AND source_type = 'PUB' LIMIT 1";
         $stmt = $this->db->prepare($sqlCheck);
-        $stmt->execute([$data['nursery_id'], $seedlingTypeId]);
+        $stmt->execute([$data['nursery_id'], $seedlingTypeId, $programType]);
         $existing = $stmt->fetch();
 
         if ($existing) {
@@ -247,6 +279,9 @@ class SeedlingMutation extends Model {
             $bpdasId = $bpdasRow['id'] ?? null;
         }
 
+        // Determine the program_type based on mutation_type
+        $programType = self::getProgramTypeFromMutation($data['mutation_type']);
+
         $newNotes = "Asal PUB [" . $batchInfo . "]. " . date('d/m/Y');
 
         // Check for existing stock row — query WITHOUT source_type first (for compatibility)
@@ -256,17 +291,17 @@ class SeedlingMutation extends Model {
         if ($colCheck > 0) {
             // source_type column exists — use full query
             $sqlCheck = "SELECT id, quantity, notes FROM stock 
-                         WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis' AND source_type = 'PUB'
+                         WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = ? AND source_type = 'PUB'
                          LIMIT 1";
         } else {
             // source_type column missing — use basic query
             $sqlCheck = "SELECT id, quantity, notes FROM stock 
-                         WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = 'bibitgratis'
+                         WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = ?
                          LIMIT 1";
         }
 
         $stmt = $this->db->prepare($sqlCheck);
-        $stmt->execute([$nurseryId, $seedlingTypeId]);
+        $stmt->execute([$nurseryId, $seedlingTypeId, $programType]);
         $existing = $stmt->fetch();
 
         if ($existing) {
@@ -280,16 +315,16 @@ class SeedlingMutation extends Model {
             if ($colCheck > 0) {
                 // source_type column exists
                 $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, source_type, last_update_date, notes) 
-                              VALUES (?, ?, ?, 'bibitgratis', ?, 'PUB', CURDATE(), ?)
+                              VALUES (?, ?, ?, ?, ?, 'PUB', CURDATE(), ?)
                               ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), last_update_date = CURDATE()";
             } else {
                 // source_type column does NOT exist — omit it
                 $sqlInsert = "INSERT INTO stock (bpdas_id, nursery_id, seedling_type_id, program_type, quantity, last_update_date, notes) 
-                              VALUES (?, ?, ?, 'bibitgratis', ?, CURDATE(), ?)
+                              VALUES (?, ?, ?, ?, ?, CURDATE(), ?)
                               ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), last_update_date = CURDATE()";
             }
             $this->db->prepare($sqlInsert)->execute([
-                $bpdasId, $nurseryId, $seedlingTypeId, $data['quantity'], $newNotes
+                $bpdasId, $nurseryId, $seedlingTypeId, $programType, $data['quantity'], $newNotes
             ]);
         }
     }
@@ -400,7 +435,7 @@ class SeedlingMutation extends Model {
         $this->beginTransaction();
         try {
             // Revert stock if NAIK KELAS
-            if ($oldData['mutation_type'] === 'NAIK KELAS') {
+            if (self::isNaikKelas($oldData['mutation_type'])) {
                 $this->rollbackReadyStock($oldData);
             }
 

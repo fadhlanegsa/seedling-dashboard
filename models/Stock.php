@@ -115,7 +115,7 @@ class Stock extends Model {
                 FROM {$this->table} s
                 INNER JOIN bpdas b ON s.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id
-                WHERE s.seedling_type_id = ? AND s.quantity > 0
+                WHERE s.seedling_type_id = ? AND s.quantity > 0 AND s.program_type IN ('Reguler', 'bibitgratis')
                 ORDER BY b.name ASC";
         
         return $this->query($sql, [$seedlingTypeId]);
@@ -340,6 +340,14 @@ class Stock extends Model {
             $sql .= " AND s.program_type = ?";
             $params[] = $filters['program_type'];
         }
+
+        if (!empty($filters['program_types']) && is_array($filters['program_types'])) {
+            $placeholders = implode(',', array_fill(0, count($filters['program_types']), '?'));
+            $sql .= " AND s.program_type IN ($placeholders)";
+            foreach ($filters['program_types'] as $pt) {
+                $params[] = $pt;
+            }
+        }
         
         $sql .= " ORDER BY b.name ASC, st.name ASC";
         
@@ -422,6 +430,15 @@ class Stock extends Model {
             $sql .= " AND s.program_type = ?";
             $countSql .= " AND s.program_type = ?";
             $params[] = $filters['program_type'];
+        }
+
+        if (!empty($filters['program_types']) && is_array($filters['program_types'])) {
+            $placeholders = implode(',', array_fill(0, count($filters['program_types']), '?'));
+            $sql .= " AND s.program_type IN ($placeholders)";
+            $countSql .= " AND s.program_type IN ($placeholders)";
+            foreach ($filters['program_types'] as $pt) {
+                $params[] = $pt;
+            }
         }
         
         $sql .= " ORDER BY b.name ASC, st.name ASC LIMIT ? OFFSET ?";

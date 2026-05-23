@@ -99,7 +99,9 @@
                                     <label class="small font-weight-bold text-dark">Keterangan Mutasi</label>
                                     <select name="mutation_type" id="mutation_type" class="form-control form-control-lg font-weight-bold border-warning text-warning shadow-none" required>
                                         <option value="MATI" class="text-danger">MATI</option>
-                                        <option value="NAIK KELAS" class="text-success">NAIK KELAS (BIBIT JADI)</option>
+                                        <option value="NAIK KELAS (REGULER)" class="text-success">NAIK KELAS (REGULER)</option>
+                                        <option value="NAIK KELAS (FOLU)" class="text-primary">NAIK KELAS (FOLU)</option>
+                                        <option value="NAIK KELAS (RHL)" class="text-info">NAIK KELAS (RHL)</option>
                                         <option value="TRANSFER" class="text-info">TRANSFER (PINDAH AREA)</option>
                                     </select>
                                 </div>
@@ -557,14 +559,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateLocationLabel() {
         const val = mutationType.value;
+        const isNaikKelas = val.startsWith('NAIK KELAS');
+
         if (val === 'MATI') {
             locationLabel.textContent = 'Lokasi Kejadian (Opsional)';
             locationInput.placeholder = 'Contoh: GHA Blok A, Bedeng No. 3';
             locationHint.textContent = 'Catat di area mana kematian bibit ini terjadi.';
-        } else if (val === 'NAIK KELAS') {
+        } else if (isNaikKelas) {
             locationLabel.textContent = 'Tujuan / Keterangan Kelulusan';
             locationInput.placeholder = 'Contoh: Siap Distribusi, OGA Utara';
-            locationHint.textContent = 'Bibit ini akan otomatis masuk ke Stok Bibit Jadi (Reguler).';
+            const programLabel = val.replace('NAIK KELAS ', '');
+            locationHint.textContent = 'Bibit ini akan otomatis masuk ke Stok Bibit Jadi dengan program ' + programLabel + '.';
         } else if (val === 'TRANSFER') {
             locationLabel.textContent = 'Lokasi Tujuan Transfer (Wajib)';
             locationInput.placeholder = 'Contoh: AHA 2, OGA Blok C';

@@ -429,6 +429,7 @@ class PublicController extends Controller {
         $stockModel = $this->model('Stock');
         
         foreach ($validItems as $item) {
+            // Publik boleh request stok Reguler dan bibitgratis
             $stock = $stockModel->findByBPDASAndSeedling($data['bpdas_id'], $item['seedling_type_id'], $item['program_type']);
             
             if (!$stock || $stock['quantity'] < $item['quantity']) {
@@ -724,8 +725,8 @@ class PublicController extends Controller {
             $stock = $stockModel->getAggregatedByBPDAS($bpdasId);
         }
         
-        // Filter only available stock
-        $available = array_filter($stock, fn($s) => $s['quantity'] > 0);
+        // Filter: hanya tampilkan stok Reguler & PUB (bibitgratis) untuk publik
+        $available = array_filter($stock, fn($s) => $s['quantity'] > 0 && in_array($s['program_type'] ?? 'Reguler', ['Reguler', 'bibitgratis']));
         
         $this->json(['success' => true, 'data' => array_values($available)]);
     }
@@ -793,6 +794,9 @@ class PublicController extends Controller {
         if ($this->get('seedling_type_id')) {
             $filters['seedling_type_id'] = (int)$this->get('seedling_type_id');
         }
+
+        // Filter: publik boleh melihat stok Reguler & PUB (bibitgratis)
+        $filters['program_types'] = ['Reguler', 'bibitgratis'];
         
         $stocks = $stockModel->searchStock($filters);
         

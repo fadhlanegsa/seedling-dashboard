@@ -581,7 +581,7 @@
                                                         <span class="badge-source"><?= $bo['source_code'] ?></span>
                                                         <div class="d-flex align-items-center">
                                                             <span class="text-muted x-small font-weight-bold mr-2"><?= formatDate($bo['mutation_date']) ?></span>
-                                                            <?php if ($bo['mutation_type'] === 'NAIK KELAS'): ?>
+                                                            <?php if (strpos($bo['mutation_type'], 'NAIK KELAS') === 0): ?>
                                                                 <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1 mr-1" title="Cetak QR Code" onclick="openQRModalDashboard('<?= $bo['source_type'] ?>', <?= $bo['source_id'] ?>, '<?= $bo['source_code'] ?>', '<?= $bo['seedling_name'] ?>')">
                                                                     <i class="fas fa-qrcode"></i>
                                                                 </button>

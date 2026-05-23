@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        max="${pb.remaining_stock}" placeholder="Max ${pb.remaining_stock}" required onchange="validateRowStock(this, ${pb.remaining_stock}, 'PB')">
                 <div class="text-center text-xs text-muted mt-1">Stok: ${parseFloat(pb.remaining_stock).toLocaleString('id-ID')}</div>
             </td>
-            <td class="text-center">${pb.bag_unit}</td>
+            <td class="text-center">pcs</td>
             <td class="text-center">
                 <i class="fas fa-times remove-btn bg-light border rounded p-1" onclick="removePolybagRow(${pb.id})"></i>
             </td>
