@@ -84,7 +84,7 @@ CREATE TABLE seedling_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     scientific_name VARCHAR(200),
-    category ENUM('Pohon Hutan', 'Pohon Buah', 'Tanaman Obat', 'Bambu', 'Mangrove', 'Lainnya') DEFAULT 'Pohon Hutan',
+    category VARCHAR(100) DEFAULT 'Tanaman Kayu-Kayuan',
     description TEXT,
     is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

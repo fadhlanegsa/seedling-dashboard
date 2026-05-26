@@ -11,6 +11,11 @@ $user = currentUser();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? 'Dashboard' ?> - Direktorat Penghijauan dan Perbenihan Tanaman Hutan</title>
+    
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="<?= asset('manifest.json') ?>">
+    <meta name="theme-color" content="#28a745">
+
     <!-- Bootstrap 4.6 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>?v=<?= time() ?>">
@@ -285,5 +290,16 @@ $user = currentUser();
         }
     </script>
     <?php endif; ?>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('<?= asset("sw.js") ?>')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+    </script>
 </body>
 </html>

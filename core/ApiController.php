@@ -64,6 +64,9 @@ class ApiController extends Controller {
      * @return array
      */
     protected function getJsonBody() {
+        if (isset($GLOBALS['_TEST_PAYLOAD'])) {
+            return $GLOBALS['_TEST_PAYLOAD'];
+        }
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
         

@@ -104,7 +104,8 @@ define('SEEDLING_CATEGORIES', [
     'Tanaman Obat',
     'Bambu',
     'Mangrove',
-    'Estetika, Pakan, Dll'
+    'Estetika, Pakan, Dll',
+    'bibit produktif'
 ]);
 
 // Request Status

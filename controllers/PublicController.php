@@ -22,15 +22,68 @@ class PublicController extends Controller {
      * @param int $sourceId
      */
     public function trace($sourceType = null, $sourceId = null) {
+        require_once UTILS_PATH . 'BarcodeHelper.php';
+        
+        $code = $this->get('code');
+        
+        // If first parameter looks like a Smart Barcode, treat it as the code
+        if (!empty($sourceType) && strpos($sourceType, '-') !== false) {
+            $code = $sourceType;
+            $sourceType = null;
+            $sourceId = null;
+        }
+        
+        $seedlingIndex = null;
+        $batchQuantity = null;
+        
+        if (!empty($code)) {
+            $parseResult = BarcodeHelper::parse($code);
+            if (!$parseResult) {
+                $this->setFlash('error', 'Format Smart Barcode tidak valid.');
+                $this->redirect('');
+                return;
+            }
+            
+            $sourceType = $parseResult['type'];
+            $batchId = $parseResult['batch_id'];
+            $seedlingIndex = $parseResult['index'];
+            
+            // Lookup database record to verify and get database ID
+            $db = Database::getInstance()->getConnection();
+            if ($sourceType === 'PE') {
+                $stmt = $db->prepare("SELECT id, weaned_quantity as qty FROM seedling_weanings WHERE id = ?");
+            } else {
+                $stmt = $db->prepare("SELECT id, used_quantity as qty FROM seedling_entres WHERE id = ?");
+            }
+            $stmt->execute([$batchId]);
+            $batch = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$batch) {
+                $this->setFlash('error', 'Batch bibit tidak terdaftar di sistem.');
+                $this->redirect('');
+                return;
+            }
+            
+            // Check index range
+            $batchQuantity = (int)$batch['qty'];
+            if ($seedlingIndex < 1 || $seedlingIndex > $batchQuantity) {
+                $this->setFlash('error', "Nomor seri bibit (indeks {$seedlingIndex}) berada di luar rentang kapasitas batch (1-{$batchQuantity}).");
+                $this->redirect('');
+                return;
+            }
+            
+            $sourceId = (int)$batch['id'];
+        }
+
         if (empty($sourceType) || empty($sourceId)) {
-            $this->setFlash('error', 'Parameter traceability tidak lengkap.');
+            $this->setFlash('error', 'Parameter pelacakan tidak lengkap.');
             $this->redirect('');
             return;
         }
 
         // Validate type
         if (!in_array($sourceType, ['PE', 'ET'])) {
-            $this->setFlash('error', 'Jenis sumber bibit tidak valid.');
+            $this->setFlash('error', 'Jenis sumber pelacakan tidak valid.');
             $this->redirect('');
             return;
         }
@@ -86,7 +139,10 @@ class PublicController extends Controller {
             'sourceType' => $sourceType,
             'sourceId' => $sourceId,
             'traceData' => $traceData,
-            'hasData' => $hasData
+            'hasData' => $hasData,
+            'seedlingIndex' => $seedlingIndex,
+            'batchQuantity' => $batchQuantity,
+            'smartCode' => !empty($code) ? $code : null
         ];
         
         $this->render('public/trace', $data, 'public');

@@ -156,6 +156,16 @@ elseif ($parts[0] === 'api') {
         $controllerName = 'ApiStockController';
         $action = isset($parts[2]) ? $parts[2] : 'index';
         $params = array_slice($parts, 3);
+    } elseif ($subModule === 'trace') {
+        $controllerName = 'ApiTraceController';
+        $subAction = isset($parts[2]) ? $parts[2] : '';
+        if ($subAction === 'verify') {
+            $action = 'verify';
+            $params = [];
+        } else {
+            $action = 'show';
+            $params = [$subAction];
+        }
     } else {
         $controllerName = 'ApiController';
         $action = 'index';

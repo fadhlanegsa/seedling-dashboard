@@ -1,3 +1,14 @@
+<style>
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+    70% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+.bg-white-10 { background-color: rgba(255, 255, 255, 0.1); }
+.border-white-20 { border-color: rgba(255, 255, 255, 0.2); }
+.border-white-10 { border-color: rgba(255, 255, 255, 0.1); }
+</style>
+
 <div class="container py-5 mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -10,10 +21,67 @@
                 
                 <div class="card-body p-4 bg-light">
                     <div class="text-center mb-4">
-                        <h4 class="font-weight-bold text-dark"><?= htmlspecialchars($batchCode) ?> - <?= htmlspecialchars($seedName) ?></h4>
-                        <span class="badge badge-success p-2 px-3 shadow-sm">
-                            <i class="fas fa-check-circle mr-1"></i> Data Terverifikasi
-                        </span>
+                        <?php if (isset($seedlingIndex) && $seedlingIndex !== null): ?>
+                            <!-- Premium Seedling Visual Card -->
+                            <div class="card border-0 shadow rounded-lg overflow-hidden mb-4" style="background: linear-gradient(135deg, #1e3c0d 0%, #2d5016 100%);">
+                                <div class="card-body p-4 text-white position-relative text-left">
+                                    <!-- Decorative forestry background element -->
+                                    <div class="position-absolute" style="right: 10px; bottom: -20px; opacity: 0.08; font-size: 150px; transform: rotate(15deg); pointer-events: none;">
+                                        <i class="fas fa-seedling text-white"></i>
+                                    </div>
+                                    
+                                    <div class="d-flex flex-column flex-md-row align-items-center justify-content-between">
+                                        <div class="mb-3 mb-md-0">
+                                            <span class="badge badge-warning text-dark font-weight-bold mb-2 p-2 px-3 text-uppercase shadow-sm" style="letter-spacing: 1px; animation: pulse 2s infinite; font-size: 0.75rem;">
+                                                <i class="fas fa-certificate mr-1"></i> Bibit Individual Terverifikasi
+                                            </span>
+                                            <h2 class="font-weight-bold mb-1" style="font-family: 'Outfit', 'Inter', sans-serif;"><?= htmlspecialchars($seedName) ?></h2>
+                                            <p class="lead mb-2 opacity-90" style="font-style: italic; font-size: 1.1rem;"><?= htmlspecialchars($traceData['sowing']['seed_scientific_name'] ?? 'Magnolia champaca') ?></p>
+                                            
+                                            <div class="mt-3 p-3 rounded shadow-inner" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(5px);">
+                                                <div class="row">
+                                                    <div class="col-6 border-right" style="border-color: rgba(255,255,255,0.15) !important;">
+                                                        <small class="d-block opacity-75 text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Nomor Seri Bibit</small>
+                                                        <span class="h3 font-weight-bold text-warning mb-0">#<?= htmlspecialchars($seedlingIndex) ?></span>
+                                                        <small class="opacity-75"> dari <?= htmlspecialchars($batchQuantity) ?></small>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <small class="d-block opacity-75 text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Batch Induk</small>
+                                                        <span class="h4 font-weight-bold mb-0" style="letter-spacing: 0.5px;"><?= htmlspecialchars($batchCode) ?></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Simulated premium QR/Barcode element -->
+                                        <div class="bg-white p-3 rounded shadow-sm text-center d-flex flex-column align-items-center" style="min-width: 160px; max-width: 170px;">
+                                            <!-- Draw a realistic barcode simulation with CSS -->
+                                            <div class="d-flex align-items-end mb-2 justify-content-center" style="height: 55px; width: 130px; background: #fff; padding: 2px;">
+                                                <div style="width: 3px; height: 100%; background: #000; margin-right: 2px;"></div>
+                                                <div style="width: 1px; height: 90%; background: #000; margin-right: 3px;"></div>
+                                                <div style="width: 5px; height: 100%; background: #000; margin-right: 1px;"></div>
+                                                <div style="width: 1px; height: 85%; background: #000; margin-right: 2px;"></div>
+                                                <div style="width: 3px; height: 95%; background: #000; margin-right: 4px;"></div>
+                                                <div style="width: 4px; height: 100%; background: #000; margin-right: 2px;"></div>
+                                                <div style="width: 1px; height: 90%; background: #000; margin-right: 1px;"></div>
+                                                <div style="width: 3px; height: 100%; background: #000; margin-right: 3px;"></div>
+                                                <div style="width: 1px; height: 85%; background: #000; margin-right: 2px;"></div>
+                                                <div style="width: 4px; height: 95%; background: #000; margin-right: 2px;"></div>
+                                                <div style="width: 2px; height: 100%; background: #000;"></div>
+                                            </div>
+                                            <small class="text-dark font-weight-bold" style="font-family: monospace; font-size: 0.65rem; letter-spacing: 0.2px;"><?= htmlspecialchars($smartCode) ?></small>
+                                            <span class="badge badge-success mt-2 py-1 px-2" style="font-size: 0.6rem; letter-spacing: 0.5px;"><i class="fas fa-shield-alt mr-1"></i> SECURE TAG</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <!-- Standard Batch Card -->
+                            <h4 class="font-weight-bold text-dark"><?= htmlspecialchars($batchCode) ?> - <?= htmlspecialchars($seedName) ?></h4>
+                            <span class="badge badge-success p-2 px-3 shadow-sm">
+                                <i class="fas fa-check-circle mr-1"></i> Data Terverifikasi
+                            </span>
+                        <?php endif; ?>
                     </div>
 
                     <?php if (!$hasData): ?>

@@ -107,7 +107,7 @@ class BahanBaku extends Model {
      */
     public function getItemsByCategory($category) {
         $sql = "SELECT id, name, scientific_name, unit, code FROM bahan_baku_master 
-                WHERE category = ? 
+                WHERE UPPER(TRIM(category)) = UPPER(TRIM(?)) 
                 ORDER BY name ASC";
         return $this->query($sql, [$category]);
     }
@@ -492,7 +492,7 @@ class BahanBaku extends Model {
                 FROM bahan_baku_transactions t
                 JOIN bahan_baku_master m ON t.item_id = m.id
                 LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
-                WHERE m.category = 'BENIH' $whereInStr
+                WHERE UPPER(TRIM(m.category)) = 'BENIH' $whereInStr
                 GROUP BY m.id, m.name, m.unit, t.seed_source_id, ss.seed_source_name
                 HAVING (total_in - total_out) > 0
                 ORDER BY m.name ASC, ss.seed_source_name ASC";

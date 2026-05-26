@@ -17,6 +17,24 @@
                             <i class="fas fa-search"></i> Cari Bibit
                         </a>
                     </div>
+                    
+                    <!-- Search Barcode Section -->
+                    <div class="barcode-search-box mt-4 p-3 rounded-lg shadow-sm" style="background: rgba(255, 255, 255, 0.95); border: 1.5px solid var(--primary-color); max-width: 480px; box-shadow: 0 6px 20px rgba(45, 80, 22, 0.1) !important; border-radius: 8px;">
+                        <form action="<?= url('public/trace') ?>" method="GET" class="d-flex align-items-center justify-content-between" style="gap: 8px; margin-bottom: 0;">
+                            <div class="position-relative flex-grow-1" style="width: 100%;">
+                                <span class="position-absolute" style="left: 12px; top: 12px; color: var(--primary-color); z-index: 10;">
+                                    <i class="fas fa-qrcode"></i>
+                                </span>
+                                <input type="text" name="code" class="form-control" placeholder="Masukkan Kode Barcode Bibit..." required style="padding-left: 36px; border-radius: 6px; border: 1px solid #ced4da; height: 42px; font-size: 0.9rem; width: 100%; box-shadow: none;">
+                            </div>
+                            <button type="submit" class="btn btn-success font-weight-bold" style="background-color: var(--primary-color); border-color: var(--primary-color); height: 42px; border-radius: 6px; white-space: nowrap; font-size: 0.9rem; padding: 0 16px;">
+                                <i class="fas fa-search mr-1"></i> Lacak
+                            </button>
+                        </form>
+                        <small class="text-muted d-block mt-2 mb-0" style="font-size: 0.75rem; font-style: italic; line-height: 1.2;">
+                            <i class="fas fa-info-circle mr-1"></i> Contoh: <strong>PE-45-3-12-7-42-260415-88</strong>
+                        </small>
+                    </div>
                 </div>
                 <div class="hero-image-wrapper">
                     <!-- Hero Slideshow -->
