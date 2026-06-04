@@ -77,14 +77,14 @@ class ApiTraceController extends ApiController {
             if ($type === 'PE') {
                 $sqlSowing = "SELECT s.sowing_date 
                               FROM seedling_weanings w
-                              JOIN seedling_harvests h ON w.harvest_id = h.id
-                              JOIN seed_sowings s ON h.sowing_id = s.id
+                              LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
+                              LEFT JOIN seed_sowings s ON h.sowing_id = s.id
                               WHERE w.id = ? LIMIT 1";
             } else {
                 $sqlSowing = "SELECT s.sowing_date 
                               FROM seedling_entres e
-                              JOIN seedling_harvests h ON e.harvest_id = h.id
-                              JOIN seed_sowings s ON h.sowing_id = s.id
+                              LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                              LEFT JOIN seed_sowings s ON h.sowing_id = s.id
                               WHERE e.id = ? LIMIT 1";
             }
             
@@ -129,8 +129,10 @@ class ApiTraceController extends ApiController {
                     $mismatchFields[] = 'Tanggal Tabur';
                 }
             } else {
-                $isVerified = false;
-                $mismatchFields[] = 'Data Penaburan Induk';
+                if ($parseResult['sowing_date_raw'] !== '000000') {
+                    $isVerified = false;
+                    $mismatchFields[] = 'Data Penaburan Induk';
+                }
             }
             
             if (!$isVerified) {
@@ -290,14 +292,14 @@ class ApiTraceController extends ApiController {
                 if ($type === 'PE') {
                     $sqlSowing = "SELECT s.sowing_date 
                                   FROM seedling_weanings w
-                                  JOIN seedling_harvests h ON w.harvest_id = h.id
-                                  JOIN seed_sowings s ON h.sowing_id = s.id
+                                  LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
+                                  LEFT JOIN seed_sowings s ON h.sowing_id = s.id
                                   WHERE w.id = ? LIMIT 1";
                 } else {
                     $sqlSowing = "SELECT s.sowing_date 
                                   FROM seedling_entres e
-                                  JOIN seedling_harvests h ON e.harvest_id = h.id
-                                  JOIN seed_sowings s ON h.sowing_id = s.id
+                                  LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                                  LEFT JOIN seed_sowings s ON h.sowing_id = s.id
                                   WHERE e.id = ? LIMIT 1";
                 }
                 $stmtSowing = $db->prepare($sqlSowing);
@@ -339,8 +341,10 @@ class ApiTraceController extends ApiController {
                         $reason .= 'Tanggal Tabur mismatch. ';
                     }
                 } else {
-                    $isValid = false;
-                    $reason .= 'Data Penaburan induk missing. ';
+                    if ($parseResult['sowing_date_raw'] !== '000000') {
+                        $isValid = false;
+                        $reason .= 'Data Penaburan induk missing. ';
+                    }
                 }
                 
                 if ($isValid) {

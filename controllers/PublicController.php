@@ -97,12 +97,13 @@ class PublicController extends Controller {
         // Fetch basic info based on source type
         $batchCode = '-';
         $seedName = '-';
+        $scientificName = '-';
         
         $db = Database::getInstance()->getConnection();
         
         if ($sourceType === 'PE') {
             $weaningModel = $this->model('SeedlingWeaning');
-            $weaningData = $db->prepare("SELECT w.weaning_code, st.name as seedling_name 
+            $weaningData = $db->prepare("SELECT w.weaning_code, st.name as seedling_name, st.scientific_name 
                                                FROM seedling_weanings w 
                                                JOIN seedling_types st ON w.result_item_id = st.id 
                                                WHERE w.id = ?");
@@ -111,10 +112,11 @@ class PublicController extends Controller {
             if ($weaningInfo) {
                 $batchCode = $weaningInfo['weaning_code'];
                 $seedName = $weaningInfo['seedling_name'];
+                $scientificName = $weaningInfo['scientific_name'] ?: '-';
             }
         } else {
             $entresModel = $this->model('SeedlingEntres');
-            $entresData = $db->prepare("SELECT e.entres_code, st.name as seedling_name 
+            $entresData = $db->prepare("SELECT e.entres_code, st.name as seedling_name, st.scientific_name 
                                               FROM seedling_entres e 
                                               JOIN seedling_types st ON e.result_item_id = st.id 
                                               WHERE e.id = ?");
@@ -123,6 +125,7 @@ class PublicController extends Controller {
             if ($entresInfo) {
                 $batchCode = $entresInfo['entres_code'];
                 $seedName = $entresInfo['seedling_name'];
+                $scientificName = $entresInfo['scientific_name'] ?: '-';
             }
         }
 
@@ -136,6 +139,7 @@ class PublicController extends Controller {
             'title' => 'Traceability: ' . $batchCode,
             'batchCode' => $batchCode,
             'seedName' => $seedName,
+            'scientificName' => $scientificName,
             'sourceType' => $sourceType,
             'sourceId' => $sourceId,
             'traceData' => $traceData,

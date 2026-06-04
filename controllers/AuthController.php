@@ -309,6 +309,189 @@ class AuthController extends Controller {
     }
     
     /**
+     * Forgot password page
+     */
+    public function forgotPassword() {
+        if (isLoggedIn()) {
+            $this->redirectToDashboard();
+            return;
+        }
+        
+        $data = [
+            'title' => 'Lupa Sandi'
+        ];
+        
+        $this->render('auth/forgot_password', $data, null);
+    }
+    
+    /**
+     * Process forgot password request
+     */
+    public function processForgotPassword() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('auth/forgot-password');
+            return;
+        }
+        
+        // Validate CSRF token
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $email = sanitize($this->post('email'));
+        
+        if (empty($email) || !$this->validateEmail($email)) {
+            $this->setFlash('error', 'Masukkan format email yang valid');
+            $this->redirect('auth/forgot-password');
+            return;
+        }
+        
+        // Find user by email
+        $userModel = $this->model('User');
+        $user = $userModel->findByEmail($email);
+        
+        if ($user) {
+            // Generate unique secure token
+            $token = bin2hex(random_bytes(32));
+            $expiresAt = date('Y-m-d H:i:s', time() + 3600); // 1 hour expiration
+            
+            // Delete old tokens for this email
+            $userModel->execute("DELETE FROM password_resets WHERE email = ?", [$email]);
+            
+            // Insert new token
+            $userModel->execute(
+                "INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)",
+                [$email, $token, $expiresAt]
+            );
+            
+            // Send email
+            require_once UTILS_PATH . 'EmailSender.php';
+            $emailSender = new EmailSender();
+            $resetLink = url('auth/reset-password?token=' . $token);
+            
+            if ($emailSender->sendPasswordResetLink($email, $resetLink)) {
+                $this->setFlash('success', 'Link reset password telah dikirim ke email Anda.');
+            } else {
+                $this->setFlash('error', 'Gagal mengirim email reset password. Silakan hubungi admin.');
+            }
+        } else {
+            // For security, do not reveal if the email exists or not
+            $this->setFlash('success', 'Link reset password telah dikirim ke email Anda jika email tersebut terdaftar.');
+        }
+        
+        $this->redirect('auth/forgot-password');
+    }
+    
+    /**
+     * Reset password page
+     */
+    public function resetPassword() {
+        if (isLoggedIn()) {
+            $this->redirectToDashboard();
+            return;
+        }
+        
+        $token = sanitize($this->get('token'));
+        
+        if (empty($token)) {
+            $this->setFlash('error', 'Token reset password tidak valid atau telah kedaluwarsa.');
+            $this->redirect('auth/login');
+            return;
+        }
+        
+        // Validate token
+        $userModel = $this->model('User');
+        $reset = $userModel->queryOne(
+            "SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() LIMIT 1",
+            [$token]
+        );
+        
+        if (!$reset) {
+            $this->setFlash('error', 'Token reset password tidak valid atau telah kedaluwarsa.');
+            $this->redirect('auth/login');
+            return;
+        }
+        
+        $data = [
+            'title' => 'Reset Sandi',
+            'token' => $token,
+            'email' => $reset['email']
+        ];
+        
+        $this->render('auth/reset_password', $data, null);
+    }
+    
+    /**
+     * Process reset password
+     */
+    public function processResetPassword() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('auth/login');
+            return;
+        }
+        
+        // Validate CSRF token
+        if (!$this->validateCSRF()) {
+            return;
+        }
+        
+        $token = sanitize($this->post('token'));
+        $password = $this->post('password');
+        $passwordConfirm = $this->post('password_confirm');
+        
+        if (empty($token) || empty($password) || empty($passwordConfirm)) {
+            $this->setFlash('error', 'Semua field wajib diisi.');
+            $this->redirect('auth/reset-password?token=' . $token);
+            return;
+        }
+        
+        if (strlen($password) < PASSWORD_MIN_LENGTH) {
+            $this->setFlash('error', 'Password minimal ' . PASSWORD_MIN_LENGTH . ' karakter.');
+            $this->redirect('auth/reset-password?token=' . $token);
+            return;
+        }
+        
+        if ($password !== $passwordConfirm) {
+            $this->setFlash('error', 'Konfirmasi password tidak cocok.');
+            $this->redirect('auth/reset-password?token=' . $token);
+            return;
+        }
+        
+        // Validate token in database
+        $userModel = $this->model('User');
+        $reset = $userModel->queryOne(
+            "SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() LIMIT 1",
+            [$token]
+        );
+        
+        if (!$reset) {
+            $this->setFlash('error', 'Token reset password tidak valid atau telah kedaluwarsa.');
+            $this->redirect('auth/login');
+            return;
+        }
+        
+        // Find user by email
+        $user = $userModel->findByEmail($reset['email']);
+        if (!$user) {
+            $this->setFlash('error', 'Pengguna tidak ditemukan.');
+            $this->redirect('auth/login');
+            return;
+        }
+        
+        // Update user's password
+        if ($userModel->changePassword($user['id'], $password)) {
+            // Delete used token
+            $userModel->execute("DELETE FROM password_resets WHERE email = ?", [$reset['email']]);
+            
+            $this->setFlash('success', 'Password Anda berhasil diperbarui. Silakan login dengan password baru.');
+            $this->redirect('auth/login');
+        } else {
+            $this->setFlash('error', 'Gagal memperbarui password. Silakan coba lagi.');
+            $this->redirect('auth/reset-password?token=' . $token);
+        }
+    }
+    
+    /**
      * Redirect to appropriate dashboard based on role
      */
     private function redirectToDashboard() {

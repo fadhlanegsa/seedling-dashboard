@@ -1,4 +1,4 @@
-<div class="row justify-content-center">
+﻿<div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PEMANENAN SEMAI</h2>
@@ -148,27 +148,70 @@
 document.addEventListener('DOMContentLoaded', function() {
     let sowingData = [];
 
+    // ── OFFLINE INTERCEPTOR ──────────────────────────────────────────────────
+    const harvestForm = document.getElementById('harvestForm');
+    harvestForm.addEventListener('submit', async function(e) {
+        if (!navigator.onLine) {
+            e.preventDefault();
+
+            const sowingId = document.getElementById('sowing_id').value;
+            if (!sowingId) {
+                OfflineManager.showToast('Pilih benih yang akan dipanen terlebih dahulu!', 'error');
+                return;
+            }
+
+            const payload = OfflineManager.serializeForm(harvestForm);
+            const sowingName = document.getElementById('display_seed_name').value || 'Semai';
+            const dateVal   = harvestForm.querySelector('[name="harvest_date"]')?.value || '';
+            const label     = `Pemanenan: ${sowingName} — ${dateVal}`;
+
+            try {
+                await OfflineManager.addToQueue(
+                    'harvesting',
+                    '<?= url('seedling-admin/store-harvesting') ?>',
+                    payload,
+                    label
+                );
+                await OfflineManager.updateBadge();
+                OfflineManager.showToast('Data panen tersimpan lokal. Akan disinkronkan saat online! ✅', 'success');
+            } catch (err) {
+                OfflineManager.showToast('Gagal menyimpan data offline. Coba lagi.', 'error');
+            }
+        }
+        // If online: let form submit normally
+    });
+
     window.openSowingModal = function() {
         $('#sowingModal').modal('show');
         const modalBody = document.getElementById('modalSowingBody');
         modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat riwayat tabur...</td></tr>';
 
-        fetch('<?= url('seedling-admin/get-sowings-ajax') ?>')
-            .then(res => res.json())
-            .then(data => {
-                modalBody.innerHTML = '';
-                if(data.success && data.data.length > 0) {
-                    sowingData = data.data;
-                    renderSowingTable(sowingData);
-                } else {
-                    modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada data penaburan benih (PC) yang tersedia.</td></tr>';
-                }
-            });
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-sowings-ajax') ?>',
+            'sowings_list'
+        ).then(result => {
+            const data = result.data;
+            modalBody.innerHTML = '';
+
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="4"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
+            }
+
+            if(data && data.success && data.data.length > 0) {
+                sowingData = data.data;
+                renderSowingTable(sowingData);
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada data penaburan benih (PC) yang tersedia.</td></tr>';
+            }
+        });
     };
 
     function renderSowingTable(dataToRender) {
         const modalBody = document.getElementById('modalSowingBody');
-        modalBody.innerHTML = '';
+        // Keep cache banner if present
+        const banner = modalBody.querySelector('.alert');
+        modalBody.innerHTML = banner ? banner.parentElement.outerHTML : '';
         dataToRender.forEach(sw => {
             const dateStr = new Date(sw.sowing_date).toLocaleDateString('id-ID');
             const qtyStr = sw.seed_quantity ? parseFloat(sw.seed_quantity).toLocaleString('id-ID') : '0';
@@ -197,7 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const sw = sowingData.find(s => s.id == id);
         if(!sw) return;
 
-        // Set Values
         document.getElementById('sowing_id').value = id;
         document.getElementById('display_seed_name').value = sw.seed_name;
         document.getElementById('display_sowing_date').value = new Date(sw.sowing_date).toLocaleDateString('id-ID');
@@ -207,3 +249,4 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 </script>
+

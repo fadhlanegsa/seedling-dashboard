@@ -188,14 +188,18 @@ class SeedlingEditController extends Controller {
             $delta = $oQty - $nQty;
             
             if ($delta < 0) {
-                $stockCheck = $this->db->prepare("SELECT 
-                    (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='IN' AND item_id = ? AND bpdas_id=? AND nursery_id=?) -
-                    (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='OUT' AND item_id = ? AND bpdas_id=? AND nursery_id=?) as cur_stock");
-                $stockCheck->execute([
-                    $iId, $oldData['bpdas_id'], $oldData['nursery_id'],
-                    $iId, $oldData['bpdas_id'], $oldData['nursery_id']
+                $bahanBakuModel = $this->model('BahanBaku');
+                $stocks = $bahanBakuModel->getStockBalance([
+                    'nursery_id' => $oldData['nursery_id'],
+                    'bpdas_id' => $oldData['bpdas_id']
                 ]);
-                $cStock = $stockCheck->fetchColumn() ?: 0;
+                $cStock = 0;
+                foreach ($stocks as $s) {
+                    if ($s['id'] == $iId) {
+                        $cStock = (float)$s['current_stock'];
+                        break;
+                    }
+                }
                 
                 if ($cStock + $delta < 0) {
                     $this->setFlash('error', "Validasi Stok Gagal! Stok tidak mencukupi untuk item dengan ID $iId");
@@ -317,14 +321,18 @@ class SeedlingEditController extends Controller {
         $bagDelta = $oldData['total_production'] - $newData['total_production'];
         if ($oldData['bag_item_id'] == $newData['bag_item_id'] && $bagDelta < 0) {
             $bagId = $newData['bag_item_id'];
-            $stockCheck = $this->db->prepare("SELECT 
-                (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='IN' AND item_id = ? AND bpdas_id=? AND nursery_id=?) -
-                (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='OUT' AND item_id = ? AND bpdas_id=? AND nursery_id=?) as cur_stock");
-            $stockCheck->execute([
-                $bagId, $oldData['bpdas_id'], $oldData['nursery_id'],
-                $bagId, $oldData['bpdas_id'], $oldData['nursery_id']
+            $bahanBakuModel = $this->model('BahanBaku');
+            $stocks = $bahanBakuModel->getStockBalance([
+                'nursery_id' => $oldData['nursery_id'],
+                'bpdas_id' => $oldData['bpdas_id']
             ]);
-            $cStock = $stockCheck->fetchColumn() ?: 0;
+            $cStock = 0;
+            foreach ($stocks as $s) {
+                if ($s['id'] == $bagId) {
+                    $cStock = (float)$s['current_stock'];
+                    break;
+                }
+            }
             if ($cStock + $bagDelta < 0) {
                 $this->setFlash('error', "Validasi Stok Kantong Gagal! Stok tidak mencukupi.");
                 $this->redirect("seedling-edit/edit-bag-filling/$id");
@@ -434,14 +442,18 @@ class SeedlingEditController extends Controller {
         // DELTA VALIDATION (Simplified check for Seed stock)
         $seedDelta = $oldData['seed_quantity'] - $newData['seed_quantity'];
         if ($oldData['seed_item_id'] == $newData['seed_item_id'] && $seedDelta < 0) {
-            $stockCheck = $this->db->prepare("SELECT 
-                (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='IN' AND item_id = ? AND bpdas_id=? AND nursery_id=?) -
-                (SELECT SUM(quantity) FROM bahan_baku_transactions WHERE transaction_type='OUT' AND item_id = ? AND bpdas_id=? AND nursery_id=?) as cur_stock");
-            $stockCheck->execute([
-                $newData['seed_item_id'], $oldData['bpdas_id'], $oldData['nursery_id'],
-                $newData['seed_item_id'], $oldData['bpdas_id'], $oldData['nursery_id']
+            $bahanBakuModel = $this->model('BahanBaku');
+            $stocks = $bahanBakuModel->getStockBalance([
+                'nursery_id' => $oldData['nursery_id'],
+                'bpdas_id' => $oldData['bpdas_id']
             ]);
-            $cStock = $stockCheck->fetchColumn() ?: 0;
+            $cStock = 0;
+            foreach ($stocks as $s) {
+                if ($s['id'] == $newData['seed_item_id']) {
+                    $cStock = (float)$s['current_stock'];
+                    break;
+                }
+            }
             if ($cStock + $seedDelta < 0) {
                 $this->setFlash('error', "Validasi Stok Benih Gagal! Stok tidak mencukupi.");
                 $this->redirect("seedling-edit/edit-seed-sowing/$id");

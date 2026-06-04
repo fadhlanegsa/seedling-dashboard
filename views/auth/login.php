@@ -242,6 +242,19 @@
             text-decoration: underline;
         }
 
+        .forgot-password-link {
+            color: #1B5E20;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .forgot-password-link:hover {
+            color: #4CAF50;
+            text-decoration: underline;
+        }
+
         .back-home {
             position: absolute;
             top: 2rem;
@@ -356,11 +369,12 @@
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
                     <label class="remember-me">
                         <input type="checkbox" name="remember" value="1">
                         <span>Ingat saya</span>
                     </label>
+                    <a href="<?= url('auth/forgot-password') ?>" class="forgot-password-link">Lupa Sandi?</a>
                 </div>
                 
                 <div class="form-group" style="display: flex; justify-content: center;">

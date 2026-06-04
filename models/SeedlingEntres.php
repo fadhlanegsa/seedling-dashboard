@@ -16,9 +16,9 @@ class SeedlingEntres extends Model {
     public function generateEntresCode() {
         $prefix = 'ET-' . date('Ym');
         $sql = "SELECT entres_code FROM {$this->table} 
-                WHERE entres_code LIKE ? 
-                ORDER BY LENGTH(entres_code) DESC, entres_code DESC LIMIT 1";
-        $result = $this->query($sql, [$prefix . '%']);
+                WHERE entres_code LIKE ? AND entres_code REGEXP ?
+                ORDER BY entres_code DESC LIMIT 1";
+        $result = $this->query($sql, [$prefix . '%', '^ET-[0-9]{9}$']);
         
         if (empty($result)) {
             return $prefix . '001';
@@ -272,10 +272,13 @@ class SeedlingEntres extends Model {
     public function getAvailableEntres($filters = []) {
         $sql = "SELECT e.id, e.entres_code, e.entres_date, e.used_quantity as total_initial,
                 e.location, st.name as seed_name, 'pcs' as seed_unit,
+                e.bpdas_id, e.nursery_id, e.result_item_id as seedling_type_id, s.seed_source_id, s.sowing_date,
                 COALESCE(m.mutation_stock, 0) as used_mutation,
                 (e.used_quantity - COALESCE(m.mutation_stock, 0)) as remaining_stock
                 FROM {$this->table} e
                 JOIN seedling_types st ON e.result_item_id = st.id
+                LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                LEFT JOIN seed_sowings s ON h.sowing_id = s.id
                 LEFT JOIN (
                     SELECT source_id, SUM(quantity) as mutation_stock
                     FROM seedling_mutations

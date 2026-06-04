@@ -62,6 +62,19 @@ class Controller {
      * @param string $path Path to redirect to
      */
     protected function redirect($path = '') {
+        if ((isset($_POST['_offline_sync']) && $_POST['_offline_sync'] === '1') || 
+            (isset($_GET['_offline_sync']) && $_GET['_offline_sync'] === '1')) {
+            $flash = $this->getFlash();
+            $success = $flash ? ($flash['type'] === 'success') : true;
+            $message = $flash ? $flash['message'] : 'Redirected to ' . $path;
+            
+            $this->json([
+                'success' => $success,
+                'message' => $message,
+                'redirected_to' => $path
+            ]);
+            return;
+        }
         redirect($path);
     }
     

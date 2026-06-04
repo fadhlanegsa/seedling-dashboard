@@ -1,4 +1,4 @@
-<div class="container-fluid">
+﻿<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PENABURAN BENIH</h2>
         <nav aria-label="breadcrumb">
@@ -246,6 +246,37 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    // ── OFFLINE INTERCEPTOR ──────────────────────────────────────────────────
+    const sowingForm = document.getElementById('sowingForm');
+    sowingForm.addEventListener('submit', async function(e) {
+        if (!navigator.onLine) {
+            e.preventDefault();
+
+            // Serialize all form fields
+            const payload = OfflineManager.serializeForm(sowingForm);
+
+            // Build a human-readable label
+            const seedName  = document.getElementById('seed_item_id')?.options[document.getElementById('seed_item_id')?.selectedIndex]?.text || 'Benih';
+            const dateVal   = sowingForm.querySelector('[name="sowing_date"]')?.value || '';
+            const label     = `Penaburan: ${seedName.split(' (')[0]} — ${dateVal}`;
+
+            try {
+                await OfflineManager.addToQueue(
+                    'seed-sowing',
+                    '<?= url('seedling-admin/store-seed-sowing') ?>',
+                    payload,
+                    label
+                );
+                await OfflineManager.updateBadge();
+                OfflineManager.showToast('Data tersimpan lokal. Akan disinkronkan saat online! ✅', 'success');
+            } catch (err) {
+                OfflineManager.showToast('Gagal menyimpan data offline. Coba lagi.', 'error');
+            }
+        }
+        // If online: let form submit normally
+    });
+
     // ---------------------------------------------------------
     // SEED LOGIC
     // ---------------------------------------------------------
@@ -273,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('sumber_benih_display').value = 'Tanpa Sumber Benih (Legacy)';
             }
             
-            // if current input is higher than stock, reset it
             if (parseFloat(seedQtyInput.value) > maxSeedStock) {
                 seedQtyInput.value = maxSeedStock;
                 alert('Stok '+option.text()+' tidak mencukupi (Max: '+maxSeedStock+')');
@@ -295,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ---------------------------------------------------------
-    // POLYBAG LOGIC (Left Modal 1)
+    // POLYBAG LOGIC — Offline-Aware
     // ---------------------------------------------------------
     let polybagData = [];
     const polybagIdsSelected = new Set();
@@ -307,37 +337,44 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalBody = document.getElementById('modalPolybagBody');
         modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
 
-        fetch('<?= url('seedling-admin/get-filled-bags-stock-ajax') ?>')
-            .then(res => res.json())
-            .then(data => {
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-filled-bags-stock-ajax') ?>',
+            'filled_bags_stock'
+        ).then(result => {
+            const data = result.data;
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="5"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache (offline)</strong> — terakhir diperbarui: ${ts}</div></td></tr>`;
+            } else {
                 modalBody.innerHTML = '';
-                if(data.success && data.data.length > 0) {
-                    polybagData = data.data;
-                    data.data.forEach(pb => {
-                        if(polybagIdsSelected.has(pb.id.toString())) return; // skip selected
+            }
 
-                        modalBody.innerHTML += `
-                            <tr>
-                                <td class="font-weight-bold text-info">${pb.filling_code}</td>
-                                <td>${new Date(pb.filling_date).toLocaleDateString('id-ID')}</td>
-                                <td>${pb.bag_name}</td>
-                                <td class="text-right font-weight-bold text-primary">${parseFloat(pb.remaining_stock).toLocaleString('id-ID')}</td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPolybag(${pb.id})">
-                                        <i class="fas fa-plus"></i> Pilih
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    
-                    if (modalBody.innerHTML === '') {
-                        modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Semua PB yang tersedia sudah dipilih</td></tr>';
-                    }
-                } else {
-                    modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok PB yang tersedia. Silakan lakukan Pengisian Kantong terlebih dahulu.</td></tr>';
+            if(data && data.success && data.data.length > 0) {
+                polybagData = data.data;
+                data.data.forEach(pb => {
+                    if(polybagIdsSelected.has(pb.id.toString())) return;
+                    const existingRows = modalBody.innerHTML;
+                    modalBody.innerHTML = existingRows + `
+                        <tr>
+                            <td class="font-weight-bold text-info">${pb.filling_code}</td>
+                            <td>${new Date(pb.filling_date).toLocaleDateString('id-ID')}</td>
+                            <td>${pb.bag_name}</td>
+                            <td class="text-right font-weight-bold text-primary">${parseFloat(pb.remaining_stock).toLocaleString('id-ID')}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPolybag(${pb.id})">
+                                    <i class="fas fa-plus"></i> Pilih
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                if (polybagIdsSelected.size === polybagData.length) {
+                    modalBody.innerHTML += '<tr><td colspan="5" class="text-center py-4 text-muted">Semua PB yang tersedia sudah dipilih</td></tr>';
                 }
-            });
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok PB yang tersedia.</td></tr>';
+            }
+        });
     };
 
     window.addPolybag = function(id) {
@@ -378,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ---------------------------------------------------------
-    // MATERIAL LOGIC (Left Modal 2)
+    // MATERIAL LOGIC — Offline-Aware
     // ---------------------------------------------------------
     let materialData = [];
     const materialIdsSelected = new Set();
@@ -390,37 +427,40 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalBody = document.getElementById('modalMaterialBody');
         modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
 
-        fetch('<?= url('seedling-admin/get-materials-stock-ajax') ?>')
-            .then(res => res.json())
-            .then(data => {
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-materials-stock-ajax') ?>',
+            'materials_stock'
+        ).then(result => {
+            const data = result.data;
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="5"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
+            } else {
                 modalBody.innerHTML = '';
-                if(data.success && data.data.length > 0) {
-                    materialData = data.data;
-                    data.data.forEach(mat => {
-                        if(materialIdsSelected.has(mat.id.toString())) return; 
+            }
 
-                        modalBody.innerHTML += `
-                            <tr>
-                                <td class="font-weight-bold">${mat.name}</td>
-                                <td>${mat.category}</td>
-                                <td class="text-right font-weight-bold text-warning">${parseFloat(mat.current_stock).toLocaleString('id-ID')}</td>
-                                <td>${mat.unit}</td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="addMaterial(${mat.id})">
-                                        <i class="fas fa-plus"></i> Pilih
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    
-                    if (modalBody.innerHTML === '') {
-                        modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Semua bahan pendukung sudah dipilih</td></tr>';
-                    }
-                } else {
-                    modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Tidak ada stok bahan baku pendukung.</td></tr>';
-                }
-            });
+            if(data && data.success && data.data.length > 0) {
+                materialData = data.data;
+                data.data.forEach(mat => {
+                    if(materialIdsSelected.has(mat.id.toString())) return;
+                    modalBody.innerHTML += `
+                        <tr>
+                            <td class="font-weight-bold">${mat.name}</td>
+                            <td>${mat.category}</td>
+                            <td class="text-right font-weight-bold text-warning">${parseFloat(mat.current_stock).toLocaleString('id-ID')}</td>
+                            <td>${mat.unit}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="addMaterial(${mat.id})">
+                                    <i class="fas fa-plus"></i> Pilih
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="5" class="text-center py-4 text-muted">Tidak ada stok bahan baku pendukung.</td></tr>';
+            }
+        });
     };
 
     window.addMaterial = function(id) {
@@ -465,7 +505,6 @@ document.addEventListener('DOMContentLoaded', function() {
             input.value = maxVal;
         }
     };
-
-    // Removed Form Submission Validation for Polybags requirement
 });
 </script>
+

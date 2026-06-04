@@ -11,109 +11,147 @@
                 </div>
                 
                 <!-- Card Body -->
-                <div class="card-body px-5 py-4">
+                <div class="card-body px-3 px-md-5 py-4">
                     <form action="<?= url('seedling-admin/store-bahan-baku') ?>" method="POST" id="bahanBakuForm">
                         <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= generateCSRFToken() ?>">
                         
-                        <div class="row">
-                            <!-- Left Column -->
-                            <div class="col-md-6 border-right">
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Tanggal Masuk</label>
-                                    <div class="col-sm-7">
-                                        <input type="date" name="transaction_date" class="form-control" value="<?= $today ?>" required>
-                                    </div>
+                        <!-- Form PWA Style -->
+                        <div class="form-wrapper">
+                            
+                            <!-- Header Transaksi -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="font-weight-bold text-muted small px-1 mb-1">TANGGAL MASUK</label>
+                                    <input type="date" name="transaction_date" class="form-control font-weight-bold border-0 shadow-sm" value="<?= $today ?>" required style="background: #f8f9fa;">
                                 </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">ID Transaksi</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" name="transaction_id" class="form-control font-weight-bold bg-light" value="<?= $transactionId ?>" readonly>
-                                    </div>
+                                <div class="col-6">
+                                    <label class="font-weight-bold text-muted small px-1 mb-1">ID TRANSAKSI</label>
+                                    <input type="text" name="transaction_id" class="form-control font-weight-bold border-0 shadow-sm" value="<?= $transactionId ?>" readonly style="background: #e9ecef;">
                                 </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Jenis Bahan Baku</label>
-                                    <div class="col-sm-7">
-                                        <select name="category" id="category" class="form-control custom-select bg-warning-light" required>
-                                            <option value="">-- Pilih Jenis --</option>
-                                            <?php foreach ($categories as $cat): ?>
-                                                <option value="<?= $cat['category'] ?>"><?= $cat['category'] ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
+                            </div>
+
+                            <!-- STANDAR 1: Tap-able Cards untuk Jenis Bahan Baku -->
+                            <div class="form-group mb-4 mt-4">
+                                <label class="font-weight-bold text-muted small px-1 mb-2">JENIS BAHAN BAKU <span class="text-danger">*</span></label>
+                                <div class="row" style="margin: -5px;">
+                                    <?php foreach ($categories as $index => $cat): ?>
+                                    <div class="col-6 col-md-4" style="padding: 5px;">
+                                        <input type="radio" class="btn-check" name="category" id="cat_<?= $index ?>" value="<?= $cat['category'] ?>" autocomplete="off" required>
+                                        <label class="radio-card w-100 p-2 h-100 d-flex flex-column align-items-center justify-content-center text-center" for="cat_<?= $index ?>" style="min-height: 80px;">
+                                            <span class="font-weight-bold" style="font-size: 0.85rem;"><?= $cat['category'] ?></span>
+                                        </label>
                                     </div>
+                                    <?php endforeach; ?>
                                 </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Nama Bahan Baku</label>
-                                    <div class="col-sm-7">
-                                        <select name="item_id" id="item_id" class="form-control custom-select" required disabled>
-                                            <option value="">-- Pilih Material --</option>
-                                        </select>
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label class="font-weight-bold text-muted small px-1">NAMA BAHAN BAKU <span class="text-danger">*</span></label>
+                                <select name="item_id" id="item_id" class="form-control custom-select shadow-sm font-weight-bold" required disabled style="height: 50px;">
+                                    <option value="">-- Pilih Material --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-4" id="seed-source-group" style="display: none;">
+                                <label class="font-weight-bold text-muted small px-1">SUMBER BENIH <small>(Opsional)</small></label>
+                                <select name="seed_source_id" id="seed_source_id" class="form-control custom-select shadow-sm" style="height: 50px;">
+                                    <option value="">-- Pilih Sumber Benih --</option>
+                                    <?php if(isset($seedSources)): foreach ($seedSources as $source): ?>
+                                        <option value="<?= $source['id'] ?>"><?= htmlspecialchars($source['seed_source_name']) ?></option>
+                                    <?php endforeach; endif; ?>
+                                </select>
+                            </div>
+
+                            <!-- STANDAR 2: Optimasi Input Angka -->
+                            <div class="form-group mb-4 mt-4">
+                                <label class="font-weight-bold text-muted small px-1">JUMLAH ( <span id="unit-label" class="text-primary font-weight-bold">kg</span> ) <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg shadow-sm overflow-hidden" style="border-radius: 12px; border: 1px solid #ced4da;">
+                                    <div class="input-group-prepend">
+                                        <button class="btn btn-light border-0 px-4 h-100 d-flex align-items-center justify-content-center" type="button" onclick="ubahQty(-1)" style="width: 70px; font-size: 1.5rem; font-weight: bold; color: var(--ppth-green);">-</button>
                                     </div>
-                                </div>
-                                <div class="form-group row mb-4" id="seed-source-group" style="display: none;">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Sumber Benih <br><small class="text-muted">(Khusus Benih)</small></label>
-                                    <div class="col-sm-7">
-                                        <select name="seed_source_id" id="seed_source_id" class="form-control custom-select">
-                                            <option value="">-- Pilih Sumber Benih (Opsional) --</option>
-                                            <?php if(isset($seedSources)): foreach ($seedSources as $source): ?>
-                                                <option value="<?= $source['id'] ?>"><?= htmlspecialchars($source['seed_source_name']) ?></option>
-                                            <?php endforeach; endif; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Jumlah ( <span id="unit-label">kg</span> )</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" name="quantity" class="form-control" placeholder="Contoh: 3500 atau 3,5" required>
-                                    </div>
-                                </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Keterangan</label>
-                                    <div class="col-sm-7">
-                                        <textarea name="notes" class="form-control" rows="3" placeholder="Tambahkan catatan..."></textarea>
+                                    <!-- Menggunakan step="any" dan inputmode="decimal" karena qty bahan baku bisa desimal -->
+                                    <input type="number" step="any" inputmode="decimal" name="quantity" id="qty_input" class="form-control border-0 text-center font-weight-bold shadow-none" 
+                                           placeholder="0" onfocus="this.select()" required style="background: white; height: 70px; font-size: 2rem; color: var(--ppth-green);">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-light border-0 px-4 h-100 d-flex align-items-center justify-content-center" type="button" onclick="ubahQty(1)" style="width: 70px; font-size: 1.5rem; font-weight: bold; color: var(--ppth-green);">+</button>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Right Column -->
-                            <div class="col-md-6 pl-md-5">
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Pengirim</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" name="sender" class="form-control" placeholder="Nama instansi/orang">
+                            <!-- STANDAR 4: Minimalist Form (Accordion) untuk Data Tambahan -->
+                            <div class="form-group mb-4">
+                                <div class="accordion shadow-sm border-0 overflow-hidden" id="accordionOptional" style="border-radius: 12px;">
+                                    <div class="card border-0">
+                                        <div class="card-header bg-white p-0" id="headingNotes">
+                                            <button class="btn btn-block text-left font-weight-bold text-muted p-3 collapsed d-flex align-items-center justify-content-between btn-accordion-custom" type="button" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes" style="box-shadow: none;">
+                                                <span><i class="fas fa-list-alt mr-2" style="color: var(--ppth-green);"></i> Data Tambahan (Opsional)</span>
+                                                <i class="fas fa-chevron-down small"></i>
+                                            </button>
+                                        </div>
+                                        <div id="collapseNotes" class="collapse" aria-labelledby="headingNotes" data-parent="#accordionOptional">
+                                            <div class="card-body bg-light p-3 border-top">
+                                                
+                                                <div class="form-group mb-3">
+                                                    <label class="small font-weight-bold text-muted">Keterangan / Catatan</label>
+                                                    <textarea name="notes" class="form-control border-0 shadow-sm" rows="2" placeholder="Tambahkan catatan..."></textarea>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="form-group mb-3">
+                                                            <label class="small font-weight-bold text-muted">Pengirim</label>
+                                                            <input type="text" name="sender" class="form-control border-0 shadow-sm" placeholder="Instansi/Orang">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="form-group mb-3">
+                                                            <label class="small font-weight-bold text-muted">Penerima</label>
+                                                            <input type="text" name="receiver" class="form-control border-0 shadow-sm" placeholder="Staf penerima">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="form-group mb-2">
+                                                            <label class="small font-weight-bold text-muted">Mandor / Supervisor</label>
+                                                            <input type="text" name="foreman" class="form-control border-0 shadow-sm" placeholder="Nama mandor">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="form-group mb-2">
+                                                            <label class="small font-weight-bold text-muted">Pelaksana / Manager</label>
+                                                            <input type="text" name="manager" class="form-control border-0 shadow-sm" placeholder="Nama pimpinan">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Penerima</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" name="receiver" class="form-control" placeholder="Nama staf penerima">
-                                    </div>
-                                </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Mandor / Supervisor</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" name="foreman" class="form-control" placeholder="Nama mandor">
-                                    </div>
-                                </div>
-                                <div class="form-group row mb-4">
-                                    <label class="col-sm-5 col-form-label font-weight-bold text-gray-700">Pelaksana / Manager</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" name="manager" class="form-control" placeholder="Nama pimpinan">
+                            </div>
+
+                        </div>
+
+                        <!-- STANDAR 3: Sticky Bottom Bar -->
+                        <div class="sticky-bottom-bar">
+                            <div class="container p-0">
+                                <div class="row justify-content-center">
+                                    <div class="col-md-10 col-lg-8">
+                                        <div class="d-flex justify-content-between align-items-center" style="gap: 10px;">
+                                            <button type="reset" class="btn btn-light border btn-lg font-weight-bold shadow-sm" style="width: 25%; border-radius: 50px;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            <button type="submit" class="btn btn-lg font-weight-bold shadow d-flex align-items-center justify-content-center text-white" style="width: 75%; border-radius: 50px; background-color: var(--ppth-green); border-color: var(--ppth-green);">
+                                                <i class="fas fa-check mr-2"></i> SIMPAN
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div class="row mt-4 pt-3 border-top justify-content-center">
-                            <div class="col-md-6 text-center">
-                                <button type="reset" class="btn btn-secondary btn-lg mr-3 px-5 shadow-sm">
-                                    <i class="fas fa-times"></i> Batal
-                                </button>
-                                <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm font-weight-bold">
-                                    <i class="fas fa-check"></i> Simpan
-                                </button>
-                            </div>
-                        </div>
                     </form>
                 </div>
             </div>
@@ -267,58 +305,149 @@
 </div>
 
 <style>
+    /* Tema Warna PPTH (Hijau Earth-tone) */
+    :root {
+        --ppth-green: #2e7d32;
+        --ppth-green-light: #e8f5e9;
+        --ppth-green-dark: #1b5e20;
+    }
     .bg-warning-light { background-color: #fffef2; border-color: #ffeeba; }
     .text-gray-700 { color: #4e4e4e !important; }
     .border-bottom-primary { border-bottom: 0.3rem solid #4e73df !important; }
     .border-top-primary { border-top: 4px solid #4e73df !important; }
     .btn-xs { font-size: 0.7rem; }
     .x-small { font-size: 0.72rem; }
+
+    /* 1. Styling untuk Tap-able Cards (Kompatibel dengan Bootstrap 4) */
+    .btn-check {
+        position: absolute;
+        clip: rect(0,0,0,0);
+        pointer-events: none;
+    }
+    
+    .radio-card {
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: 2px solid var(--ppth-green);
+        background-color: white;
+        color: var(--ppth-green);
+        cursor: pointer;
+        margin: 0;
+    }
+    
+    .radio-card:hover {
+        background-color: var(--ppth-green-light);
+    }
+
+    .btn-check:checked + .radio-card {
+        background-color: var(--ppth-green) !important;
+        color: white !important;
+        border-color: var(--ppth-green) !important;
+        box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
+    }
+
+    .radio-card:active {
+        transform: scale(0.95);
+    }
+    
+    /* 2. Styling untuk Input Angka */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    /* 3. Wrapper untuk Sticky Bottom Bar */
+    .sticky-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        z-index: 1030;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+    }
+
+    /* Kustomisasi styling Accordion */
+    .btn-accordion-custom:not(.collapsed) {
+        background-color: var(--ppth-green-light);
+        color: var(--ppth-green) !important;
+    }
+    
+    /* Margin bawah ekstra untuk scroll */
+    .form-wrapper {
+        padding-bottom: 180px;
+    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ===== Input Form: Category → Item AJAX =====
-    const categorySelect = document.getElementById('category');
+    const categoryRadios = document.querySelectorAll('input[name="category"]');
     const itemSelect = document.getElementById('item_id');
     const unitLabel = document.getElementById('unit-label');
 
-    categorySelect.addEventListener('change', function() {
-        const category = this.value;
-        const seedSourceGroup = document.getElementById('seed-source-group');
-        
-        if (category === 'BENIH') {
-            seedSourceGroup.style.display = 'flex';
-        } else {
-            seedSourceGroup.style.display = 'none';
-            document.getElementById('seed_source_id').value = '';
-        }
+    categoryRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const category = this.value;
+            const seedSourceGroup = document.getElementById('seed-source-group');
+            
+            if (category === 'BENIH') {
+                seedSourceGroup.style.display = 'block';
+            } else {
+                seedSourceGroup.style.display = 'none';
+                document.getElementById('seed_source_id').value = '';
+            }
 
-        if (!category) {
-            itemSelect.innerHTML = '<option value="">-- Pilih Material --</option>';
-            itemSelect.disabled = true;
-            return;
-        }
-        fetch(`<?= url('seedling-admin/get-items-by-category') ?>?category=${encodeURIComponent(category)}`)
-            .then(response => response.json())
-            .then(res => {
-                if (res.success) {
-                    itemSelect.innerHTML = '<option value="">-- Pilih Material --</option>';
-                    res.data.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.textContent = item.name;
-                        option.dataset.unit = item.unit;
-                        itemSelect.appendChild(option);
-                    });
-                    itemSelect.disabled = false;
-                }
-            });
+            if (!category) {
+                itemSelect.innerHTML = '<option value="">-- Pilih Material --</option>';
+                itemSelect.disabled = true;
+                return;
+            }
+            fetch(`<?= url('seedling-admin/get-items-by-category') ?>?category=${encodeURIComponent(category)}`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.success) {
+                        itemSelect.innerHTML = '<option value="">-- Pilih Material --</option>';
+                        res.data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.name;
+                            option.dataset.unit = item.unit;
+                            itemSelect.appendChild(option);
+                        });
+                        itemSelect.disabled = false;
+                    }
+                });
+        });
     });
 
     itemSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         unitLabel.textContent = selectedOption.dataset.unit || 'kg';
     });
+
+    // JS Logic untuk merubah ikon chevron pada Accordion
+    $('#accordionOptional').on('show.bs.collapse', function () {
+        $(this).find('.fa-chevron-down').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    }).on('hide.bs.collapse', function () {
+        $(this).find('.fa-chevron-up').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    });
+
+    // JS Logic untuk tombol - / +
+    window.ubahQty = function(delta) {
+        const input = document.getElementById('qty_input');
+        let val = parseFloat(input.value) || 0;
+        val += delta;
+        if (val < 0) val = 0; 
+        input.value = val;
+    };
 
     // ===== Delete Bahan Baku Modal =====
     document.querySelectorAll('.btn-delete-bb').forEach(btn => {

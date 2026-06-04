@@ -534,7 +534,7 @@
                                                     </div>
                                                     <div class="font-weight-bold text-dark"><?= $pe['result_name'] ?></div>
                                                     <div class="d-flex justify-content-between">
-                                                        <span class="x-small text-muted">Dari: <?= $pe['harvest_code'] ?></span>
+                                                        <span class="x-small text-muted">Dari: <?= $pe['harvest_code'] ?? 'Langsung dari Benih' ?></span>
                                                         <span class="text-success font-weight-bold"><?= number_format($pe['remaining_stock'] ?? 0, 0) ?> btg</span>
                                                     </div>
                                                 </td>

@@ -40,9 +40,9 @@ class SeedlingMutation extends Model {
     public function generateMutationCode() {
         $prefix = 'BO-' . date('Ym');
         $sql = "SELECT mutation_code FROM {$this->table} 
-                WHERE mutation_code LIKE ? 
-                ORDER BY LENGTH(mutation_code) DESC, mutation_code DESC LIMIT 1";
-        $result = $this->query($sql, [$prefix . '%']);
+                WHERE mutation_code LIKE ? AND mutation_code REGEXP ?
+                ORDER BY mutation_code DESC LIMIT 1";
+        $result = $this->query($sql, [$prefix . '%', '^BO-[0-9]{9}$']);
         
         if (empty($result)) {
             return $prefix . '001';
@@ -528,40 +528,68 @@ class SeedlingMutation extends Model {
                     ];
                 }
 
+                if (empty($mainData['sowing_id']) && $sourceType === 'PE') {
+                    // Direct seed weaning: Fetch seed info from seedling_weaning_seeds
+                    $directSeedSql = "SELECT ws.quantity, m.name as seed_name, m.scientific_name, m.unit as seed_unit
+                                      FROM seedling_weaning_seeds ws
+                                      JOIN bahan_baku_master m ON ws.item_id = m.id
+                                      WHERE ws.weaning_id = ? LIMIT 1";
+                    $directSeedInfo = $this->queryOne($directSeedSql, [$sourceId]);
+                    if ($directSeedInfo) {
+                        $result['sowing'] = [
+                            'code' => 'Penyapihan Langsung',
+                            'date' => $mainData['weaning_date'],
+                            'seed_name' => $directSeedInfo['seed_name'],
+                            'seed_quantity' => $directSeedInfo['quantity'],
+                            'seed_unit' => $directSeedInfo['seed_unit']
+                        ];
+                    }
+                }
+
                 // Query 2: Komposisi Media (Sowing -> Sowing Polybags -> Bag Filling -> Media Mixing -> Items)
+                $bagFillingId = null;
                 if (!empty($mainData['sowing_id'])) {
                     // Cari bag_filling_id dari seed_sowing_polybags
                     $polybagSql = "SELECT sp.bag_filling_id 
                                    FROM seed_sowing_polybags sp
                                    WHERE sp.sowing_id = ? LIMIT 1";
-                    
                     $polybagInfo = $this->queryOne($polybagSql, [$mainData['sowing_id']]);
-                    
                     if ($polybagInfo && !empty($polybagInfo['bag_filling_id'])) {
                         $bagFillingId = $polybagInfo['bag_filling_id'];
-                        
-                        // Trace back to Media Mixing
-                        $mediaMixingSql = "SELECT mp.id, mp.production_code 
-                                           FROM bag_filling_media bfm
-                                           JOIN media_mixing_productions mp ON bfm.media_production_id = mp.id
-                                           WHERE bfm.bag_filling_id = ? LIMIT 1";
-                        
-                        $mixingData = $this->queryOne($mediaMixingSql, [$bagFillingId]);
+                    }
+                } elseif ($sourceType === 'PE') {
+                    // Direct seed weaning: Get bag_filling_id from seedling_weaning_polybags
+                    $polybagSql = "SELECT wp.bag_filling_id 
+                                   FROM seedling_weaning_polybags wp
+                                   WHERE wp.weaning_id = ? LIMIT 1";
+                    $polybagInfo = $this->queryOne($polybagSql, [$sourceId]);
+                    if ($polybagInfo && !empty($polybagInfo['bag_filling_id'])) {
+                        $bagFillingId = $polybagInfo['bag_filling_id'];
+                    }
+                }
+                
+                if (!empty($bagFillingId)) {
+                    // Trace back to Media Mixing
+                    $mediaMixingSql = "SELECT mp.id, mp.production_code 
+                                       FROM bag_filling_media bfm
+                                       JOIN media_mixing_productions mp ON bfm.media_production_id = mp.id
+                                       WHERE bfm.bag_filling_id = ? LIMIT 1";
+                    
+                    $mixingData = $this->queryOne($mediaMixingSql, [$bagFillingId]);
 
-                        if ($mixingData) {
-                            $result['media'] = [
-                                'code' => $mixingData['production_code'],
-                                'items' => []
-                            ];
+                    if ($mixingData) {
+                        $result['media'] = [
+                            'code' => $mixingData['production_code'],
+                            'items' => []
+                        ];
 
-                            // Get ingredients
-                            $itemsSql = "SELECT mmi.quantity, bbm.name, bbm.unit
-                                         FROM media_mixing_items mmi
-                                         JOIN bahan_baku_master bbm ON mmi.item_id = bbm.id
-                                         WHERE mmi.production_id = ?";
-                            
-                            $result['media']['items'] = $this->query($itemsSql, [$mixingData['id']]);
-                        }
+                        // Get ingredients
+                        $itemsSql = "SELECT mmi.quantity, bbm.name, bbm.unit
+                                     FROM media_mixing_items mmi
+                                     JOIN bahan_baku_master bbm ON mmi.item_id = bbm.id
+                                     WHERE mmi.production_id = ?";
+                        
+                        $result['media']['items'] = $this->query($itemsSql, [$mixingData['id']]);
                     }
                 }
             }

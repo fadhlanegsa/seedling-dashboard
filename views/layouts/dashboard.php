@@ -4,6 +4,27 @@
  * For authenticated users (Admin, BPDAS, Public)
  */
 $user = currentUser();
+$role = $user['role'] ?? '';
+
+// Mobile Bottom Navigation URLs mapping based on user role
+$bnHome = url('public/dashboard');
+$bnStok = url('public/my-requests');
+$bnInput = url('seedling-admin');
+$bnProfile = url('public/profile');
+
+if ($role === 'admin') {
+    $bnHome = url('admin/dashboard');
+    $bnStok = url('admin/stock');
+    $bnProfile = url('admin/users');
+} elseif ($role === 'bpdas') {
+    $bnHome = url('bpdas/dashboard');
+    $bnStok = url('bpdas/stock');
+    $bnProfile = url('bpdas/profile');
+} elseif ($role === 'operator_persemaian') {
+    $bnHome = url('operator/dashboard');
+    $bnStok = url('operator/stock');
+    $bnProfile = url('operator/profile');
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -56,13 +77,137 @@ $user = currentUser();
             font-size: 0.875rem;
             color: var(--text-light);
         }
+        /* Mobile Native UI (PWA) Adjustments */
         @media (max-width: 768px) {
+            body, .dashboard-content {
+                background-color: var(--white) !important;
+            }
+            .header, .footer {
+                display: none !important; /* Sembunyikan untuk sensasi native app */
+            }
             .dashboard-container {
                 flex-direction: column;
+                min-height: auto;
             }
             .dashboard-sidebar {
                 width: 100%;
             }
+            .dashboard-content {
+                padding: 0 !important;
+            }
+            /* Edge-to-edge container */
+            .dashboard-content > .container-fluid {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+            /* Flat cards without border/margin on mobile */
+            .dashboard-content .card {
+                border-radius: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                margin-bottom: 0 !important;
+            }
+            .dashboard-content .card-header {
+                border-radius: 0 !important;
+            }
+            /* Sticky save button menumpuk mulus di atas bottom nav */
+            .sticky-bottom-bar {
+                bottom: 65px !important;
+                padding-bottom: 12px !important;
+                border-top: 1px solid #f1f3f5;
+            }
+        }
+
+        /* Bottom Navigation Bar Styles */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background-color: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1040;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #8e8e93;
+            text-decoration: none !important;
+            font-size: 0.75rem;
+            font-weight: 500;
+            width: 25%;
+            height: 100%;
+            transition: all 0.2s ease;
+        }
+        .bottom-nav-item i {
+            font-size: 1.25rem;
+            margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav-item:hover, .bottom-nav-item.active {
+            color: var(--primary-color, #2e7d32);
+        }
+        .bottom-nav-item.active i {
+            transform: scale(1.1);
+            color: var(--primary-color, #2e7d32);
+        }
+
+        /* Floating Action Button di Bottom Nav */
+        .bottom-nav-fab {
+            position: relative;
+            top: -20px;
+            background-color: var(--primary-color, #2e7d32);
+            color: white !important;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+            margin: 0 auto;
+            border: 4px solid white;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav-fab:active {
+            transform: scale(0.95);
+        }
+        .bottom-nav-fab i {
+            font-size: 1.5rem !important;
+            margin-bottom: 0 !important;
+            color: white !important;
+        }
+
+        /* Bottom Sheet Modal */
+        .modal.bottom-sheet .modal-dialog {
+            margin: 0;
+            margin-top: auto;
+            align-items: flex-end;
+            min-height: 100%;
+            display: flex;
+        }
+        .modal.bottom-sheet .modal-content {
+            border-radius: 20px 20px 0 0;
+            border: none;
+            width: 100%;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .modal.bottom-sheet.fade .modal-dialog {
+            transform: translate(0, 100%);
+            transition: transform 0.3s ease-out;
+        }
+        .modal.bottom-sheet.show .modal-dialog {
+            transform: translate(0, 0);
         }
     </style>
 </head>
@@ -76,6 +221,7 @@ $user = currentUser();
                     Direktorat Penghijauan dan Perbenihan Tanaman Hutan
                 </a>
                 <ul class="navbar-menu">
+                    <li id="offlineIndicator" style="display: none; margin-right: 15px;"><span class="badge badge-warning text-dark font-weight-bold px-3 py-2" style="border-radius: 20px;"><i class="fas fa-wifi-slash mr-1"></i> Mode Offline</span></li>
                     <li><a href="<?= url('') ?>">Beranda</a></li>
                     <li><span style="color: white;">Halo, <?= htmlspecialchars($user['full_name'] ?? 'Tamu') ?></span></li>
                     <li><a href="<?= url('auth/logout') ?>" class="btn btn-danger btn-sm">Logout</a></li>
@@ -83,6 +229,11 @@ $user = currentUser();
             </nav>
         </div>
     </header>
+
+    <!-- Mobile Offline Banner -->
+    <div id="mobileOfflineBanner" class="bg-warning text-dark text-center py-2 px-3 d-md-none font-weight-bold" style="display: none; font-size: 0.85rem; border-bottom: 1.5px solid #d39e00; z-index: 1030; position: sticky; top: 0;">
+        <i class="fas fa-wifi-slash mr-1"></i> Mode Offline Aktif — Transaksi Disimpan Lokal
+    </div>
 
     <!-- Flash Messages -->
     <?php if (isset($flash)): ?>
@@ -96,7 +247,7 @@ $user = currentUser();
     <!-- Dashboard Container -->
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <aside class="dashboard-sidebar">
+        <aside class="dashboard-sidebar d-none d-md-block">
             <div class="user-info">
                 <h4><?= htmlspecialchars($user['full_name'] ?? 'Tamu') ?></h4>
                 <p><?= ucfirst($user['role'] ?? 'guest') ?></p>
@@ -188,8 +339,9 @@ $user = currentUser();
                         <!-- Penatausahaan Bibit Module (Visible only to Admin, BPDAS, Operator) -->
                         <?php if (in_array($user['role'] ?? '', ['admin', 'bpdas', 'operator_persemaian'])): ?>
                             <li class="nav-section-header mt-3 px-3 small text-muted font-weight-bold">PENATAUSAHAAN BIBIT</li>
-                            <li><a href="<?= url('seedling-admin') ?>" class="<?= $this->activeClass('seedling-admin') ?>">
-                                <i class="fas fa-microscope"></i> Ringkasan
+                            <li><a href="<?= url('seedling-admin') ?>" class="<?= $this->activeClass('seedling-admin') ?> d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-microscope"></i> Ringkasan</span>
+                                <span class="badge badge-warning offline-badge text-dark font-weight-bold" style="display: none; border-radius: 10px; font-size: 0.75rem; padding: 3px 8px;">0</span>
                             </a></li>
                             <li><a href="<?= url('seedling-admin/master-data') ?>" class="<?= $this->activeClass('seedling-admin/master-data') ?>">
                                 <i class="fas fa-database"></i> Database
@@ -232,12 +384,97 @@ $user = currentUser();
         </main>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; <?= date('Y') ?> Kementerian Kehutanan</p>
+    <!-- Bottom Navigation (Mobile Only) -->
+    <div class="bottom-nav d-block d-md-none">
+        <a href="<?= $bnHome ?>" class="bottom-nav-item <?= ($this->isActive('admin/dashboard') || $this->isActive('bpdas/dashboard') || $this->isActive('operator/dashboard') || $this->isActive('public/dashboard')) ? 'active' : '' ?>">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="<?= $bnStok ?>" class="bottom-nav-item <?= ($this->isActive('admin/stock') || $this->isActive('bpdas/stock') || $this->isActive('operator/stock')) ? 'active' : '' ?>">
+            <i class="fas fa-boxes"></i>
+            <span>Stok</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-toggle="modal" data-target="#pubBottomSheet" style="position: relative;">
+            <div class="bottom-nav-fab">
+                <i class="fas fa-plus"></i>
+            </div>
+            <span class="badge badge-warning offline-badge text-dark font-weight-bold" style="position: absolute; top: 0px; right: 22%; display: none; border-radius: 50%; min-width: 18px; height: 18px; align-items: center; justify-content: center; font-size: 0.65rem; z-index: 1050; border: 1.5px solid white; padding: 2px;">0</span>
+        </a>
+        <a href="<?= $bnProfile ?>" class="bottom-nav-item <?= ($this->isActive('admin/users') || $this->isActive('bpdas/profile') || $this->isActive('operator/profile') || $this->isActive('public/profile')) ? 'active' : '' ?>">
+            <i class="fas fa-user"></i>
+            <span>Profil</span>
+        </a>
+    </div>
+
+    <!-- Bottom Sheet Modal untuk Menu Cepat PUB -->
+    <div class="modal fade bottom-sheet" id="pubBottomSheet" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content pb-4">
+                <div class="modal-header border-0 pb-0 justify-content-center">
+                    <div style="width: 40px; height: 5px; background-color: #e0e0e0; border-radius: 10px; margin-top: 5px;"></div>
+                </div>
+                <div class="modal-body pt-3">
+                    <h6 class="font-weight-bold text-center mb-4 text-dark">Menu Cepat Produksi (PUB)</h6>
+                    <div class="row text-center px-2" style="row-gap: 20px;">
+                        <!-- Bahan Baku -->
+                        <div class="col-4">
+                            <a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="d-flex flex-column align-items-center text-decoration-none">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 55px; height: 55px; font-size: 1.2rem;">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <span class="x-small font-weight-bold text-dark">Bahan Baku</span>
+                            </a>
+                        </div>
+                        <!-- Mixing -->
+                        <div class="col-4">
+                            <a href="<?= url('seedling-admin/media-mixing-form') ?>" class="d-flex flex-column align-items-center text-decoration-none">
+                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 55px; height: 55px; font-size: 1.2rem;">
+                                    <i class="fas fa-mortar-pestle"></i>
+                                </div>
+                                <span class="x-small font-weight-bold text-dark">Mixing</span>
+                            </a>
+                        </div>
+                        <!-- Tanam -->
+                        <div class="col-4">
+                            <a href="<?= url('seedling-admin/seed-sowing-form') ?>" class="d-flex flex-column align-items-center text-decoration-none">
+                                <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 55px; height: 55px; font-size: 1.2rem;">
+                                    <i class="fas fa-seedling"></i>
+                                </div>
+                                <span class="x-small font-weight-bold text-dark">Tanam</span>
+                            </a>
+                        </div>
+                        <!-- Panen -->
+                        <div class="col-4">
+                            <a href="<?= url('seedling-admin/harvesting-form') ?>" class="d-flex flex-column align-items-center text-decoration-none">
+                                <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 55px; height: 55px; font-size: 1.2rem;">
+                                    <i class="fas fa-leaf"></i>
+                                </div>
+                                <span class="x-small font-weight-bold text-dark">Panen</span>
+                            </a>
+                        </div>
+                        <!-- Sapih -->
+                        <div class="col-4">
+                            <a href="<?= url('seedling-admin/weaning-form') ?>" class="d-flex flex-column align-items-center text-decoration-none">
+                                <div class="bg-teal text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 55px; height: 55px; font-size: 1.2rem; background-color: #20c997;">
+                                    <i class="fas fa-expand-arrows-alt"></i>
+                                </div>
+                                <span class="x-small font-weight-bold text-dark">Sapih</span>
+                            </a>
+                        </div>
+                        <!-- Naik Kelas -->
+                        <div class="col-4">
+                            <a href="<?= url('seedling-admin/mutation-form') ?>" class="d-flex flex-column align-items-center text-decoration-none">
+                                <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 55px; height: 55px; font-size: 1.2rem;">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </div>
+                                <span class="x-small font-weight-bold text-dark">Naik Kelas</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </footer>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -248,6 +485,55 @@ $user = currentUser();
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="<?= asset('js/main.js') ?>"></script>
     <script src="<?= asset('js/datatables.js') ?>"></script>
+    <script src="<?= asset('js/offline-manager.js') ?>"></script>
+    <script>
+        // Global handler for offline sync button click
+        async function handleOfflineSync() {
+            const btn = document.getElementById('btnSyncOffline');
+            if (!btn) return;
+            
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sinkronisasi...';
+            
+            try {
+                const result = await OfflineManager.syncAll((current, total, label) => {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> (${current}/${total}) ${label}...`;
+                });
+                
+                if (result.success) {
+                    OfflineManager.showToast(result.message, 'success');
+                } else {
+                    OfflineManager.showToast(result.message, 'error');
+                    if (result.failCount > 0) {
+                        let errorDetails = result.results
+                            .filter(r => r.status === 'error')
+                            .map(r => `• ${r.label}: ${r.message}`)
+                            .join('\n');
+                        alert(`Beberapa data gagal disinkronkan:\n${errorDetails}`);
+                    }
+                }
+            } catch (err) {
+                console.error('[Sync] Error:', err);
+                OfflineManager.showToast('Gagal melakukan sinkronisasi: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                await OfflineManager.updateBadge();
+            }
+        }
+
+        // Handle mobile offline banner display
+        function updateConnectionStatus() {
+            const mobileBanner = document.getElementById('mobileOfflineBanner');
+            if (mobileBanner) {
+                mobileBanner.style.display = navigator.onLine ? 'none' : 'block';
+            }
+        }
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        document.addEventListener('DOMContentLoaded', updateConnectionStatus);
+    </script>
     <?php if (($user['role'] ?? '') === 'admin'): ?>
     <script src="<?= asset('js/charts.js') ?>"></script>
     <script>

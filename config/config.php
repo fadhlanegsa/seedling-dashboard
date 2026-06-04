@@ -7,6 +7,11 @@
 // Prevent direct access
 defined('APP_PATH') or define('APP_PATH', dirname(__DIR__));
 
+// Load Composer Autoloader
+if (file_exists(APP_PATH . '/vendor/autoload.php')) {
+    require_once APP_PATH . '/vendor/autoload.php';
+}
+
 // Application Settings
 define('APP_NAME', 'Dashboard Stok Bibit Persemaian Indonesia');
 define('APP_VERSION', '1.0.0');
@@ -49,14 +54,14 @@ define('MAX_FILE_SIZE', 5242880); // 5MB in bytes
 define('ALLOWED_FILE_TYPES', ['pdf', 'jpg', 'jpeg', 'png']);
 
 // Email Configuration (Update with your SMTP settings)
-define('ENABLE_EMAIL', false); // Set to true to enable email notifications
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'your-email@gmail.com');
-define('SMTP_PASSWORD', 'your-app-password');
-define('SMTP_FROM_EMAIL', 'noreply@seedling-dashboard.id');
-define('SMTP_FROM_NAME', 'Seedling Dashboard');
-define('SMTP_ENCRYPTION', 'tls'); // tls or ssl
+define('ENABLE_EMAIL', true); // Set to true to enable email notifications
+define('SMTP_HOST', 'mail.bibitgratis.com');
+define('SMTP_PORT', 465);
+define('SMTP_USERNAME', 'noreply@bibitgratis.com');
+define('SMTP_PASSWORD', 'kT~Hx+N?)yYa[}h[');
+define('SMTP_FROM_EMAIL', 'noreply@bibitgratis.com');
+define('SMTP_FROM_NAME', 'Dashboard Bibit Gratis');
+define('SMTP_ENCRYPTION', 'ssl'); // tls or ssl
 
 // Pagination Settings
 define('ITEMS_PER_PAGE', 10);

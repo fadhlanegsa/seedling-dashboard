@@ -29,7 +29,7 @@
                                 <div class="form-group row mb-3">
                                     <label class="col-sm-4 col-form-label small font-weight-bold">Sumber Panen</label>
                                     <div class="col-sm-8">
-                                        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($data['harvest_code'] ?? 'PA#' . $data['harvest_id']) ?>" readonly>
+                                        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($data['harvest_code'] ?? ($data['harvest_id'] ? 'PA#' . $data['harvest_id'] : 'Langsung dari Benih')) ?>" readonly>
                                         <small class="text-muted">Sumber panen tidak dapat diubah.</small>
                                     </div>
                                 </div>

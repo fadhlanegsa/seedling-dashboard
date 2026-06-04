@@ -342,14 +342,16 @@ class BahanBaku extends Model {
                  COALESCE(sowing_seed_out.total_out, 0) + 
                  COALESCE(sowing_mat_out.total_out, 0) + 
                  COALESCE(weaning_mat_out.total_out, 0) + 
-                 COALESCE(entres_mat_out.total_out, 0)) as total_out,
+                 COALESCE(entres_mat_out.total_out, 0) +
+                 COALESCE(direct_seed_out.total_out, 0)) as total_out,
                 (COALESCE(trans_in.total_in, 0) - (
                  COALESCE(mixing_out.total_out, 0) + 
                  COALESCE(filling_out.total_out, 0) + 
                  COALESCE(sowing_seed_out.total_out, 0) + 
                  COALESCE(sowing_mat_out.total_out, 0) + 
                  COALESCE(weaning_mat_out.total_out, 0) + 
-                 COALESCE(entres_mat_out.total_out, 0))) as current_stock
+                 COALESCE(entres_mat_out.total_out, 0) +
+                 COALESCE(direct_seed_out.total_out, 0))) as current_stock
                 FROM bahan_baku_master m
                 -- Total IN from transactions
                 LEFT JOIN (
@@ -418,6 +420,16 @@ class BahanBaku extends Model {
                     ($bpdasId ? " AND se.bpdas_id = $bpdasId" : "") . "
                     GROUP BY em.item_id
                 ) entres_mat_out ON m.id = entres_mat_out.item_id
+                -- Total OUT from direct seed weaning (Opsi B)
+                LEFT JOIN (
+                    SELECT ws.item_id, SUM(ws.quantity) as total_out
+                    FROM seedling_weaning_seeds ws
+                    JOIN seedling_weanings sw ON ws.weaning_id = sw.id
+                    WHERE 1=1 " . 
+                    ($nurseryId ? " AND sw.nursery_id = $nurseryId" : "") . 
+                    ($bpdasId ? " AND sw.bpdas_id = $bpdasId" : "") . "
+                    GROUP BY ws.item_id
+                ) direct_seed_out ON m.id = direct_seed_out.item_id
                 HAVING current_stock > 0 OR total_in > 0
                 ORDER BY m.category ASC, m.name ASC";
         

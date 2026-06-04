@@ -1,3 +1,21 @@
+<!-- Offline Sync Banner -->
+<div id="offlineSyncBanner" class="alert alert-warning align-items-center justify-content-between mb-4 shadow-sm" style="display: none; border-radius: 12px; border-left: 5px solid #ffc107; padding: 15px 20px;">
+    <div class="d-flex align-items-center flex-wrap">
+        <div class="mr-3" style="font-size: 1.5rem;">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+        </div>
+        <div>
+            <h6 class="alert-heading mb-1 font-weight-bold" style="color: #856404;">Ada Data Offline Belum Sinkron</h6>
+            <p class="mb-0 text-muted small">Sebanyak <span class="pending-count font-weight-bold text-dark">0</span> transaksi tersimpan secara lokal. Silakan sinkronkan data saat Anda terhubung ke internet.</p>
+        </div>
+    </div>
+    <div class="mt-2 mt-sm-0">
+        <button id="btnSyncOffline" class="btn btn-warning btn-sm font-weight-bold shadow-sm px-3 py-2" onclick="handleOfflineSync()">
+            <i class="fas fa-sync-alt mr-1"></i> Sinkronkan Sekarang
+        </button>
+    </div>
+</div>
+
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-home"></i> Dashboard Operator</h1>
@@ -64,6 +82,78 @@
         </div>
     </div>
 </div>
+
+<!-- Swipeable Menu Cepat PUB (Khusus Mobile) -->
+<div class="d-block d-md-none mb-4">
+    <h6 class="font-weight-bold text-muted mb-2 px-1">Menu Cepat Produksi (PUB)</h6>
+    <div class="swipeable-menu pb-2">
+        <a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="swipe-item bg-white shadow-sm rounded p-3 text-center text-decoration-none d-flex flex-column align-items-center justify-content-center">
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <span class="small font-weight-bold text-dark" style="line-height: 1.1;">Bahan Baku</span>
+        </a>
+        <a href="<?= url('seedling-admin/media-mixing-form') ?>" class="swipe-item bg-white shadow-sm rounded p-3 text-center text-decoration-none d-flex flex-column align-items-center justify-content-center">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                <i class="fas fa-mortar-pestle"></i>
+            </div>
+            <span class="small font-weight-bold text-dark" style="line-height: 1.1;">Mixing</span>
+        </a>
+        <a href="<?= url('seedling-admin/seed-sowing-form') ?>" class="swipe-item bg-white shadow-sm rounded p-3 text-center text-decoration-none d-flex flex-column align-items-center justify-content-center">
+            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                <i class="fas fa-seedling"></i>
+            </div>
+            <span class="small font-weight-bold text-dark" style="line-height: 1.1;">Tanam</span>
+        </a>
+        <a href="<?= url('seedling-admin/harvesting-form') ?>" class="swipe-item bg-white shadow-sm rounded p-3 text-center text-decoration-none d-flex flex-column align-items-center justify-content-center">
+            <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                <i class="fas fa-leaf"></i>
+            </div>
+            <span class="small font-weight-bold text-dark" style="line-height: 1.1;">Panen</span>
+        </a>
+        <a href="<?= url('seedling-admin/weaning-form') ?>" class="swipe-item bg-white shadow-sm rounded p-3 text-center text-decoration-none d-flex flex-column align-items-center justify-content-center">
+            <div class="bg-teal text-white rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 45px; height: 45px; font-size: 1.1rem; background-color: #20c997;">
+                <i class="fas fa-expand-arrows-alt"></i>
+            </div>
+            <span class="small font-weight-bold text-dark" style="line-height: 1.1;">Sapih</span>
+        </a>
+        <a href="<?= url('seedling-admin/mutation-form') ?>" class="swipe-item bg-white shadow-sm rounded p-3 text-center text-decoration-none d-flex flex-column align-items-center justify-content-center">
+            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <span class="small font-weight-bold text-dark" style="line-height: 1.1;">Naik Kelas</span>
+        </a>
+    </div>
+</div>
+
+<style>
+/* CSS khusus untuk Swipeable Menu di dashboard operator */
+.swipeable-menu {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 5px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+.swipeable-menu::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome, Safari and Opera */
+}
+.swipeable-menu {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+.swipe-item {
+    flex: 0 0 auto;
+    width: 95px;
+    scroll-snap-align: start;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: transform 0.1s ease;
+}
+.swipe-item:active {
+    transform: scale(0.95);
+}
+</style>
 
 <!-- Stock List -->
 <div class="card">

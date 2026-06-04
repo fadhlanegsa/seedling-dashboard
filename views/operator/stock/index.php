@@ -1,3 +1,7 @@
+<?php
+$nurseryId = currentUser()['nursery_id'] ?? 'nursery';
+$stocksJson = json_encode($stocks);
+?>
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-boxes"></i> Kelola Stok</h1>
@@ -150,7 +154,144 @@
 </div>
 
 <script nonce="<?= cspNonce() ?>">
+document.addEventListener('DOMContentLoaded', function() {
+    const nurseryId = '<?= $nurseryId ?>';
+    const isOnline = navigator.onLine;
+    
+    if (isOnline) {
+        // Save current PHP-generated stock list to localStorage as snapshot
+        const snapshot = {
+            timestamp: new Date().toISOString(),
+            stocks: <?= $stocksJson ?>
+        };
+        localStorage.setItem('stock_snapshot_' + nurseryId, JSON.stringify(snapshot));
+    } else {
+        // We are offline! Show offline banner and populate table from snapshot
+        showOfflineStockBanner(nurseryId);
+    }
+});
+
+function showOfflineStockBanner(nurseryId) {
+    const cachedData = localStorage.getItem('stock_snapshot_' + nurseryId);
+    
+    // Add banner at the top of page
+    const header = document.querySelector('.page-header');
+    const banner = document.createElement('div');
+    banner.className = 'alert alert-warning w-100 mb-4 shadow-sm d-flex align-items-center';
+    banner.style.borderRadius = '12px';
+    banner.style.borderLeft = '5px solid #ffc107';
+    
+    if (!cachedData) {
+        banner.innerHTML = `
+            <i class="fas fa-exclamation-triangle text-warning mr-3" style="font-size: 1.25rem;"></i>
+            <div>
+                <strong>Mode Offline Aktif</strong> — Data stok tidak tersedia secara offline. Hubungkan ke internet untuk menyegarkan data.
+            </div>
+        `;
+        header.parentNode.insertBefore(banner, header.nextSibling);
+        
+        const tbody = document.querySelector('#stockTable tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Data offline tidak tersedia. Harap hubungkan ke internet terlebih dahulu.</td></tr>';
+        }
+        
+        // Hide pagination
+        const pagination = document.querySelector('.pagination');
+        if (pagination) pagination.parentNode.style.display = 'none';
+        return;
+    }
+    
+    const snapshot = JSON.parse(cachedData);
+    const date = new Date(snapshot.timestamp);
+    const dateFormatted = date.toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    }) + ' WIB';
+    
+    banner.innerHTML = `
+        <i class="fas fa-exclamation-triangle text-warning mr-3" style="font-size: 1.25rem;"></i>
+        <div>
+            <strong>Mode Offline Aktif</strong> — Menampilkan data terakhir per ${dateFormatted}
+        </div>
+    `;
+    header.parentNode.insertBefore(banner, header.nextSibling);
+    
+    // Hide 'Tambah Stok' and disable filter form
+    const filterForm = document.querySelector('.filter-form');
+    if (filterForm) {
+        const addBtn = filterForm.querySelector('a.btn-primary');
+        if (addBtn) addBtn.style.display = 'none';
+        
+        const inputs = filterForm.querySelectorAll('select, button[type="submit"]');
+        inputs.forEach(input => input.disabled = true);
+    }
+    
+    // Repopulate table from snapshot
+    const tbody = document.querySelector('#stockTable tbody');
+    if (tbody && snapshot.stocks && snapshot.stocks.data) {
+        tbody.innerHTML = '';
+        if (snapshot.stocks.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada data stok</td></tr>';
+        } else {
+            snapshot.stocks.data.forEach((stock, index) => {
+                const tr = document.createElement('tr');
+                
+                // Format quantity
+                const qty = Number(stock.quantity).toLocaleString('id-ID');
+                
+                // Program badge
+                const pt = stock.program_type || 'Reguler';
+                let programBadge = '<span class="badge badge-success">Reguler</span>';
+                if (pt === 'FOLU') {
+                    programBadge = '<span class="badge" style="background-color: #39FF14; color: #000;">FOLU</span>';
+                } else if (pt === 'RHL') {
+                    programBadge = '<span class="badge badge-info text-white">RHL</span>';
+                } else if (pt === 'bibitgratis' || pt === 'PUB') {
+                    programBadge = '<span class="badge badge-primary"><i class="fas fa-seedling mr-1"></i> PUB</span>';
+                }
+                
+                // Last update date formatting
+                let updateDateFormatted = '-';
+                if (stock.last_update_date) {
+                    const updateDate = new Date(stock.last_update_date);
+                    updateDateFormatted = updateDate.toLocaleDateString('id-ID', {
+                        day: '2-digit', month: '2-digit', year: 'numeric'
+                    });
+                }
+                
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${stock.seedling_name}<br><small class="text-muted"><em>${stock.scientific_name || ''}</em></small></td>
+                    <td><span class="badge badge-secondary">${stock.category}</span></td>
+                    <td>${programBadge}</td>
+                    <td class="font-weight-bold text-primary">${qty}</td>
+                    <td>${stock.notes || '-'}</td>
+                    <td>${updateDateFormatted}</td>
+                    <td>
+                        <span class="text-muted small"><i class="fas fa-lock mr-1"></i> Terkunci (Offline)</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+    
+    // Update total quantity display from snapshot
+    const totalQtyEl = document.querySelector('.total-stock-summary .value');
+    if (totalQtyEl && snapshot.stocks && snapshot.stocks.total_quantity !== undefined) {
+        totalQtyEl.innerHTML = `${Number(snapshot.stocks.total_quantity).toLocaleString('id-ID')} <span class="unit" style="font-size: 0.9rem; font-weight: 400; color: #666;">bibit</span>`;
+    }
+    
+    // Hide pagination when offline
+    const pagination = document.querySelector('.pagination');
+    if (pagination) pagination.parentNode.style.display = 'none';
+}
+
 function deleteStock(id) {
+    if (!navigator.onLine) {
+        alert('Tidak dapat menghapus stok saat offline.');
+        return;
+    }
     if (confirm('Yakin ingin menghapus stok ini?')) {
         fetch('<?= url('operator/delete-stock/') ?>' + id, {
             method: 'POST'

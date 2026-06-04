@@ -197,17 +197,83 @@
 
 <!-- Modal QR Code -->
 <div class="modal fade" id="qrModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content border-0 shadow">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-dark text-white border-bottom-0">
-                <h6 class="modal-title font-weight-bold"><i class="fas fa-qrcode mr-2"></i> Cetak QR Code</h6>
+                <h6 class="modal-title font-weight-bold"><i class="fas fa-qrcode mr-2 text-success"></i> Cetak QR Code</h6>
                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body bg-light p-4 text-center">
-                <div id="qrcode" class="d-inline-block bg-white p-2 rounded shadow-sm mb-3"></div>
-                <h6 class="font-weight-bold mb-1" id="qr_batch_code">-</h6>
-                <p class="small text-muted mb-3" id="qr_seed_name">-</p>
-                <button class="btn btn-primary btn-block shadow-sm" onclick="printThermalQR()"><i class="fas fa-print mr-1"></i> Print Stiker</button>
+            <div class="modal-body bg-light p-4">
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded border" id="qrTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active py-2 font-weight-bold" id="single-tab" data-toggle="pill" href="#singleQR" role="tab" aria-selected="true">
+                            <i class="fas fa-ticket-alt mr-1"></i> Satu Per Satu
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-2 font-weight-bold" id="batch-tab" data-toggle="pill" href="#batchQR" role="tab" aria-selected="false" onclick="initBatchTabFields()">
+                            <i class="fas fa-layer-group mr-1"></i> Cetak Massal (Range)
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="qrTabsContent">
+                    <!-- Single QR Tab -->
+                    <div class="tab-pane fade show active text-center" id="singleQR" role="tabpanel">
+                        <div id="qrcode" class="d-inline-block bg-white p-2 rounded shadow-sm mb-3"></div>
+                        
+                        <!-- Premium Index Selector -->
+                        <div class="form-group px-4 mb-3">
+                            <label class="small font-weight-bold text-muted d-block text-center mb-2">Pilih Nomor Index (Nomor Bibit)</label>
+                            <div class="input-group justify-content-center mx-auto" style="max-width: 180px;">
+                                <div class="input-group-prepend">
+                                    <button class="btn btn-outline-secondary btn-sm px-3 font-weight-bold" type="button" onclick="decrementIndex()">-</button>
+                                </div>
+                                <input type="number" id="qr_index_input" class="form-control text-center font-weight-bold" value="1" min="1" step="1" onchange="updateSingleQR()" style="max-width: 70px;">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary btn-sm px-3 font-weight-bold" type="button" onclick="incrementIndex()">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-3 rounded border mb-3 shadow-xs">
+                            <h6 class="font-weight-bold text-success mb-1" id="qr_batch_code" style="letter-spacing: 0.5px;">-</h6>
+                            <p class="small text-muted mb-0 font-weight-bold" id="qr_seed_name">-</p>
+                        </div>
+                        
+                        <button class="btn btn-success btn-block py-2 shadow-sm font-weight-bold" onclick="printThermalQR()"><i class="fas fa-print mr-2"></i> Print Stiker</button>
+                    </div>
+
+                    <!-- Batch QR Tab -->
+                    <div class="tab-pane fade" id="batchQR" role="tabpanel">
+                        <div class="bg-white p-3 rounded border mb-3 shadow-xs">
+                            <h6 class="font-weight-bold text-primary mb-2"><i class="fas fa-info-circle mr-1"></i> Informasi Cetak Massal</h6>
+                            <p class="small text-muted mb-2">Gunakan fitur ini untuk mencetak stiker QR code dalam jumlah banyak sekaligus sesuai range index bibit.</p>
+                            <div class="border-top pt-2">
+                                <span class="small text-muted font-weight-bold d-block">Nama Bibit: <span id="batch_qr_seed_name" class="text-dark font-weight-bold">-</span></span>
+                                <span class="small text-muted font-weight-bold d-block">Total Kapasitas Batch: <span id="batch_qr_stock" class="text-primary font-weight-bold">-</span> pcs</span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group mb-3">
+                                    <label class="small font-weight-bold text-muted">Dari Index</label>
+                                    <input type="number" id="batch_start_index" class="form-control form-control-sm font-weight-bold" value="1" min="1" onchange="validateBatchRange()">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group mb-3">
+                                    <label class="small font-weight-bold text-muted">Sampai Index</label>
+                                    <input type="number" id="batch_end_index" class="form-control form-control-sm font-weight-bold" value="1" min="1" onchange="validateBatchRange()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary btn-block py-2 shadow-sm font-weight-bold" onclick="printBatchThermalQR()"><i class="fas fa-print mr-2"></i> Cetak Massal Stiker</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -219,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSourceType = 'PE';
     let sourceData = [];
     let maxStockActive = 0;
+    let activeTotalInitial = 0;
 
     const qtyInput = document.getElementById('quantity');
     const sourceIdInput = document.getElementById('source_id');
@@ -251,14 +318,30 @@ document.addEventListener('DOMContentLoaded', function() {
         modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data ' + currentSourceType + '...</td></tr>';
         
         fetch(`<?= url('seedling-admin/get-mutation-sources-ajax') ?>?type=${currentSourceType}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => { throw new Error('Network response was not ok: ' + text); });
+                }
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return res.json();
+                } else {
+                    return res.text().then(text => { throw new Error('Response is not JSON: ' + text.substring(0, 100)); });
+                }
+            })
             .then(data => {
                 if(data.success) {
-                    sourceData = data.data;
+                    sourceData = data.data || [];
                     renderSourceTable(sourceData);
                 } else {
                     modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Gagal memuat data.</td></tr>';
                 }
+            })
+            .catch(err => {
+                console.error("Fetch Error:", err);
+                modalBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger">
+                    <i class="fas fa-times-circle mr-2"></i> Terjadi kesalahan sistem: ${err.message}
+                </td></tr>`;
             });
     };
 
@@ -272,12 +355,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         data.forEach(item => {
-            const code = (currentSourceType === 'PE') ? item.weaning_code : item.entres_code;
+            const rawCode = (currentSourceType === 'PE') ? item.weaning_code : item.entres_code;
+            const code = item.smart_barcode || rawCode;
             const stock = parseFloat(item.remaining_stock);
             
             modalBody.innerHTML += `
                 <tr>
-                    <td class="font-weight-bold">${code}</td>
+                    <td class="font-weight-bold text-primary">${code}</td>
                     <td>${item.seed_name}</td>
                     <td><span class="badge badge-light border">${item.location || '-'}</span></td>
                     <td class="text-right font-weight-bold text-primary">${stock.toLocaleString('id-ID')}</td>
@@ -289,12 +373,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    let activeSmartBarcode = '';
+
     window.selectSource = function(id) {
         const item = sourceData.find(x => x.id == id);
         if(!item) return;
 
-        const code = (currentSourceType === 'PE') ? item.weaning_code : item.entres_code;
+        const rawCode = (currentSourceType === 'PE') ? item.weaning_code : item.entres_code;
+        const code = item.smart_barcode || rawCode;
         maxStockActive = parseFloat(item.remaining_stock);
+        activeTotalInitial = parseInt(item.total_initial) || parseInt(item.remaining_stock) || 1;
+        activeSmartBarcode = item.smart_barcode || '';
 
         sourceIdInput.value = item.id;
         displaySourceName.value = `${code} - ${item.seed_name}`;
@@ -313,6 +402,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let qrcode = null;
 
+    // Helper: update last index segment of a smart barcode string
+    function getSmartBarcodeWithIndex(baseBarcode, index) {
+        if (!baseBarcode) return '';
+        const parts = baseBarcode.split('-');
+        if (parts.length < 8) return baseBarcode; // Fallback if invalid format
+        parts[7] = index;
+        return parts.join('-');
+    }
+
     window.openQRModal = function() {
         const sourceId = sourceIdInput.value;
         if (!sourceId) return;
@@ -322,11 +420,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const code = parts[0];
         const name = parts.slice(1).join(' - ');
 
-        document.getElementById('qr_batch_code').innerText = code;
+        // Reset Pills tab state to Single
+        $('#qrTabs a[href="#singleQR"]').tab('show');
+
+        // Reset single index inputs
+        const indexInput = document.getElementById('qr_index_input');
+        if (indexInput) {
+            indexInput.value = 1;
+        }
+
+        const displayCode = activeSmartBarcode || code;
+        document.getElementById('qr_batch_code').innerText = displayCode;
         document.getElementById('qr_seed_name').innerText = name;
 
-        // Generate URL (dynamic base URL)
-        const traceUrl = `<?= url('public/trace') ?>/${currentSourceType}/${sourceId}`;
+        // Generate URL (dynamic base URL) pointing to public/trace/{smart_barcode}
+        const traceUrl = activeSmartBarcode 
+            ? `<?= url('public/trace') ?>/${activeSmartBarcode}`
+            : `<?= url('public/trace') ?>/${currentSourceType}/${sourceId}`;
 
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ''; // Clear previous
@@ -343,17 +453,120 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#qrModal').modal('show');
     };
 
+    window.decrementIndex = function() {
+        const input = document.getElementById('qr_index_input');
+        let val = parseInt(input.value) || 1;
+        if (val > 1) {
+            input.value = val - 1;
+            updateSingleQR();
+        }
+    };
+
+    window.incrementIndex = function() {
+        const input = document.getElementById('qr_index_input');
+        let val = parseInt(input.value) || 1;
+        input.value = val + 1;
+        updateSingleQR();
+    };
+
+    window.updateSingleQR = function() {
+        const input = document.getElementById('qr_index_input');
+        let index = parseInt(input.value) || 1;
+        if (index < 1) {
+            index = 1;
+            input.value = 1;
+        }
+        
+        const sourceId = sourceIdInput.value;
+        if (!sourceId) return;
+
+        const fullTitle = displaySourceName.value;
+        const parts = fullTitle.split(' - ');
+        const code = parts[0];
+        const name = parts.slice(1).join(' - ');
+
+        const updatedBarcode = getSmartBarcodeWithIndex(activeSmartBarcode || code, index);
+        document.getElementById('qr_batch_code').innerText = updatedBarcode;
+
+        // Generate trace URL pointing to public/trace/{smart_barcode}
+        const traceUrl = updatedBarcode 
+            ? `<?= url('public/trace') ?>/${updatedBarcode}`
+            : `<?= url('public/trace') ?>/${currentSourceType}/${sourceId}`;
+
+        const qrContainer = document.getElementById('qrcode');
+        qrContainer.innerHTML = ''; // Clear previous
+
+        qrcode = new QRCode(qrContainer, {
+            text: traceUrl,
+            width: 150,
+            height: 150,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    };
+
+    window.initBatchTabFields = function() {
+        const fullTitle = displaySourceName.value;
+        const parts = fullTitle.split(' - ');
+        const name = parts.slice(1).join(' - ');
+
+        document.getElementById('batch_qr_seed_name').innerText = name;
+        document.getElementById('batch_qr_stock').innerText = activeTotalInitial.toLocaleString('id-ID');
+        
+        document.getElementById('batch_start_index').value = 1;
+        document.getElementById('batch_end_index').value = activeTotalInitial;
+    };
+
+    window.validateBatchRange = function() {
+        const startInput = document.getElementById('batch_start_index');
+        const endInput = document.getElementById('batch_end_index');
+        
+        let start = parseInt(startInput.value) || 1;
+        let end = parseInt(endInput.value) || 1;
+        
+        if (start < 1) {
+            start = 1;
+            startInput.value = 1;
+        }
+        if (end < start) {
+            end = start;
+            endInput.value = start;
+        }
+    };
+
+    // Helper: generate QR Code base64 image data synchronously using clean offline canvas approach
+    function getQRBase64Sync(text) {
+        const tempDiv = document.createElement('div');
+        const qr = new QRCode(tempDiv, {
+            text: text,
+            width: 150,
+            height: 150,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+        const canvas = tempDiv.querySelector('canvas');
+        let src = '';
+        if (canvas) {
+            src = canvas.toDataURL('image/png');
+        }
+        return src;
+    }
+
     window.printThermalQR = function() {
         const sourceId = sourceIdInput.value;
         if (!sourceId) return;
         
         const fullTitle = displaySourceName.value;
         const parts = fullTitle.split(' - ');
-        const code = parts[0];
         const name = parts.slice(1).join(' - ');
         const date = new Date().toLocaleDateString('id-ID');
         
+        // Grab updated QR image from DOM
         const qrImg = document.querySelector('#qrcode img').src;
+        // Grab updated barcode text from DOM
+        const displayCode = document.getElementById('qr_batch_code').innerText;
         
         const printWindow = window.open('', '_blank', 'width=400,height=400');
         printWindow.document.write(`
@@ -367,50 +580,122 @@ document.addEventListener('DOMContentLoaded', function() {
                         padding: 2mm; 
                         width: 54mm; 
                         height: 36mm;
-                        font-family: monospace; 
+                        font-family: Arial, sans-serif; 
                         box-sizing: border-box;
-                    }
-                    .container {
-                        display: flex;
-                        width: 100%;
-                        height: 100%;
-                    }
-                    .qr-box {
-                        width: 25mm;
-                        height: 25mm;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .qr-box img {
-                        width: 100%;
-                        height: 100%;
-                    }
-                    .info-box {
-                        flex: 1;
-                        padding-left: 2mm;
                         display: flex;
                         flex-direction: column;
+                        align-items: center;
                         justify-content: center;
+                        text-align: center;
                     }
-                    .title { font-weight: bold; font-size: 10px; margin-bottom: 2px; border-bottom: 1px solid #000; padding-bottom: 2px; }
-                    .detail { font-size: 8px; line-height: 1.2; }
-                    .url { font-size: 6px; margin-top: auto; text-align: center; word-break: break-all; }
+                    .title { font-weight: bold; font-size: 11px; margin-bottom: 2px; }
+                    .barcode-container { margin: 3px 0; }
+                    .barcode-container img { height: 20mm; width: 20mm; object-fit: contain; }
+                    .detail { font-size: 9px; line-height: 1.2; font-family: monospace; font-weight: bold; letter-spacing: 0.5px; }
+                    .date { font-size: 7px; color: #333; margin-top: 2px; }
                 </style>
             </head>
             <body>
-                <div class="container">
-                    <div class="qr-box">
-                        <img src="${qrImg}" />
-                    </div>
-                    <div class="info-box">
-                        <div class="title">🌳 BIBIT<br>${name.substring(0, 15)}</div>
-                        <div class="detail">
-                            Batch:<br>${code}<br>
-                            Tgl: ${date}
-                        </div>
-                    </div>
+                <div class="title">BIBIT RHL</div>
+                <div class="barcode-container">
+                    <img src="${qrImg}" />
                 </div>
+                <div class="detail">${displayCode}</div>
+                <div class="date">Tgl: ${date} | ${name.substring(0, 20)}</div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+
+    window.printBatchThermalQR = function() {
+        const sourceId = sourceIdInput.value;
+        if (!sourceId) return;
+        
+        const fullTitle = displaySourceName.value;
+        const parts = fullTitle.split(' - ');
+        const code = parts[0];
+        const name = parts.slice(1).join(' - ');
+        const date = new Date().toLocaleDateString('id-ID');
+
+        const start = parseInt(document.getElementById('batch_start_index').value) || 1;
+        const end = parseInt(document.getElementById('batch_end_index').value) || 1;
+
+        if (end < start) {
+            alert('Range index tidak valid!');
+            return;
+        }
+
+        const totalLabels = end - start + 1;
+        if (totalLabels > 500) {
+            if (!confirm(`Anda akan mencetak ${totalLabels} stiker sekaligus. Ini mungkin memerlukan waktu beberapa saat. Lanjutkan?`)) {
+                return;
+            }
+        }
+
+        // Generate list of items to print
+        let labelsHtml = '';
+        const baseBarcode = activeSmartBarcode || code;
+
+        for (let i = start; i <= end; i++) {
+            const updatedBarcode = getSmartBarcodeWithIndex(baseBarcode, i);
+            const traceUrl = updatedBarcode 
+                ? `<?= url('public/trace') ?>/${updatedBarcode}`
+                : `<?= url('public/trace') ?>/${currentSourceType}/${sourceId}`;
+            
+            const qrImgSrc = getQRBase64Sync(traceUrl);
+
+            labelsHtml += `
+                <div class="label-page">
+                     <div class="title">BIBIT RHL</div>
+                     <div class="barcode-container">
+                         <img src="${qrImgSrc}" />
+                     </div>
+                     <div class="detail">${updatedBarcode}</div>
+                     <div class="date">Tgl: ${date} | ${name.substring(0, 20)}</div>
+                </div>
+            `;
+        }
+
+        const printWindow = window.open('', '_blank', 'width=400,height=500');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Batch QR Code</title>
+                <style>
+                    @page { margin: 0; size: 58mm 40mm; }
+                    body { 
+                        margin: 0; 
+                        padding: 0;
+                        font-family: Arial, sans-serif; 
+                        box-sizing: border-box;
+                    }
+                    .label-page {
+                        width: 58mm; 
+                        height: 40mm;
+                        padding: 2mm; 
+                        box-sizing: border-box;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        text-align: center;
+                        page-break-after: always;
+                    }
+                    .title { font-weight: bold; font-size: 11px; margin-bottom: 2px; }
+                    .barcode-container { margin: 3px 0; }
+                    .barcode-container img { height: 20mm; width: 20mm; object-fit: contain; }
+                    .detail { font-size: 9px; line-height: 1.2; font-family: monospace; font-weight: bold; letter-spacing: 0.5px; }
+                    .date { font-size: 7px; color: #333; margin-top: 2px; }
+                </style>
+            </head>
+            <body>
+                ${labelsHtml}
             </body>
             </html>
         `);

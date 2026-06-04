@@ -80,7 +80,77 @@ class EmailSender {
     }
     
     /**
-     * Send email using PHP mail() function
+     * Send password reset notification
+     * 
+     * @param string $to Recipient email
+     * @param string $resetLink The password reset link
+     * @return bool
+     */
+    public function sendPasswordResetLink($to, $resetLink) {
+        $subject = 'Reset Password Anda - Dashboard Bibit Gratis';
+        $message = $this->getPasswordResetEmailTemplate($resetLink);
+        
+        return $this->send($to, $subject, $message);
+    }
+
+    /**
+     * Get password reset email template
+     * 
+     * @param string $resetLink
+     * @return string
+     */
+    private function getPasswordResetEmailTemplate($resetLink) {
+        ob_start();
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #1B5E20; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 8px 8px; }
+                .button-container { text-align: center; margin: 30px 0; }
+                .button { display: inline-block; padding: 12px 24px; background: #F59E0B; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                .link-text { word-break: break-all; font-size: 0.85rem; color: #777; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2>Permintaan Reset Password</h2>
+                </div>
+                <div class="content">
+                    <p>Halo,</p>
+                    <p>Kami menerima permintaan untuk mereset password akun Anda di **Dashboard Bibit Gratis**. Jika Anda membuat permintaan ini, silakan klik tombol di bawah untuk mereset password Anda:</p>
+                    
+                    <div class="button-container">
+                        <a href="<?= $resetLink ?>" class="button">Reset Password</a>
+                    </div>
+                    
+                    <p>Link reset password ini hanya berlaku selama **1 jam** dari waktu email ini dikirimkan.</p>
+                    <p>Jika Anda tidak meminta reset password, abaikan email ini dan password Anda tidak akan berubah.</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    
+                    <p>Jika tombol di atas tidak berfungsi, salin dan tempel link berikut ke browser Anda:</p>
+                    <p class="link-text"><a href="<?= $resetLink ?>"><?= $resetLink ?></a></p>
+                </div>
+                <div class="footer">
+                    <p>Email ini dikirim secara otomatis oleh sistem Dashboard Stok Bibit Persemaian Indonesia.</p>
+                    <p>Jangan balas email ini.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Send email using PHPMailer (SMTP) or PHP mail() function
      * 
      * @param string $to Recipient email
      * @param string $subject Email subject
@@ -92,6 +162,61 @@ class EmailSender {
             return true; // Email disabled, pretend it sent successfully
         }
 
+        // Use PHPMailer if SMTP is configured
+        if (defined('SMTP_HOST') && SMTP_HOST !== '') {
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = SMTP_HOST;
+                $mail->SMTPAuth   = true;
+                $mail->Username   = SMTP_USERNAME;
+                $mail->Password   = SMTP_PASSWORD;
+                
+                $encryption = strtolower(SMTP_ENCRYPTION);
+                if ($encryption === 'ssl') {
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+                    $mail->Port       = SMTP_PORT ?: 465;
+                } elseif ($encryption === 'tls') {
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = SMTP_PORT ?: 587;
+                } else {
+                    $mail->SMTPSecure = '';
+                    $mail->Port       = SMTP_PORT ?: 25;
+                }
+
+                // Disable SSL verification for local self-signed certs (common on XAMPP development)
+                $mail->SMTPOptions = [
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                        'allow_self_signed' => true
+                    ]
+                ];
+                
+                // Recipients
+                $mail->setFrom($this->fromEmail, $this->fromName);
+                $mail->addAddress($to);
+                $mail->addReplyTo($this->fromEmail);
+                
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
+                $mail->Body    = $message;
+                $mail->CharSet = 'UTF-8';
+                
+                return $mail->send();
+            } catch (Exception $e) {
+                logError("PHPMailer Error sending to $to: " . $e->getMessage() . " | Mailer ErrorInfo: " . $mail->ErrorInfo);
+                // Fallback to PHP mail()
+            } catch (Throwable $t) {
+                logError("PHPMailer Throwable Error sending to $to: " . $t->getMessage());
+                // Fallback to PHP mail()
+            }
+        }
+
+        // Native PHP mail() fallback
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=UTF-8',

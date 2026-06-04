@@ -194,6 +194,21 @@ class SeedlingAdminController extends Controller {
     }
 
     /**
+     * OFFLINE SYNC: Get a fresh CSRF token (for offline sync flow)
+     * Called by offline-manager.js before batching sync POST requests.
+     */
+    public function getFreshCsrf() {
+        if (!$this->requireAuth()) return;
+        // Regenerate CSRF token
+        if (isset($_SESSION[CSRF_TOKEN_NAME])) {
+            unset($_SESSION[CSRF_TOKEN_NAME]);
+        }
+        $token = generateCSRFToken();
+        $this->json(['success' => true, 'csrf_token' => $token]);
+    }
+
+
+    /**
      * Bahan Baku IN Form
      */
     public function bahanBakuForm() {
@@ -988,6 +1003,23 @@ class SeedlingAdminController extends Controller {
     }
 
     /**
+     * AJAX: Get Seeds from Bahan Baku for Direct Seed Weaning (Opsi B)
+     */
+    public function getSeedsBahanBakuAJAX() {
+        $bahanBakuModel = $this->model('BahanBaku');
+        $user = currentUser();
+        $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
+
+        // Uses the existing getSeedStockWithSource which filters Category BENIH and > 0
+        $seeds = $bahanBakuModel->getSeedStockWithSource(['nursery_id' => $nurseryId]);
+
+        $this->json([
+            'success' => true,
+            'data' => $seeds
+        ]);
+    }
+
+    /**
      * Store Penyapihan Bibit
      */
     public function storeWeaning() {
@@ -1005,11 +1037,28 @@ class SeedlingAdminController extends Controller {
 
         // Handle creation of new Seedling Type via AJAX-like request logic or POST
         $resultItemId = (int)$this->post('result_item_id');
+        $sourceType = $this->post('source_type') ?? 'harvest'; // 'harvest' or 'direct_seed'
+        
+        $harvestId = null;
+        $seedItems = [];
+        
+        if ($sourceType === 'direct_seed') {
+            $seedItemId = (int)$this->post('seed_item_id');
+            $seedQty = (float)$this->post('seed_quantity');
+            if (!empty($seedItemId) && !empty($seedQty)) {
+                $seedItems[] = [
+                    'item_id' => $seedItemId,
+                    'quantity' => $seedQty
+                ];
+            }
+        } else {
+            $harvestId = (int)$this->post('harvest_id');
+        }
         
         $weaningData = [
             'weaning_code'       => $this->post('weaning_code'),
             'weaning_date'       => $this->post('weaning_date'),
-            'harvest_id'         => (int)$this->post('harvest_id'),
+            'harvest_id'         => $harvestId ? $harvestId : null,
             'result_item_id'     => $resultItemId,
             'weaned_quantity'    => (int)$this->post('weaned_quantity'),
             'location'           => sanitize($this->post('location')),
@@ -1025,35 +1074,47 @@ class SeedlingAdminController extends Controller {
         $polybagItems = [];
         $materialItems = [];
 
-        if (isset($_POST['pb_id']) && is_array($_POST['pb_id'])) {
-            for ($i = 0; $i < count($_POST['pb_id']); $i++) {
-                if (!empty($_POST['pb_id'][$i]) && !empty($_POST['pb_qty'][$i])) {
+        if (isset($_POST['bag_filling_id']) && is_array($_POST['bag_filling_id'])) {
+            for ($i = 0; $i < count($_POST['bag_filling_id']); $i++) {
+                if (!empty($_POST['bag_filling_id'][$i]) && !empty($_POST['bag_qty'][$i])) {
                     $polybagItems[] = [
-                        'bag_filling_id' => (int)$_POST['pb_id'][$i],
-                        'quantity' => (float)$_POST['pb_qty'][$i]
+                        'bag_filling_id' => (int)$_POST['bag_filling_id'][$i],
+                        'quantity' => (float)$_POST['bag_qty'][$i]
                     ];
                 }
             }
         }
 
-        if (isset($_POST['mat_id']) && is_array($_POST['mat_id'])) {
-            for ($i = 0; $i < count($_POST['mat_id']); $i++) {
-                if (!empty($_POST['mat_id'][$i]) && !empty($_POST['mat_qty'][$i])) {
+        if (isset($_POST['material_item_id']) && is_array($_POST['material_item_id'])) {
+            for ($i = 0; $i < count($_POST['material_item_id']); $i++) {
+                if (!empty($_POST['material_item_id'][$i]) && !empty($_POST['material_qty'][$i])) {
                     $materialItems[] = [
-                        'item_id' => (int)$_POST['mat_id'][$i],
-                        'quantity' => (float)$_POST['mat_qty'][$i]
+                        'item_id' => (int)$_POST['material_item_id'][$i],
+                        'quantity' => (float)$_POST['material_qty'][$i]
                     ];
                 }
             }
         }
 
-        if (empty($weaningData['harvest_id']) || empty($weaningData['weaned_quantity']) || empty($weaningData['result_item_id'])) {
-            $this->setFlash('error', 'Data Anakan PA, Bibit Dihasilkan, dan Jumlah wajib diisi!');
+        if ($sourceType === 'direct_seed' && empty($seedItems)) {
+            $this->setFlash('error', 'Data Benih dan Jumlah wajib diisi!');
             $this->redirect('seedling-admin/weaning-form');
             return;
         }
 
-        $result = $weaningModel->saveWeaning($weaningData, $polybagItems, $materialItems);
+        if ($sourceType === 'harvest' && empty($weaningData['harvest_id'])) {
+            $this->setFlash('error', 'Data Anakan PA wajib diisi!');
+            $this->redirect('seedling-admin/weaning-form');
+            return;
+        }
+
+        if (empty($weaningData['weaned_quantity']) || empty($weaningData['result_item_id'])) {
+            $this->setFlash('error', 'Data Bibit Dihasilkan dan Jumlah wajib diisi!');
+            $this->redirect('seedling-admin/weaning-form');
+            return;
+        }
+
+        $result = $weaningModel->saveWeaning($weaningData, $polybagItems, $materialItems, $seedItems);
 
         if ($result) {
             $this->setFlash('success', "Penyapihan Bibit <b>{$weaningData['weaning_code']}</b> berhasil disimpan.");
@@ -1202,6 +1263,24 @@ class SeedlingAdminController extends Controller {
         } else {
             $model = $this->model('SeedlingEntres');
             $data = $model->getAvailableEntres(['nursery_id' => $nurseryId]);
+        }
+
+        // Generate smart barcode for each item (gracefully skip if helper is missing)
+        $barcodeHelperPath = UTILS_PATH . 'BarcodeHelper.php';
+        if (file_exists($barcodeHelperPath) && is_array($data)) {
+            require_once $barcodeHelperPath;
+            foreach ($data as &$item) {
+                $item['smart_barcode'] = BarcodeHelper::generate(
+                    $type,
+                    $item['id'],
+                    $item['bpdas_id'] ?? 0,
+                    $item['nursery_id'] ?? 0,
+                    $item['seed_source_id'] ?? 0,
+                    $item['seedling_type_id'] ?? 0,
+                    $item['sowing_date'] ?? '',
+                    1 // Default index 1 for batch-level sticker representation
+                );
+            }
         }
 
         $this->json([

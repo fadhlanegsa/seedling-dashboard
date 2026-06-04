@@ -1,4 +1,4 @@
-<div class="container-fluid">
+﻿<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PENYAPIHAN BIBIT</h2>
         <nav aria-label="breadcrumb">
@@ -87,6 +87,18 @@
                 <div class="card shadow mb-4 border-top-primary">
                     <div class="card-body">
                         
+                        <div class="mb-4 p-3 bg-light rounded border text-center">
+                            <label class="small font-weight-bold text-dark d-block mb-2">SUMBER BAHAN:</label>
+                            <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
+                                <label class="btn btn-outline-primary active w-50 font-weight-bold" id="lbl_source_harvest">
+                                    <input type="radio" name="source_type" id="source_harvest" value="harvest" checked onchange="toggleSourceType()"> Dari Anakan (PA)
+                                </label>
+                                <label class="btn btn-outline-success w-50 font-weight-bold" id="lbl_source_direct">
+                                    <input type="radio" name="source_type" id="source_direct" value="direct_seed" onchange="toggleSourceType()"> Langsung dari Benih
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="row form-group">
                             <div class="col-6">
                                 <label class="small font-weight-bold text-info">Tanggal</label>
@@ -99,36 +111,70 @@
                         </div>
 
                         <hr>
-                        <h6 class="font-weight-bold text-danger text-uppercase mb-3">BAHAN ANAKAN</h6>
-                        
-                        <div class="input-group mb-3 shadow-sm">
-                            <input type="text" id="display_harvest_name" class="form-control bg-warning text-dark font-weight-bold font-italic" placeholder="Pilih anakan (PA) yang akan disapih..." readonly required style="background-color: #fff9c4 !important;">
-                            <div class="input-group-append">
-                                <button class="btn btn-secondary border px-4 font-weight-bold" type="button" onclick="openHarvestModal()">Pilih</button>
-                            </div>
-                        </div>
-                        
-                        <input type="hidden" id="harvest_id" name="harvest_id" required>
-
-                        <div class="row mb-3 pl-3 ml-1 border-left border-warning">
-                            <div class="col-6 mb-2">
-                                <label class="text-muted small mb-0">Kode Produksi</label>
-                                <input type="text" id="display_harvest_code" class="form-control form-control-sm bg-light" readonly>
-                            </div>
-                            <div class="col-6 mb-2">
-                                <label class="text-muted small mb-0">Tgl Produksi</label>
-                                <input type="text" id="display_harvest_date" class="form-control form-control-sm bg-light" readonly>
-                            </div>
-                            <div class="col-12 mt-2">
-                                <label class="small text-muted font-weight-bold mb-0">Sisa Stok Anakan (PA)</label>
-                                <div class="d-flex align-items-center">
-                                    <input type="number" id="max_harvest_stock" class="form-control font-weight-bold text-danger w-50" readonly>
-                                    <span class="ml-2 small text-muted" id="display_harvest_unit"></span>
+                        <!-- SECTION HARVEST -->
+                        <div id="section_harvest">
+                            <h6 class="font-weight-bold text-danger text-uppercase mb-3">BAHAN ANAKAN</h6>
+                            
+                            <div class="input-group mb-3 shadow-sm">
+                                <input type="text" id="display_harvest_name" class="form-control bg-warning text-dark font-weight-bold font-italic" placeholder="Pilih anakan (PA) yang akan disapih..." readonly required style="background-color: #fff9c4 !important;">
+                                <div class="input-group-append">
+                                    <button class="btn btn-secondary border px-4 font-weight-bold" type="button" onclick="openHarvestModal()">Pilih</button>
                                 </div>
                             </div>
-                            <div class="col-12 mt-2">
-                                <label class="small text-muted font-weight-bold mb-0"><i class="fas fa-map-marker-alt text-warning mr-1"></i>Lokasi Asal PA</label>
-                                <input type="text" id="display_harvest_location" class="form-control form-control-sm bg-light text-dark font-weight-bold" readonly placeholder="(pilih anakan untuk melihat lokasi)">
+                            
+                            <input type="hidden" id="harvest_id" name="harvest_id" required>
+
+                            <div class="row mb-3 pl-3 ml-1 border-left border-warning">
+                                <div class="col-6 mb-2">
+                                    <label class="text-muted small mb-0">Kode Produksi</label>
+                                    <input type="text" id="display_harvest_code" class="form-control form-control-sm bg-light" readonly>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label class="text-muted small mb-0">Tgl Produksi</label>
+                                    <input type="text" id="display_harvest_date" class="form-control form-control-sm bg-light" readonly>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <label class="small text-muted font-weight-bold mb-0">Sisa Stok Anakan (PA)</label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="number" id="max_harvest_stock" class="form-control font-weight-bold text-danger w-50" readonly>
+                                        <span class="ml-2 small text-muted" id="display_harvest_unit"></span>
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <label class="small text-muted font-weight-bold mb-0"><i class="fas fa-map-marker-alt text-warning mr-1"></i>Lokasi Asal PA</label>
+                                    <input type="text" id="display_harvest_location" class="form-control form-control-sm bg-light text-dark font-weight-bold" readonly placeholder="(pilih anakan untuk melihat lokasi)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION DIRECT SEED (NEW) -->
+                        <div id="section_direct_seed" style="display: none;">
+                            <h6 class="font-weight-bold text-success text-uppercase mb-3">PILIH BENIH LANGSUNG</h6>
+                            
+                            <div class="input-group mb-3 shadow-sm">
+                                <input type="text" id="display_seed_name" class="form-control bg-success text-white font-weight-bold font-italic" placeholder="Pilih Master Data Benih..." readonly style="background-color: #28a745 !important;">
+                                <div class="input-group-append">
+                                    <button class="btn btn-secondary border px-4 font-weight-bold" type="button" onclick="openSeedModal()">Pilih</button>
+                                </div>
+                            </div>
+                            
+                            <input type="hidden" id="seed_item_id" name="seed_item_id">
+
+                            <div class="row mb-3 pl-3 ml-1 border-left border-success">
+                                <div class="col-12 mb-2">
+                                    <label class="small text-muted font-weight-bold mb-1">Stok Benih Tersedia</label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="number" id="max_seed_stock" class="form-control font-weight-bold text-success w-50 bg-light" readonly>
+                                        <span class="ml-2 small text-muted" id="display_seed_unit_stock"></span>
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <label class="small font-weight-bold text-success mb-1">Jumlah Benih Digunakan</label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="number" step="0.01" name="seed_quantity" id="seed_quantity" class="form-control form-control-lg font-weight-bold border-success w-50" placeholder="0">
+                                        <span class="ml-2 small text-muted font-weight-bold" id="display_seed_unit_use"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -287,6 +333,38 @@
     </div>
 </div>
 
+<!-- Modal Seed (Opsi B) -->
+<div class="modal fade" id="seedModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white border-bottom-0">
+                <h6 class="modal-title font-weight-bold"><i class="fas fa-leaf mr-2"></i> Pilih Master Data Benih &nbsp;<span class="badge badge-light text-success shadow-sm">Stok Tersedia</span></h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover mb-0" id="modalSeedTable">
+                        <thead class="bg-success text-white small" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th>Nama Benih</th>
+                                <th>Sumber Benih</th>
+                                <th class="text-right">Sisa Stok</th>
+                                <th>Satuan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small text-dark" id="modalSeedBody">
+                            <tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data benih...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-2 justify-content-start">
+                <input type="text" id="seedSearch" class="form-control form-control-sm w-50" placeholder="Cari nama benih...">
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .border-top-primary { border-top: 4px solid var(--primary-color) !important; }
     .border-warning { border-color: #f6c23e !important; }
@@ -311,7 +389,77 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ---------------------------------------------------------
-    // HARVEST (PA) LOGIC
+    // SOURCE TYPE TOGGLE LOGIC
+    // ---------------------------------------------------------
+    window.toggleSourceType = function() {
+        const type = document.querySelector('input[name="source_type"]:checked').value;
+        const sectionHarvest = document.getElementById('section_harvest');
+        const sectionDirect = document.getElementById('section_direct_seed');
+        const harvestInput = document.getElementById('harvest_id');
+        const harvestNameInput = document.getElementById('display_harvest_name');
+        const seedInput = document.getElementById('seed_item_id');
+        const seedQtyInput = document.getElementById('seed_quantity');
+
+        if (type === 'harvest') {
+            sectionHarvest.style.display = 'block';
+            sectionDirect.style.display = 'none';
+            harvestInput.required = true;
+            harvestNameInput.required = true;
+            seedInput.required = false;
+            seedQtyInput.required = false;
+        } else {
+            sectionHarvest.style.display = 'none';
+            sectionDirect.style.display = 'block';
+            harvestInput.required = false;
+            harvestNameInput.required = false;
+            seedInput.required = true;
+            seedQtyInput.required = true;
+        }
+    };
+    // Initialize required state
+    toggleSourceType();
+
+    // ── OFFLINE INTERCEPTOR ──────────────────────────────────────────────────
+    const weaningForm = document.getElementById('weaningForm');
+    weaningForm.addEventListener('submit', async function(e) {
+        if (!navigator.onLine) {
+            e.preventDefault();
+
+            const sourceType = document.querySelector('input[name="source_type"]:checked').value;
+            const sourceValid = sourceType === 'harvest'
+                ? document.getElementById('harvest_id').value
+                : document.getElementById('seed_item_id').value;
+
+            if (!sourceValid) {
+                OfflineManager.showToast('Pilih sumber bahan (anakan atau benih) terlebih dahulu!', 'error');
+                return;
+            }
+
+            const payload = OfflineManager.serializeForm(weaningForm);
+            const sourceName = sourceType === 'harvest'
+                ? (document.getElementById('display_harvest_name').value || 'Anakan')
+                : (document.getElementById('display_seed_name').value || 'Benih');
+            const dateVal   = weaningForm.querySelector('[name="weaning_date"]')?.value || '';
+            const label     = `Penyapihan: ${sourceName} — ${dateVal}`;
+
+            try {
+                await OfflineManager.addToQueue(
+                    'weaning',
+                    '<?= url('seedling-admin/store-weaning') ?>',
+                    payload,
+                    label
+                );
+                await OfflineManager.updateBadge();
+                OfflineManager.showToast('Data sapih tersimpan lokal. Akan disinkronkan saat online! ✅', 'success');
+            } catch (err) {
+                OfflineManager.showToast('Gagal menyimpan data offline. Coba lagi.', 'error');
+            }
+        }
+        // If online: let form submit normally
+    });
+
+    // ---------------------------------------------------------
+    // HARVEST (PA) LOGIC — Offline-Aware
     // ---------------------------------------------------------
     let harvestData = [];
     const weanedQtyInput = document.getElementById('weaned_quantity');
@@ -322,24 +470,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalBody = document.getElementById('modalHarvestBody');
         modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data stok anakan...</td></tr>';
 
-        fetch('<?= url('seedling-admin/get-harvests-ajax') ?>')
-            .then(res => res.json())
-            .then(data => {
-                modalBody.innerHTML = '';
-                if(data.success && data.data.length > 0) {
-                    harvestData = data.data;
-                    renderHarvestTable(harvestData);
-                } else {
-                    modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok Pemanenan Semai (PA) yang bisa disapih.</td></tr>';
-                }
-            });
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-harvests-ajax') ?>',
+            'harvests_stock'
+        ).then(result => {
+            const data = result.data;
+            modalBody.innerHTML = '';
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="6"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
+            }
+            if(data && data.success && data.data.length > 0) {
+                harvestData = data.data;
+                renderHarvestTable(harvestData);
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok Pemanenan Semai (PA) yang bisa disapih.</td></tr>';
+            }
+        });
     };
 
     function renderHarvestTable(dataToRender) {
         const modalBody = document.getElementById('modalHarvestBody');
-        modalBody.innerHTML = '';
+        const banner = modalBody.querySelector('.alert-warning');
+        modalBody.innerHTML = banner ? `<tr><td colspan="6">${banner.outerHTML}</td></tr>` : '';
         if (dataToRender.length === 0) {
-            modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok anakan PA tersedia.</td></tr>';
+            modalBody.innerHTML += '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok anakan PA tersedia.</td></tr>';
             return;
         }
         dataToRender.forEach(h => {
@@ -380,7 +535,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('max_harvest_stock').value = h.remaining_stock;
         document.getElementById('display_harvest_unit').innerText = 'pcs';
         
-        // Show origin location if available
         const locEl = document.getElementById('display_harvest_location');
         if (locEl) locEl.value = h.location || '-';
         
@@ -406,10 +560,94 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('display_result_id').value = $(this).val() ? '#' + $(this).val() : '';
     });
 
+    // ---------------------------------------------------------
+    // DIRECT SEED LOGIC — Offline-Aware
+    // ---------------------------------------------------------
+    let seedData = [];
+    let maxSeedStock = 0;
+    const seedQtyInput = document.getElementById('seed_quantity');
 
+    window.openSeedModal = function() {
+        $('#seedModal').modal('show');
+        const modalBody = document.getElementById('modalSeedBody');
+        modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data stok benih...</td></tr>';
+
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-seeds-bahan-baku-ajax') ?>',
+            'seeds_bahan_baku'
+        ).then(result => {
+            const data = result.data;
+            modalBody.innerHTML = '';
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="4"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
+            }
+            if(data && data.success && data.data.length > 0) {
+                seedData = data.data;
+                renderSeedTable(seedData);
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok benih (Bahan Baku) yang tersedia.</td></tr>';
+            }
+        });
+    };
+
+    function renderSeedTable(dataToRender) {
+        const modalBody = document.getElementById('modalSeedBody');
+        const banner = modalBody.querySelector('.alert-warning');
+        modalBody.innerHTML = banner ? `<tr><td colspan="4">${banner.outerHTML}</td></tr>` : '';
+        if (dataToRender.length === 0) {
+            modalBody.innerHTML += '<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Benih tidak ditemukan.</td></tr>';
+            return;
+        }
+        dataToRender.forEach(s => {
+            const stock = parseFloat(s.current_stock).toLocaleString('id-ID');
+            const sourceName = s.seed_source_name ? s.seed_source_name : '-';
+            modalBody.innerHTML += `
+                <tr style="cursor:pointer;" onclick="selectSeed(${s.item_id})" class="hover-bg-light">
+                    <td class="font-weight-bold text-success">${s.item_name}</td>
+                    <td>${sourceName}</td>
+                    <td class="text-right text-success font-weight-bold">${stock}</td>
+                    <td>${s.unit}</td>
+                </tr>
+            `;
+        });
+    }
+
+    document.getElementById('seedSearch').addEventListener('input', function(e) {
+        const q = e.target.value.toLowerCase();
+        const filtered = seedData.filter(s => s.item_name.toLowerCase().includes(q));
+        renderSeedTable(filtered);
+    });
+
+    window.selectSeed = function(id) {
+        const s = seedData.find(x => x.item_id == id);
+        if(!s) return;
+
+        document.getElementById('seed_item_id').value = s.item_id;
+        document.getElementById('display_seed_name').value = s.item_name;
+        document.getElementById('display_seed_unit_stock').innerText = s.unit;
+        document.getElementById('display_seed_unit_use').innerText = s.unit;
+        
+        maxSeedStock = parseFloat(s.current_stock);
+        document.getElementById('max_seed_stock').value = maxSeedStock;
+        seedQtyInput.max = maxSeedStock;
+
+        if (parseFloat(seedQtyInput.value) > maxSeedStock) {
+            seedQtyInput.value = maxSeedStock;
+        }
+
+        $('#seedModal').modal('hide');
+    };
+
+    seedQtyInput.addEventListener('input', function() {
+        if (this.value && parseFloat(this.value) > maxSeedStock && document.getElementById('seed_item_id').value) {
+            alert('Jumlah digunakan tidak boleh melebihi sisa stok benih! (Max: ' + maxSeedStock + ')');
+            this.value = maxSeedStock;
+        }
+    });
 
     // ---------------------------------------------------------
-    // POLYBAG LOGIC (Left Modal 1)
+    // POLYBAG LOGIC — Offline-Aware
     // ---------------------------------------------------------
     let polybagData = [];
     const polybagIdsSelected = new Set();
@@ -421,37 +659,40 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalBody = document.getElementById('modalPolybagBody');
         modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
 
-        fetch('<?= url('seedling-admin/get-filled-bags-stock-ajax') ?>')
-            .then(res => res.json())
-            .then(data => {
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-filled-bags-stock-ajax') ?>',
+            'filled_bags_stock'
+        ).then(result => {
+            const data = result.data;
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="5"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
+            } else {
                 modalBody.innerHTML = '';
-                if(data.success && data.data.length > 0) {
-                    polybagData = data.data;
-                    data.data.forEach(pb => {
-                        if(polybagIdsSelected.has(pb.id.toString())) return; // skip selected
+            }
 
-                        modalBody.innerHTML += `
-                            <tr>
-                                <td class="font-weight-bold text-info">${pb.filling_code}</td>
-                                <td>${new Date(pb.filling_date).toLocaleDateString('id-ID')}</td>
-                                <td>${pb.bag_name}</td>
-                                <td class="text-right font-weight-bold text-primary">${parseFloat(pb.remaining_stock).toLocaleString('id-ID')}</td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPolybag(${pb.id})">
-                                        <i class="fas fa-plus"></i> Pilih
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    
-                    if (modalBody.innerHTML === '') {
-                        modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Semua PB yang tersedia sudah dipilih</td></tr>';
-                    }
-                } else {
-                    modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok PB yang tersedia. Silakan lakukan Pengisian Kantong terlebih dahulu.</td></tr>';
-                }
-            });
+            if(data && data.success && data.data.length > 0) {
+                polybagData = data.data;
+                data.data.forEach(pb => {
+                    if(polybagIdsSelected.has(pb.id.toString())) return;
+                    modalBody.innerHTML += `
+                        <tr>
+                            <td class="font-weight-bold text-info">${pb.filling_code}</td>
+                            <td>${new Date(pb.filling_date).toLocaleDateString('id-ID')}</td>
+                            <td>${pb.bag_name}</td>
+                            <td class="text-right font-weight-bold text-primary">${parseFloat(pb.remaining_stock).toLocaleString('id-ID')}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPolybag(${pb.id})">
+                                    <i class="fas fa-plus"></i> Pilih
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle mr-2"></i> Tidak ada stok PB yang tersedia.</td></tr>';
+            }
+        });
     };
 
     window.addPolybag = function(id) {
@@ -490,9 +731,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if(polybagIdsSelected.size === 0 && emptyPolyRow) emptyPolyRow.style.display = 'table-row';
     };
 
-
     // ---------------------------------------------------------
-    // MATERIAL LOGIC (Left Modal 2)
+    // MATERIAL LOGIC — Offline-Aware
     // ---------------------------------------------------------
     let materialData = [];
     const materialIdsSelected = new Set();
@@ -504,37 +744,40 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalBody = document.getElementById('modalMaterialBody');
         modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
 
-        fetch('<?= url('seedling-admin/get-materials-stock-ajax') ?>')
-            .then(res => res.json())
-            .then(data => {
+        OfflineManager.fetchWithCache(
+            '<?= url('seedling-admin/get-materials-stock-ajax') ?>',
+            'materials_stock'
+        ).then(result => {
+            const data = result.data;
+            if (result.fromCache && result.cachedAt) {
+                const ts = new Date(result.cachedAt).toLocaleString('id-ID');
+                modalBody.innerHTML = `<tr><td colspan="5"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
+            } else {
                 modalBody.innerHTML = '';
-                if(data.success && data.data.length > 0) {
-                    materialData = data.data;
-                    data.data.forEach(mat => {
-                        if(materialIdsSelected.has(mat.id.toString())) return; 
+            }
 
-                        modalBody.innerHTML += `
-                            <tr>
-                                <td class="font-weight-bold">${mat.name}</td>
-                                <td>${mat.category}</td>
-                                <td class="text-right font-weight-bold text-warning">${parseFloat(mat.current_stock).toLocaleString('id-ID')}</td>
-                                <td>${mat.unit}</td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="addMaterial(${mat.id})">
-                                        <i class="fas fa-plus"></i> Pilih
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    
-                    if (modalBody.innerHTML === '') {
-                        modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Semua bahan pendukung sudah dipilih</td></tr>';
-                    }
-                } else {
-                    modalBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Tidak ada stok bahan baku pendukung.</td></tr>';
-                }
-            });
+            if(data && data.success && data.data.length > 0) {
+                materialData = data.data;
+                data.data.forEach(mat => {
+                    if(materialIdsSelected.has(mat.id.toString())) return; 
+                    modalBody.innerHTML += `
+                        <tr>
+                            <td class="font-weight-bold">${mat.name}</td>
+                            <td>${mat.category}</td>
+                            <td class="text-right font-weight-bold text-warning">${parseFloat(mat.current_stock).toLocaleString('id-ID')}</td>
+                            <td>${mat.unit}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="addMaterial(${mat.id})">
+                                    <i class="fas fa-plus"></i> Pilih
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                modalBody.innerHTML += '<tr><td colspan="5" class="text-center py-4 text-muted">Tidak ada stok bahan baku pendukung.</td></tr>';
+            }
+        });
     };
 
     window.addMaterial = function(id) {
@@ -579,7 +822,5 @@ document.addEventListener('DOMContentLoaded', function() {
             input.value = maxVal;
         }
     };
-
-    // Removed Form Submission Validation for Polybags requirement
 });
 </script>

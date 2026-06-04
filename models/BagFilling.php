@@ -126,7 +126,11 @@ class BagFilling extends Model {
                 JOIN bahan_baku_master m ON f.bag_item_id = m.id
                 LEFT JOIN (
                     SELECT bag_filling_id, SUM(quantity) as total_used
-                    FROM seed_sowing_polybags
+                    FROM (
+                        SELECT bag_filling_id, quantity FROM seed_sowing_polybags
+                        UNION ALL
+                        SELECT bag_filling_id, quantity FROM seedling_weaning_polybags
+                    ) combined_used
                     GROUP BY bag_filling_id
                 ) used ON f.id = used.bag_filling_id";
         
@@ -176,7 +180,11 @@ class BagFilling extends Model {
                 JOIN bahan_baku_master m ON f.bag_item_id = m.id
                 LEFT JOIN (
                     SELECT bag_filling_id, SUM(quantity) as total_used
-                    FROM seed_sowing_polybags
+                    FROM (
+                        SELECT bag_filling_id, quantity FROM seed_sowing_polybags
+                        UNION ALL
+                        SELECT bag_filling_id, quantity FROM seedling_weaning_polybags
+                    ) combined_used
                     GROUP BY bag_filling_id
                 ) used ON f.id = used.bag_filling_id";
                 
@@ -250,7 +258,11 @@ class BagFilling extends Model {
                 JOIN bahan_baku_master m ON f.bag_item_id = m.id
                 LEFT JOIN (
                     SELECT bag_filling_id, SUM(quantity) as total_used
-                    FROM seed_sowing_polybags
+                    FROM (
+                        SELECT bag_filling_id, quantity FROM seed_sowing_polybags
+                        UNION ALL
+                        SELECT bag_filling_id, quantity FROM seedling_weaning_polybags
+                    ) combined_used
                     GROUP BY bag_filling_id
                 ) used ON f.id = used.bag_filling_id";
         
@@ -304,6 +316,7 @@ class BagFilling extends Model {
 
             // Delete downstream links (backup)
             $this->db->prepare("DELETE FROM seed_sowing_polybags WHERE bag_filling_id = ?")->execute([$id]);
+            $this->db->prepare("DELETE FROM seedling_weaning_polybags WHERE bag_filling_id = ?")->execute([$id]);
 
             // Delete media relations
             $this->db->prepare("DELETE FROM bag_filling_media WHERE bag_filling_id = ?")->execute([$id]);

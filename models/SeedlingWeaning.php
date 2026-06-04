@@ -9,9 +9,9 @@ class SeedlingWeaning extends Model {
     public function generateWeaningCode() {
         $prefix = 'PE-' . date('Ym');
         $sql = "SELECT weaning_code FROM {$this->table} 
-                WHERE weaning_code LIKE ? 
-                ORDER BY LENGTH(weaning_code) DESC, weaning_code DESC LIMIT 1";
-        $result = $this->query($sql, [$prefix . '%']);
+                WHERE weaning_code LIKE ? AND weaning_code REGEXP ?
+                ORDER BY weaning_code DESC LIMIT 1";
+        $result = $this->query($sql, [$prefix . '%', '^PE-[0-9]{9}$']);
         
         if (empty($result)) {
             return $prefix . '001';
@@ -29,7 +29,7 @@ class SeedlingWeaning extends Model {
     /**
      * Save Weaning transaction with Polybags and Materials
      */
-    public function saveWeaning($weaningData, $polybagItems, $materialItems) {
+    public function saveWeaning($weaningData, $polybagItems, $materialItems, $seedItems = []) {
         try {
             $this->db->beginTransaction();
 
@@ -43,14 +43,18 @@ class SeedlingWeaning extends Model {
                 $weaningData['weaning_code'] = $this->generateWeaningCode();
             }
 
-            // Inherit seed_source_id from sowing via harvest
-            $sourceQ = $this->queryOne("
-                SELECT s.seed_source_id 
-                FROM seedling_harvests h 
-                JOIN seed_sowings s ON h.sowing_id = s.id 
-                WHERE h.id = ?", [$weaningData['harvest_id']]
-            );
-            $weaningData['seed_source_id'] = $sourceQ['seed_source_id'] ?? null;
+            // Inherit seed_source_id from sowing via harvest if harvest_id exists
+            if (!empty($weaningData['harvest_id'])) {
+                $sourceQ = $this->queryOne("
+                    SELECT s.seed_source_id 
+                    FROM seedling_harvests h 
+                    JOIN seed_sowings s ON h.sowing_id = s.id 
+                    WHERE h.id = ?", [$weaningData['harvest_id']]
+                );
+                $weaningData['seed_source_id'] = $sourceQ['seed_source_id'] ?? null;
+            } else {
+                $weaningData['seed_source_id'] = null;
+            }
 
             // 1. Insert Master Weaning
             $sql = "INSERT INTO {$this->table} 
@@ -76,6 +80,15 @@ class SeedlingWeaning extends Model {
                 $stmtMat = $this->db->prepare($sqlMat);
                 foreach ($materialItems as $mat) {
                     $stmtMat->execute([$weaningId, $mat['item_id'], $mat['quantity']]);
+                }
+            }
+
+            // 4. Insert Seeds (Opsi B)
+            if (!empty($seedItems)) {
+                $sqlSeed = "INSERT INTO seedling_weaning_seeds (weaning_id, item_id, quantity) VALUES (?, ?, ?)";
+                $stmtSeed = $this->db->prepare($sqlSeed);
+                foreach ($seedItems as $seed) {
+                    $stmtSeed->execute([$weaningId, $seed['item_id'], $seed['quantity']]);
                 }
             }
 
@@ -141,7 +154,7 @@ class SeedlingWeaning extends Model {
                 (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
                  EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
                 FROM {$this->table} w
-                JOIN seedling_harvests h ON w.harvest_id = h.id
+                LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
                 JOIN seedling_types st ON w.result_item_id = st.id
                 LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
                 LEFT JOIN (
@@ -195,7 +208,7 @@ class SeedlingWeaning extends Model {
                 (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
                  EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
                 FROM {$this->table} w
-                JOIN seedling_harvests h ON w.harvest_id = h.id
+                LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
                 JOIN seedling_types st ON w.result_item_id = st.id
                 LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
                 LEFT JOIN (
@@ -265,13 +278,16 @@ class SeedlingWeaning extends Model {
      * @return array
      */
     public function getAvailableWeanings($filters = []) {
-        $sql = "SELECT w.id, w.weaning_code, w.weaning_date, w.weaned_quantity as total_initial, w.seed_source_id,
+        $sql = "SELECT w.id, w.weaning_code, w.weaning_date, w.weaned_quantity as total_initial, 
                 w.location, st.name as seed_name, 'pcs' as seed_unit, ss.seed_source_name,
+                w.bpdas_id, w.nursery_id, w.result_item_id as seedling_type_id, s.seed_source_id, s.sowing_date,
                 (COALESCE(e.entres_stock, 0) + COALESCE(m.mutation_stock, 0)) as used_total,
                 (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock
                 FROM {$this->table} w
                 JOIN seedling_types st ON w.result_item_id = st.id
-                LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
+                LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
+                LEFT JOIN seed_sowings s ON h.sowing_id = s.id
+                LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id
                 LEFT JOIN (
                     SELECT harvest_id, SUM(used_quantity) as entres_stock
                     FROM seedling_entres
