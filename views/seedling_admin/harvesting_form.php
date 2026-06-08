@@ -1,4 +1,4 @@
-﻿<div class="row justify-content-center">
+<div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PEMANENAN SEMAI</h2>
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = `<tr><td colspan="4"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
             }
 
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 sowingData = data.data;
                 renderSowingTable(sowingData);
             } else {

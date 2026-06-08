@@ -441,4 +441,643 @@ class ExportController extends Controller {
         $dompdf->stream($filename, ["Attachment" => true]);
         exit;
     }
+
+    /**
+     * Export All Seedling Production Data to Excel
+     */
+    public function seedlingExcel() {
+        $user = currentUser();
+        
+        $startDate = $this->get('start_date');
+        $endDate = $this->get('end_date');
+        $seedlingTypeId = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
+
+        if (empty($startDate) || empty($endDate)) {
+            die("Error: Rentang waktu wajib diisi.");
+        }
+
+        // Get organization info for header
+        $userModel = $this->model('User');
+        $orgName = 'Seluruh Indonesia (Pusat)';
+        $filters = [
+            'nursery_id' => null,
+            'bpdas_id' => null
+        ];
+
+        if ($user['role'] === 'operator_persemaian') {
+            $userData = $userModel->getUserWithNursery($user['id']);
+            $orgName = $userData['nursery_name'] ?? 'Persemaian';
+            $filters['nursery_id'] = $userData['nursery_id'] ?? null;
+        } elseif ($user['role'] === 'bpdas') {
+            $userData = $userModel->getUserWithBPDAS($user['id']);
+            $orgName = $userData['bpdas_name'] ?? 'BPDAS';
+            $filters['bpdas_id'] = $user['bpdas_id'];
+        }
+
+        // Fetch seedling type name if filtered
+        $seedlingTypeName = '';
+        if ($seedlingTypeId) {
+            $stModel = $this->model('SeedlingType');
+            $stData = $stModel->find($seedlingTypeId);
+            if ($stData) {
+                $seedlingTypeName = $stData['name'];
+            }
+        }
+
+        // Create Spreadsheet
+        $spreadsheet = new Spreadsheet();
+
+        // We will define the sheets structure:
+        $sheetsInfo = [
+            [
+                'title' => 'Bahan Baku IN',
+                'sql' => "SELECT t.transaction_id, t.transaction_date, m.name as item_name, m.category as item_category, 
+                                 t.quantity, m.unit as item_unit, ss.seed_source_name, t.sender_name, t.receiver_name, t.notes
+                          FROM bahan_baku_transactions t
+                          JOIN bahan_baku_master m ON t.item_id = m.id
+                          LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
+                          WHERE t.transaction_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Transaksi', 'Tanggal', 'Item', 'Kategori', 'Jumlah', 'Satuan', 'Sumber Benih', 'Pengirim', 'Penerima', 'Catatan'],
+                'mappings' => ['transaction_id', 'transaction_date', 'item_name', 'item_category', 'quantity', 'item_unit', 'seed_source_name', 'sender_name', 'receiver_name', 'notes'],
+                'date_fields' => ['transaction_date'],
+                'number_fields' => ['quantity'],
+                'filter_seedling_type' => false,
+                'role_nursery_col' => 't.nursery_id',
+                'role_bpdas_col' => 't.bpdas_id'
+            ],
+            [
+                'title' => 'Mixing Media',
+                'sql' => "SELECT p.production_code, p.production_date, p.total_production, p.mandor, p.manager, p.notes
+                          FROM media_mixing_productions p
+                          WHERE p.production_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Produksi', 'Tanggal', 'Total Produksi (m³)', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['production_code', 'production_date', 'total_production', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['production_date'],
+                'number_fields' => ['total_production'],
+                'filter_seedling_type' => false,
+                'role_nursery_col' => 'p.nursery_id',
+                'role_bpdas_col' => 'p.bpdas_id'
+            ],
+            [
+                'title' => 'Pengisian Kantong',
+                'sql' => "SELECT f.filling_code, f.filling_date, m.name as bag_name, f.total_production, f.mandor, f.manager, f.notes
+                          FROM bag_fillings f
+                          JOIN bahan_baku_master m ON f.bag_item_id = m.id
+                          WHERE f.filling_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Pengisian', 'Tanggal', 'Jenis Kantong', 'Total Produksi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['filling_code', 'filling_date', 'bag_name', 'total_production', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['filling_date'],
+                'number_fields' => ['total_production'],
+                'filter_seedling_type' => false,
+                'role_nursery_col' => 'f.nursery_id',
+                'role_bpdas_col' => 'f.bpdas_id'
+            ],
+            [
+                'title' => 'Penaburan Benih',
+                'sql' => "SELECT s.sowing_code, s.sowing_date, m.name as seed_name, s.seed_quantity, m.unit as seed_unit,
+                                 ss.seed_source_name, 
+                                 (SELECT SUM(quantity) FROM seed_sowing_polybags WHERE sowing_id = s.id) as total_polybags,
+                                 s.mandor, s.manager, s.notes
+                          FROM seed_sowings s
+                          JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                          LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id
+                          WHERE s.sowing_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Tabur', 'Tanggal', 'Jenis Benih', 'Jumlah Benih', 'Satuan', 'Sumber Benih', 'Total Polybag', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['sowing_code', 'sowing_date', 'seed_name', 'seed_quantity', 'seed_unit', 'seed_source_name', 'total_polybags', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['sowing_date'],
+                'number_fields' => ['seed_quantity', 'total_polybags'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'm.seedling_type_id',
+                'role_nursery_col' => 's.nursery_id',
+                'role_bpdas_col' => 's.bpdas_id'
+            ],
+            [
+                'title' => 'Pemanenan Semai',
+                'sql' => "SELECT h.harvest_code, h.harvest_date, m.name as seed_name, h.harvested_quantity,
+                                 h.location, h.mandor, h.manager, h.notes
+                          FROM seedling_harvests h
+                          JOIN seed_sowings s ON h.sowing_id = s.id
+                          JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                          WHERE h.harvest_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Panen', 'Tanggal', 'Jenis Benih', 'Jumlah Anakan', 'Lokasi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['harvest_code', 'harvest_date', 'seed_name', 'harvested_quantity', 'location', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['harvest_date'],
+                'number_fields' => ['harvested_quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'm.seedling_type_id',
+                'role_nursery_col' => 'h.nursery_id',
+                'role_bpdas_col' => 'h.bpdas_id'
+            ],
+            [
+                'title' => 'Penyapihan',
+                'sql' => "SELECT w.weaning_code, w.weaning_date, h.harvest_code, st.name as result_name, w.weaned_quantity,
+                                 w.location, w.mandor, w.manager, w.notes
+                          FROM seedling_weanings w
+                          LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
+                          JOIN seedling_types st ON w.result_item_id = st.id
+                          LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
+                          WHERE w.weaning_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Sapih', 'Tanggal', 'Asal PA', 'Hasil Bibit', 'Jumlah', 'Lokasi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['weaning_code', 'weaning_date', 'harvest_code', 'result_name', 'weaned_quantity', 'location', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['weaning_date'],
+                'number_fields' => ['weaned_quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'w.result_item_id',
+                'role_nursery_col' => 'w.nursery_id',
+                'role_bpdas_col' => 'w.bpdas_id'
+            ],
+            [
+                'title' => 'Entres',
+                'sql' => "SELECT e.entres_code, e.entres_date, COALESCE(w.weaning_code, h.harvest_code) as source_code,
+                                 st.name as result_name, e.used_quantity, e.location, e.mandor, e.manager, e.notes
+                          FROM seedling_entres e
+                          LEFT JOIN seedling_weanings w ON e.weaning_id = w.id
+                          LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                          JOIN seedling_types st ON e.result_item_id = st.id
+                          WHERE e.entres_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Entres', 'Tanggal', 'Asal PE/PA', 'Hasil Bibit', 'Jumlah', 'Lokasi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['entres_code', 'entres_date', 'source_code', 'result_name', 'used_quantity', 'location', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['entres_date'],
+                'number_fields' => ['used_quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'e.result_item_id',
+                'role_nursery_col' => 'e.nursery_id',
+                'role_bpdas_col' => 'e.bpdas_id'
+            ],
+            [
+                'title' => 'Mutasi',
+                'sql' => "SELECT m.mutation_code, m.mutation_date, m.source_type, 
+                                 CASE 
+                                     WHEN m.source_type = 'PE' THEN (SELECT weaning_code FROM seedling_weanings WHERE id = m.source_id)
+                                     WHEN m.source_type = 'ET' THEN (SELECT entres_code FROM seedling_entres WHERE id = m.source_id)
+                                 END as source_code,
+                                 m.mutation_type, m.quantity, m.origin_location, m.target_location, m.mandor, m.manager, m.notes,
+                                 CASE 
+                                     WHEN m.source_type = 'PE' THEN (SELECT st.name FROM seedling_weanings w JOIN seedling_types st ON w.result_item_id = st.id WHERE w.id = m.source_id)
+                                     WHEN m.source_type = 'ET' THEN (SELECT st.name FROM seedling_entres e JOIN seedling_types st ON e.result_item_id = st.id WHERE e.id = m.source_id)
+                                 END as seedling_name
+                          FROM seedling_mutations m
+                          WHERE m.mutation_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Mutasi', 'Tanggal', 'Asal Bibit', 'Jenis Mutasi', 'Jumlah', 'Asal Lokasi', 'Tujuan Lokasi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['mutation_code', 'mutation_date', 'seedling_name', 'mutation_type', 'quantity', 'origin_location', 'target_location', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['mutation_date'],
+                'number_fields' => ['quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'mutation_type_custom',
+                'role_nursery_col' => 'm.nursery_id',
+                'role_bpdas_col' => 'm.bpdas_id'
+            ]
+        ];
+
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2C3E50']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ];
+
+        $borderStyle = [
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+        ];
+
+        foreach ($sheetsInfo as $sIdx => $info) {
+            if ($sIdx === 0) {
+                $sheet = $spreadsheet->getActiveSheet();
+            } else {
+                $sheet = $spreadsheet->createSheet($sIdx);
+            }
+            $sheet->setTitle($info['title']);
+
+            // Build SQL & Params with Scoping & Filters
+            $sql = $info['sql'];
+            $params = $info['params'];
+
+            // Role Scope
+            if ($filters['nursery_id'] && !empty($info['role_nursery_col'])) {
+                $sql .= " AND " . $info['role_nursery_col'] . " = ?";
+                $params[] = $filters['nursery_id'];
+            } elseif ($filters['bpdas_id'] && !empty($info['role_bpdas_col'])) {
+                $sql .= " AND " . $info['role_bpdas_col'] . " = ?";
+                $params[] = $filters['bpdas_id'];
+            }
+
+            // Seedling Type Filter (PC, PA, PE, ET, BO)
+            if ($seedlingTypeId && $info['filter_seedling_type']) {
+                if ($info['title'] === 'Mutasi') {
+                    $sql .= " AND (
+                        (m.source_type = 'PE' AND m.source_id IN (SELECT id FROM seedling_weanings WHERE result_item_id = ?))
+                        OR 
+                        (m.source_type = 'ET' AND m.source_id IN (SELECT id FROM seedling_entres WHERE result_item_id = ?))
+                    )";
+                    $params[] = $seedlingTypeId;
+                    $params[] = $seedlingTypeId;
+                } else {
+                    $sql .= " AND " . $info['seedling_type_col'] . " = ?";
+                    $params[] = $seedlingTypeId;
+                }
+            }
+
+            // Retrieve Data
+            $data = $userModel->query($sql, $params);
+
+            // Add Header Metadata
+            $sheet->setCellValue('A1', 'LAPORAN DATA PENATAUSAHAAN BIBIT - ' . strtoupper($info['title']));
+            $sheet->mergeCells('A1:J1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+            $sheet->setCellValue('A2', 'Dicetak Oleh : ' . $user['full_name'] . ' (' . ucfirst($user['role']) . ')');
+            $sheet->mergeCells('A2:E2');
+            
+            $sheet->setCellValue('A3', 'Organisasi  : ' . $orgName);
+            $sheet->mergeCells('A3:E3');
+
+            $filterText = 'Rentang Waktu: ' . date('d/m/Y', strtotime($startDate)) . ' s/d ' . date('d/m/Y', strtotime($endDate));
+            if ($info['filter_seedling_type'] && $seedlingTypeName) {
+                $filterText .= ' | Jenis Tanaman: ' . $seedlingTypeName;
+            }
+            $sheet->setCellValue('A4', $filterText);
+            $sheet->mergeCells('A4:J4');
+
+            $sheet->setCellValue('A5', 'Tanggal Cetak: ' . date('d F Y H:i'));
+            $sheet->mergeCells('A5:E5');
+
+            // Table headers
+            $col = 'A';
+            $startRow = 7;
+            foreach ($info['headers'] as $headerTitle) {
+                $sheet->setCellValue($col . $startRow, $headerTitle);
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+                $col++;
+            }
+
+            // Style headers
+            $lastCol = chr(ord('A') + count($info['headers']) - 1);
+            $sheet->getStyle('A'.$startRow.':'.$lastCol.$startRow)->applyFromArray($headerStyle);
+
+            // Fill data rows
+            $row = $startRow + 1;
+            foreach ($data as $index => $item) {
+                $sheet->setCellValue('A' . $row, $index + 1);
+                
+                $col = 'B';
+                foreach ($info['mappings'] as $colKey) {
+                    $val = isset($item[$colKey]) ? $item[$colKey] : null;
+
+                    // Formatting values
+                    if (in_array($colKey, $info['date_fields']) && !empty($val)) {
+                        $val = date('d-m-Y', strtotime($val));
+                    }
+                    
+                    if (in_array($colKey, $info['number_fields'])) {
+                        if ($val === null || $val === '') {
+                            $sheet->setCellValueExplicit($col . $row, '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                        } else {
+                            $sheet->setCellValueExplicit($col . $row, $val, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+                            if (strpos((string)$val, '.') !== false) {
+                                $sheet->getStyle($col . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                            } else {
+                                $sheet->getStyle($col . $row)->getNumberFormat()->setFormatCode('#,##0');
+                            }
+                        }
+                    } else {
+                        $sheet->setCellValueExplicit($col . $row, $val ?? '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    }
+                    $col++;
+                }
+                $row++;
+            }
+
+            // Apply borders to whole table
+            if ($row > $startRow + 1) {
+                $sheet->getStyle('A'.$startRow.':'.$lastCol . ($row - 1))->applyFromArray($borderStyle);
+                // Center Serial numbers
+                $sheet->getStyle('A'.($startRow+1).':A' . ($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            }
+        }
+
+        // Set active sheet back to first
+        $spreadsheet->setActiveSheetIndex(0);
+
+        // Filename
+        $filename = 'Laporan_Keseluruhan_Bibit_' . date('Y-m-d_H-i-s') . '.xlsx';
+        
+        // Redirect Output
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * Export Summary & Detail Laporan to PDF
+     */
+    public function seedlingPDF() {
+        $user = currentUser();
+        
+        $startDate = $this->get('start_date');
+        $endDate = $this->get('end_date');
+        $seedlingTypeId = $this->get('seedling_type_id') ? (int)$this->get('seedling_type_id') : null;
+
+        if (empty($startDate) || empty($endDate)) {
+            die("Error: Rentang waktu wajib diisi.");
+        }
+
+        $userModel = $this->model('User');
+        $orgName = 'Seluruh Indonesia (Pusat)';
+        $filters = [
+            'nursery_id' => null,
+            'bpdas_id' => null
+        ];
+
+        if ($user['role'] === 'operator_persemaian') {
+            $userData = $userModel->getUserWithNursery($user['id']);
+            $orgName = $userData['nursery_name'] ?? 'Persemaian';
+            $filters['nursery_id'] = $userData['nursery_id'] ?? null;
+        } elseif ($user['role'] === 'bpdas') {
+            $userData = $userModel->getUserWithBPDAS($user['id']);
+            $orgName = $userData['bpdas_name'] ?? 'BPDAS';
+            $filters['bpdas_id'] = $user['bpdas_id'];
+        }
+
+        // Fetch seedling type name if filtered
+        $seedlingTypeName = '';
+        if ($seedlingTypeId) {
+            $stModel = $this->model('SeedlingType');
+            $stData = $stModel->find($seedlingTypeId);
+            if ($stData) {
+                $seedlingTypeName = $stData['name'];
+            }
+        }
+
+        // Define the queries structure exactly like Excel
+        $sectionsInfo = [
+            'bahan_baku' => [
+                'title' => 'Bahan Baku IN',
+                'sql' => "SELECT t.transaction_id, t.transaction_date, m.name as item_name, m.category as item_category, 
+                                 t.quantity, m.unit as item_unit, ss.seed_source_name, t.sender_name, t.receiver_name, t.notes
+                          FROM bahan_baku_transactions t
+                          JOIN bahan_baku_master m ON t.item_id = m.id
+                          LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
+                          WHERE t.transaction_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Transaksi', 'Tanggal', 'Item', 'Kategori', 'Jumlah', 'Satuan', 'Sumber Benih', 'Catatan'],
+                'mappings' => ['transaction_id', 'transaction_date', 'item_name', 'item_category', 'quantity', 'item_unit', 'seed_source_name', 'notes'],
+                'date_fields' => ['transaction_date'],
+                'number_fields' => ['quantity'],
+                'filter_seedling_type' => false,
+                'role_nursery_col' => 't.nursery_id',
+                'role_bpdas_col' => 't.bpdas_id'
+            ],
+            'media_mixing' => [
+                'title' => 'Mixing Media',
+                'sql' => "SELECT p.production_code, p.production_date, p.total_production, p.mandor, p.manager, p.notes
+                          FROM media_mixing_productions p
+                          WHERE p.production_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Produksi', 'Tanggal', 'Total Produksi (m³)', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['production_code', 'production_date', 'total_production', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['production_date'],
+                'number_fields' => ['total_production'],
+                'filter_seedling_type' => false,
+                'role_nursery_col' => 'p.nursery_id',
+                'role_bpdas_col' => 'p.bpdas_id'
+            ],
+            'bag_filling' => [
+                'title' => 'Pengisian Kantong',
+                'sql' => "SELECT f.filling_code, f.filling_date, m.name as bag_name, f.total_production, f.mandor, f.manager, f.notes
+                          FROM bag_fillings f
+                          JOIN bahan_baku_master m ON f.bag_item_id = m.id
+                          WHERE f.filling_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Pengisian', 'Tanggal', 'Jenis Kantong', 'Total Produksi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['filling_code', 'filling_date', 'bag_name', 'total_production', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['filling_date'],
+                'number_fields' => ['total_production'],
+                'filter_seedling_type' => false,
+                'role_nursery_col' => 'f.nursery_id',
+                'role_bpdas_col' => 'f.bpdas_id'
+            ],
+            'seed_sowing' => [
+                'title' => 'Penaburan Benih',
+                'sql' => "SELECT s.sowing_code, s.sowing_date, m.name as seed_name, s.seed_quantity, m.unit as seed_unit,
+                                 ss.seed_source_name, 
+                                 (SELECT SUM(quantity) FROM seed_sowing_polybags WHERE sowing_id = s.id) as total_polybags,
+                                 s.mandor, s.manager, s.notes
+                          FROM seed_sowings s
+                          JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                          LEFT JOIN seed_sources ss ON s.seed_source_id = ss.id
+                          WHERE s.sowing_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Tabur', 'Tanggal', 'Jenis Benih', 'Jumlah Benih', 'Satuan', 'Sumber Benih', 'Total Polybag', 'Mandor', 'Catatan'],
+                'mappings' => ['sowing_code', 'sowing_date', 'seed_name', 'seed_quantity', 'seed_unit', 'seed_source_name', 'total_polybags', 'mandor', 'notes'],
+                'date_fields' => ['sowing_date'],
+                'number_fields' => ['seed_quantity', 'total_polybags'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'm.seedling_type_id',
+                'role_nursery_col' => 's.nursery_id',
+                'role_bpdas_col' => 's.bpdas_id'
+            ],
+            'seedling_harvest' => [
+                'title' => 'Pemanenan Semai',
+                'sql' => "SELECT h.harvest_code, h.harvest_date, m.name as seed_name, h.harvested_quantity,
+                                 h.location, h.mandor, h.manager, h.notes
+                          FROM seedling_harvests h
+                          JOIN seed_sowings s ON h.sowing_id = s.id
+                          JOIN bahan_baku_master m ON s.seed_item_id = m.id
+                          WHERE h.harvest_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Panen', 'Tanggal', 'Jenis Benih', 'Jumlah Anakan', 'Lokasi', 'Mandor', 'Manager', 'Catatan'],
+                'mappings' => ['harvest_code', 'harvest_date', 'seed_name', 'harvested_quantity', 'location', 'mandor', 'manager', 'notes'],
+                'date_fields' => ['harvest_date'],
+                'number_fields' => ['harvested_quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'm.seedling_type_id',
+                'role_nursery_col' => 'h.nursery_id',
+                'role_bpdas_col' => 'h.bpdas_id'
+            ],
+            'seedling_weaning' => [
+                'title' => 'Penyapihan',
+                'sql' => "SELECT w.weaning_code, w.weaning_date, h.harvest_code, st.name as result_name, w.weaned_quantity,
+                                 w.location, w.mandor, w.manager, w.notes
+                          FROM seedling_weanings w
+                          LEFT JOIN seedling_harvests h ON w.harvest_id = h.id
+                          JOIN seedling_types st ON w.result_item_id = st.id
+                          LEFT JOIN seed_sources ss ON w.seed_source_id = ss.id
+                          WHERE w.weaning_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Sapih', 'Tanggal', 'Asal PA', 'Hasil Bibit', 'Jumlah', 'Lokasi', 'Mandor', 'Catatan'],
+                'mappings' => ['weaning_code', 'weaning_date', 'harvest_code', 'result_name', 'weaned_quantity', 'location', 'mandor', 'notes'],
+                'date_fields' => ['weaning_date'],
+                'number_fields' => ['weaned_quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'w.result_item_id',
+                'role_nursery_col' => 'w.nursery_id',
+                'role_bpdas_col' => 'w.bpdas_id'
+            ],
+            'seedling_entres' => [
+                'title' => 'Entres',
+                'sql' => "SELECT e.entres_code, e.entres_date, COALESCE(w.weaning_code, h.harvest_code) as source_code,
+                                 st.name as result_name, e.used_quantity, e.location, e.mandor, e.manager, e.notes
+                          FROM seedling_entres e
+                          LEFT JOIN seedling_weanings w ON e.weaning_id = w.id
+                          LEFT JOIN seedling_harvests h ON e.harvest_id = h.id
+                          JOIN seedling_types st ON e.result_item_id = st.id
+                          WHERE e.entres_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Entres', 'Tanggal', 'Asal PE/PA', 'Hasil Bibit', 'Jumlah', 'Lokasi', 'Mandor', 'Catatan'],
+                'mappings' => ['entres_code', 'entres_date', 'source_code', 'result_name', 'used_quantity', 'location', 'mandor', 'notes'],
+                'date_fields' => ['entres_date'],
+                'number_fields' => ['used_quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'e.result_item_id',
+                'role_nursery_col' => 'e.nursery_id',
+                'role_bpdas_col' => 'e.bpdas_id'
+            ],
+            'seedling_mutation' => [
+                'title' => 'Mutasi',
+                'sql' => "SELECT m.mutation_code, m.mutation_date, m.source_type, 
+                                 CASE 
+                                     WHEN m.source_type = 'PE' THEN (SELECT weaning_code FROM seedling_weanings WHERE id = m.source_id)
+                                     WHEN m.source_type = 'ET' THEN (SELECT entres_code FROM seedling_entres WHERE id = m.source_id)
+                                 END as source_code,
+                                 m.mutation_type, m.quantity, m.origin_location, m.target_location, m.mandor, m.manager, m.notes,
+                                 CASE 
+                                     WHEN m.source_type = 'PE' THEN (SELECT st.name FROM seedling_weanings w JOIN seedling_types st ON w.result_item_id = st.id WHERE w.id = m.source_id)
+                                     WHEN m.source_type = 'ET' THEN (SELECT st.name FROM seedling_entres e JOIN seedling_types st ON e.result_item_id = st.id WHERE e.id = m.source_id)
+                                 END as seedling_name
+                          FROM seedling_mutations m
+                          WHERE m.mutation_date BETWEEN ? AND ?",
+                'params' => [$startDate, $endDate],
+                'headers' => ['No', 'Kode Mutasi', 'Tanggal', 'Asal Bibit', 'Jenis Mutasi', 'Jumlah', 'Asal Lokasi', 'Tujuan', 'Catatan'],
+                'mappings' => ['mutation_code', 'mutation_date', 'seedling_name', 'mutation_type', 'quantity', 'origin_location', 'target_location', 'notes'],
+                'date_fields' => ['mutation_date'],
+                'number_fields' => ['quantity'],
+                'filter_seedling_type' => true,
+                'seedling_type_col' => 'mutation_type_custom',
+                'role_nursery_col' => 'm.nursery_id',
+                'role_bpdas_col' => 'm.bpdas_id'
+            ]
+        ];
+
+        // Fetch detailed data for each section
+        $dataDetails = [];
+        $summary = [];
+
+        foreach ($sectionsInfo as $key => $info) {
+            $sql = $info['sql'];
+            $params = $info['params'];
+
+            // Role Scope
+            if ($filters['nursery_id'] && !empty($info['role_nursery_col'])) {
+                $sql .= " AND " . $info['role_nursery_col'] . " = ?";
+                $params[] = $filters['nursery_id'];
+            } elseif ($filters['bpdas_id'] && !empty($info['role_bpdas_col'])) {
+                $sql .= " AND " . $info['role_bpdas_col'] . " = ?";
+                $params[] = $filters['bpdas_id'];
+            }
+
+            // Seedling Type Filter
+            if ($seedlingTypeId && $info['filter_seedling_type']) {
+                if ($key === 'seedling_mutation') {
+                    $sql .= " AND (
+                        (m.source_type = 'PE' AND m.source_id IN (SELECT id FROM seedling_weanings WHERE result_item_id = ?))
+                        OR 
+                        (m.source_type = 'ET' AND m.source_id IN (SELECT id FROM seedling_entres WHERE result_item_id = ?))
+                    )";
+                    $params[] = $seedlingTypeId;
+                    $params[] = $seedlingTypeId;
+                } else {
+                    $sql .= " AND " . $info['seedling_type_col'] . " = ?";
+                    $params[] = $seedlingTypeId;
+                }
+            }
+
+            // Query Details
+            $records = $userModel->query($sql, $params);
+            $dataDetails[$key] = [
+                'title' => $info['title'],
+                'headers' => $info['headers'],
+                'mappings' => $info['mappings'],
+                'date_fields' => $info['date_fields'],
+                'number_fields' => $info['number_fields'],
+                'records' => $records
+            ];
+
+            // Calculate summary stats
+            $cnt = count($records);
+            $tot = 0;
+            $tot_seed = 0;
+            $tot_polybags = 0;
+
+            if ($key === 'seed_sowing') {
+                foreach ($records as $r) {
+                    $tot_seed += $r['seed_quantity'] ?? 0;
+                    $tot_polybags += $r['total_polybags'] ?? 0;
+                }
+            } else {
+                $sumCol = ($key === 'bahan_baku') ? 'quantity' : 
+                         (($key === 'media_mixing') ? 'total_production' : 
+                         (($key === 'bag_filling') ? 'total_production' : 
+                         (($key === 'seedling_harvest') ? 'harvested_quantity' : 
+                         (($key === 'seedling_weaning') ? 'weaned_quantity' : 
+                         (($key === 'seedling_entres') ? 'used_quantity' : 
+                         (($key === 'seedling_mutation') ? 'quantity' : ''))))));
+                
+                foreach ($records as $r) {
+                    $tot += $r[$sumCol] ?? 0;
+                }
+            }
+
+            $summary[$key] = [
+                'cnt' => $cnt,
+                'tot' => $tot,
+                'tot_seed' => $tot_seed,
+                'tot_polybags' => $tot_polybags
+            ];
+        }
+
+        // View Data
+        $data = [
+            'summary' => $summary,
+            'dataDetails' => $dataDetails,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'seedlingTypeName' => $seedlingTypeName,
+            'orgName' => $orgName,
+            'download_time' => date('d F Y H:i'),
+            'user' => $user
+        ];
+        
+        // Load HTML content
+        ob_start();
+        $this->render('exports/seedling_pdf', $data);
+        $html = ob_get_clean();
+        
+        // Init DomPDF
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true); 
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+        
+        // Stream PDF
+        $filename = 'Laporan_Keseluruhan_Bibit_' . date('Y-m-d_H-i-s') . '.pdf';
+        $dompdf->stream($filename, ["Attachment" => true]);
+        exit;
+    }
 }
+

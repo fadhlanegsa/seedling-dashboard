@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         approved: 0,
                     };
                     
-                    if (data.data.length === 0) {
+                    if (!Array.isArray(data.data) || data.data.length === 0) {
                         // User might expect to see nothing if they have no requests, leaving simpler alert or no alert
                         // console.log("No data found");
                     }

@@ -87,10 +87,12 @@ class SeedlingHarvest extends Model {
             $params[] = $filters['bpdas_id'];
         }
         if (!empty($where)) {
-            $sql .= " WHERE " . implode(' AND ', $where);
             $countSql .= " WHERE " . implode(' AND ', $where);
         }
-        $sql .= " HAVING remaining_stock > 0 ORDER BY h.created_at DESC LIMIT ? OFFSET ?";
+        
+        $where[] = "(h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) > 0";
+        $sql .= " WHERE " . implode(' AND ', $where);
+        $sql .= " ORDER BY h.created_at DESC LIMIT ? OFFSET ?";
         
         try {
             $stmt = $this->db->prepare($sql);
@@ -186,11 +188,10 @@ class SeedlingHarvest extends Model {
             $params[] = $filters['bpdas_id'];
         }
 
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
-        }
+        $where[] = "(h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) > 0";
 
-        $sql .= " HAVING remaining_stock > 0 ORDER BY h.harvest_date ASC";
+        $sql .= " WHERE " . implode(" AND ", $where);
+        $sql .= " ORDER BY h.harvest_date ASC";
 
         $stmt = $this->db->prepare($sql);
         foreach ($params as $k => $v) {

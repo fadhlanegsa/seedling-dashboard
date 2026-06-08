@@ -1,6 +1,11 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0 text-gray-800"><i class="fas fa-microscope text-primary mr-2"></i> Penatausahaan Bibit</h2>
+        <div class="d-flex align-items-center">
+            <h2 class="h3 mb-0 text-gray-800 mr-3"><i class="fas fa-microscope text-primary mr-2"></i> Penatausahaan Bibit</h2>
+            <button type="button" class="btn btn-sm btn-success shadow-sm font-weight-bold" data-toggle="modal" data-target="#exportModal">
+                <i class="fas fa-file-export mr-1"></i> EXPORT DATA
+            </button>
+        </div>
         <?php if (!empty($filters['nursery_id']) || !empty($filters['bpdas_id'])): ?>
             <div class="small">
                 <span class="badge badge-pill badge-warning px-3 py-2">
@@ -1250,6 +1255,71 @@ window.printThermalQRDashboard = function() {
     </div>
 </div>
 
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content border-success">
+            <div class="modal-header bg-success text-white border-bottom-0">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-file-export mr-2"></i> Export Data Penatausahaan</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="exportForm" method="GET" action="<?= url('export/seedling-excel') ?>">
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Tentukan rentang waktu wajib dan filter opsional untuk mengunduh data penatausahaan bibit (hanya data yang tersinkronisasi ke server).</p>
+                    
+                    <div class="form-group">
+                        <label class="small font-weight-bold text-muted text-uppercase mb-1">Mulai Tanggal <span class="text-danger">*</span></label>
+                        <input type="date" name="start_date" id="export_start_date" class="form-control form-control-sm shadow-none" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="small font-weight-bold text-muted text-uppercase mb-1">Sampai Tanggal <span class="text-danger">*</span></label>
+                        <input type="date" name="end_date" id="export_end_date" class="form-control form-control-sm shadow-none" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="small font-weight-bold text-muted text-uppercase mb-1">Jenis Tanaman (Opsional)</label>
+                        <select name="seedling_type_id" class="form-control form-control-sm shadow-none">
+                            <option value="">-- Semua Jenis Tanaman --</option>
+                            <?php if (!empty($seedlingTypesForExport)): ?>
+                                <?php foreach ($seedlingTypesForExport as $st): ?>
+                                    <option value="<?= $st['id'] ?>"><?= htmlspecialchars($st['name']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="small font-weight-bold text-muted text-uppercase mb-1 d-block">Format Output</label>
+                        <div class="d-flex align-items-center mt-2">
+                            <div class="custom-control custom-radio mr-4">
+                                <input type="radio" id="formatExcel" name="format" value="excel" class="custom-control-input" checked>
+                                <label class="custom-control-label font-weight-bold text-muted small" for="formatExcel">
+                                    <i class="far fa-file-excel text-success mr-1"></i> EXCEL (.xlsx)
+                                </label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="formatPDF" name="format" value="pdf" class="custom-control-input">
+                                <label class="custom-control-label font-weight-bold text-muted small" for="formatPDF">
+                                    <i class="far fa-file-pdf text-danger mr-1"></i> REKAP PDF
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light p-2 border-top-0">
+                    <button type="button" class="btn btn-sm btn-secondary font-weight-bold" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-success font-weight-bold shadow-sm">
+                        <i class="fas fa-download mr-1"></i> DOWNLOAD
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Delete Button Click Handler
@@ -1343,5 +1413,40 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // --- EXPORT MODAL HANDLER ---
+    const exportForm = document.getElementById('exportForm');
+    const formatPDF = document.getElementById('formatPDF');
+
+    if (exportForm) {
+        exportForm.addEventListener('submit', function(e) {
+            const startDate = document.getElementById('export_start_date').value;
+            const endDate = document.getElementById('export_end_date').value;
+            
+            if (!startDate || !endDate) {
+                e.preventDefault();
+                alert('Mulai Tanggal dan Sampai Tanggal wajib diisi!');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                e.preventDefault();
+                alert('Mulai Tanggal tidak boleh melebihi Sampai Tanggal!');
+                return;
+            }
+
+            // Set action dynamically
+            if (formatPDF && formatPDF.checked) {
+                exportForm.setAttribute('action', '<?= url("export/seedling-pdf") ?>');
+            } else {
+                exportForm.setAttribute('action', '<?= url("export/seedling-excel") ?>');
+            }
+            
+            // Hide modal after a short delay so download triggers
+            setTimeout(() => {
+                $('#exportModal').modal('hide');
+            }, 1000);
+        });
+    }
 });
 </script>

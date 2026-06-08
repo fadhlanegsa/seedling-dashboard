@@ -335,7 +335,8 @@ class BahanBaku extends Model {
         $nurseryId = $filters['nursery_id'] ?? null;
         $bpdasId = $filters['bpdas_id'] ?? null;
 
-        $sql = "SELECT m.id, m.name, m.category, m.unit,
+        $sql = "SELECT * FROM (
+                SELECT m.id, m.name, m.category, m.unit,
                 COALESCE(trans_in.total_in, 0) as total_in,
                 (COALESCE(mixing_out.total_out, 0) + 
                  COALESCE(filling_out.total_out, 0) + 
@@ -430,8 +431,9 @@ class BahanBaku extends Model {
                     ($bpdasId ? " AND sw.bpdas_id = $bpdasId" : "") . "
                     GROUP BY ws.item_id
                 ) direct_seed_out ON m.id = direct_seed_out.item_id
-                HAVING current_stock > 0 OR total_in > 0
-                ORDER BY m.category ASC, m.name ASC";
+        ) temp
+        WHERE current_stock > 0 OR total_in > 0
+        ORDER BY category ASC, name ASC";
         
         return $this->query($sql);
     }

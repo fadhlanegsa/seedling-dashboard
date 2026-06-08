@@ -1,4 +1,4 @@
-﻿<div class="container-fluid">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PENABURAN BENIH</h2>
         <nav aria-label="breadcrumb">
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = '';
             }
 
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 polybagData = data.data;
                 data.data.forEach(pb => {
                     if(polybagIdsSelected.has(pb.id.toString())) return;
@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = '';
             }
 
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 materialData = data.data;
                 data.data.forEach(mat => {
                     if(materialIdsSelected.has(mat.id.toString())) return;

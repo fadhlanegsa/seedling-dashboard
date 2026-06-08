@@ -346,6 +346,9 @@ if ($role === 'admin') {
                             <li><a href="<?= url('seedling-admin/master-data') ?>" class="<?= $this->activeClass('seedling-admin/master-data') ?>">
                                 <i class="fas fa-database"></i> Database
                             </a></li>
+                            <li><a href="<?= url('kamerha/sync-log') ?>" class="<?= $this->activeClass('kamerha/sync-log') ?>">
+                                <i class="fas fa-satellite-dish"></i> Integrasi Kamerha
+                            </a></li>
                             
                             <?php if (in_array($user['role'] ?? '', ['admin', 'operator_persemaian'])): ?>
                                 <li><a href="<?= url('seedling-admin/bahan-baku-form') ?>" class="<?= $this->activeClass('seedling-admin/bahan-baku-form') ?>">

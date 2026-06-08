@@ -313,11 +313,10 @@ class SeedlingWeaning extends Model {
             $params[] = $filters['bpdas_id'];
         }
         
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
-        }
-
-        $sql .= " HAVING remaining_stock > 0 ORDER BY w.weaning_date ASC";
+        $where[] = "(w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) > 0";
+        
+        $sql .= " WHERE " . implode(" AND ", $where);
+        $sql .= " ORDER BY w.weaning_date ASC";
 
         return $this->query($sql, $params);
     }

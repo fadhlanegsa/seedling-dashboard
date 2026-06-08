@@ -1,4 +1,4 @@
-﻿<div class="container-fluid">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0 text-gray-800 font-weight-bold text-uppercase text-primary">PENYAPIHAN BIBIT</h2>
         <nav aria-label="breadcrumb">
@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ts = new Date(result.cachedAt).toLocaleString('id-ID');
                 modalBody.innerHTML = `<tr><td colspan="6"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
             }
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 harvestData = data.data;
                 renderHarvestTable(harvestData);
             } else {
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ts = new Date(result.cachedAt).toLocaleString('id-ID');
                 modalBody.innerHTML = `<tr><td colspan="4"><div class="alert alert-warning py-2 mb-0 small"><i class="fas fa-wifi-slash mr-1"></i> <strong>Data dari cache</strong> — ${ts}</div></td></tr>`;
             }
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 seedData = data.data;
                 renderSeedTable(seedData);
             } else {
@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = '';
             }
 
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 polybagData = data.data;
                 data.data.forEach(pb => {
                     if(polybagIdsSelected.has(pb.id.toString())) return;
@@ -756,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = '';
             }
 
-            if(data && data.success && data.data.length > 0) {
+            if(data && data.success && Array.isArray(data.data) && data.data.length > 0) {
                 materialData = data.data;
                 data.data.forEach(mat => {
                     if(materialIdsSelected.has(mat.id.toString())) return; 

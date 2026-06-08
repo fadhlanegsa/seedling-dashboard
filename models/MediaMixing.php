@@ -256,11 +256,10 @@ class MediaMixing extends Model {
             $params[] = $filters['bpdas_id'];
         }
         
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
-        }
+        $where[] = "(p.total_production - COALESCE(used.total_used, 0)) > 0";
         
-        $sql .= " HAVING remaining_stock > 0 ORDER BY p.production_date DESC";
+        $sql .= " WHERE " . implode(" AND ", $where);
+        $sql .= " ORDER BY p.production_date DESC";
 
         return $this->query($sql, $params);
     }

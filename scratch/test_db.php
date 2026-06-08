@@ -1,32 +1,26 @@
 <?php
-$db = new PDO('mysql:host=localhost;dbname=wast6986_db_bibit', 'root', '');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-$sql = "SELECT 
-            m.id as item_id, 
-            m.name as item_name, 
-            m.unit, 
-            t.seed_source_id, 
-            ss.seed_source_name,
-            SUM(t.quantity) as total_in,
-            (
-                SELECT COALESCE(SUM(seed_quantity), 0) 
-                FROM seed_sowings s 
-                WHERE s.seed_item_id = m.id 
-                AND (s.seed_source_id = t.seed_source_id OR (s.seed_source_id IS NULL AND t.seed_source_id IS NULL))
-            ) as total_out
-        FROM bahan_baku_transactions t
-        JOIN bahan_baku_master m ON t.item_id = m.id
-        LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
-        WHERE m.category = 'BENIH' 
-        GROUP BY m.id, m.name, m.unit, t.seed_source_id, ss.seed_source_name
-        HAVING (total_in - total_out) > 0
-        ORDER BY m.name ASC, ss.seed_source_name ASC";
+require 'config/config.php';
+require 'config/database.php';
 
 try {
-    $stmt = $db->query($sql);
-    $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    print_r($res);
-} catch(Exception $e) {
-    echo "ERROR: " . $e->getMessage() . "\n";
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->prepare("
+        SELECT r.*, 
+               u.full_name as recipient_name, u.nik as recipient_nik,
+               st.name as seedling_name,
+               b.name as bpdas_name,
+               n.name as nursery_name,
+               r.planting_address as address
+        FROM requests r
+        LEFT JOIN users u ON r.user_id = u.id
+        LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
+        LEFT JOIN bpdas b ON r.bpdas_id = b.id
+        LEFT JOIN nurseries n ON r.nursery_id = n.id
+        WHERE r.id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([1]);
+    var_dump($stmt->fetch(PDO::FETCH_ASSOC));
+} catch (Exception $e) {
+    echo "ERROR: " . $e->getMessage();
 }

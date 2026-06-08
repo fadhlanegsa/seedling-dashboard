@@ -139,6 +139,10 @@ class SeedlingAdminController extends Controller {
             $nurseryList = $bahanBakuModel->query($nurserySql, $nurseryParams);
         }
 
+        // Fetch Seedling Types for Export Modal filter dropdown
+        $seedlingTypeModel = $this->model('SeedlingType');
+        $seedlingTypesForExport = $seedlingTypeModel->getAllActive();
+
         $data = [
             'title' => 'Penatausahaan Bibit',
             'recentTransactions' => $recentTransactions,
@@ -153,6 +157,7 @@ class SeedlingAdminController extends Controller {
             'stockBalance' => $stockBalance,
             'bpdasList' => $bpdasList,
             'nurseryList' => $nurseryList,
+            'seedlingTypesForExport' => $seedlingTypesForExport,
             'filters' => $filters,
             'user' => $user
         ];
@@ -704,6 +709,15 @@ class SeedlingAdminController extends Controller {
 
         $stocks = $fillingModel->getAvailableFilledBags(['nursery_id' => $nurseryId]);
 
+        if ($stocks === false) {
+            $this->json([
+                'success' => false,
+                'data' => [],
+                'message' => 'Gagal mengambil data stok polybag.'
+            ], 500);
+            return;
+        }
+
         $this->json([
             'success' => true,
             'data' => $stocks
@@ -719,6 +733,16 @@ class SeedlingAdminController extends Controller {
         $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
 
         $allStocks = $bahanBakuModel->getStockBalance(['nursery_id' => $nurseryId]);
+
+        if ($allStocks === false) {
+            $this->json([
+                'success' => false,
+                'data' => [],
+                'message' => 'Gagal mengambil data stok bahan baku.'
+            ], 500);
+            return;
+        }
+
         $materials = [];
 
         foreach ($allStocks as $stock) {
@@ -743,6 +767,16 @@ class SeedlingAdminController extends Controller {
         $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
 
         $allStocks = $bahanBakuModel->getStockBalance(['nursery_id' => $nurseryId]);
+
+        if ($allStocks === false) {
+            $this->json([
+                'success' => false,
+                'data' => [],
+                'message' => 'Gagal mengambil data stok bahan baku.'
+            ], 500);
+            return;
+        }
+
         $materials = [];
 
         foreach ($allStocks as $stock) {
@@ -912,6 +946,15 @@ class SeedlingAdminController extends Controller {
         $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
 
         $sowings = $sowingModel->getAvailableSowings(['nursery_id' => $nurseryId]);
+
+        if ($sowings === false) {
+            $this->json([
+                'success' => false,
+                'data' => [],
+                'message' => 'Gagal mengambil data taburan.'
+            ], 500);
+            return;
+        }
 
         $this->json([
             'success' => true,

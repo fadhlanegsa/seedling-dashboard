@@ -145,6 +145,17 @@ elseif ($parts[0] === 'operator') {
         $params = array_slice($parts, 2);
     }
 }
+// Handle special routing for kamerha/* (Kamerha PostgREST integration)
+elseif ($parts[0] === 'kamerha') {
+    $controllerName = 'KamerhaController';
+    $subAction = isset($parts[1]) ? $parts[1] : 'syncLog';
+    // Convert kebab-case to camelCase
+    if (strpos($subAction, '-') !== false) {
+        $subAction = lcfirst(str_replace('-', '', ucwords($subAction, '-')));
+    }
+    $action = $subAction;
+    $params = array_slice($parts, 2);
+}
 // Handle special routing for api/*
 elseif ($parts[0] === 'api') {
     $subModule = isset($parts[1]) ? $parts[1] : '';

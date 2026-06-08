@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('<?= url('seedling-admin/get-entres-materials-ajax') ?>')
             .then(res => res.json())
             .then(data => {
-                if(data.success && data.data.length > 0) {
+                if(data.success && Array.isArray(data.data) && data.data.length > 0) {
                     materialData = data.data;
                     renderMaterialTable(materialData);
                 } else {

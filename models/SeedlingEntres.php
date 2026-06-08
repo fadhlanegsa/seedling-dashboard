@@ -294,11 +294,10 @@ class SeedlingEntres extends Model {
             $params[] = $filters['nursery_id'];
         }
         
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
-        }
+        $where[] = "(e.used_quantity - COALESCE(m.mutation_stock, 0)) > 0";
 
-        $sql .= " HAVING remaining_stock > 0 ORDER BY e.entres_date ASC";
+        $sql .= " WHERE " . implode(" AND ", $where);
+        $sql .= " ORDER BY e.entres_date ASC";
 
         return $this->query($sql, $params);
     }

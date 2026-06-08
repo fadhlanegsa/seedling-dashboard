@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('<?= url('public/get-bpdas-by-province') ?>?province_id=' + provinceId)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.data.length > 0) {
+                    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
                         bpdasSelect.innerHTML = '<option value="">-- Pilih BPDAS --</option>';
                         data.data.forEach(bpdas => {
                             bpdasSelect.innerHTML += `<option value="${bpdas.id}">${bpdas.name}</option>`;
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.data.length > 0) {
+                if (data.success && Array.isArray(data.data) && data.data.length > 0) {
                     availableStocks = data.data;
                     addItemBtn.disabled = false;
                     
