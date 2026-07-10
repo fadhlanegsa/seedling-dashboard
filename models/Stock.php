@@ -65,6 +65,24 @@ class Stock extends Model {
     }
     
     /**
+     * Get stock by BPDAS for public view (only Reguler & bibitgratis)
+     * 
+     * @param int $bpdasId
+     * @return array
+     */
+    public function getByBPDASPublic($bpdasId) {
+        $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category,
+                n.name as nursery_name
+                FROM {$this->table} s
+                INNER JOIN seedling_types st ON s.seedling_type_id = st.id
+                LEFT JOIN nurseries n ON s.nursery_id = n.id
+                WHERE s.bpdas_id = ? AND s.program_type IN ('Reguler', 'bibitgratis')
+                ORDER BY st.name ASC";
+        
+        return $this->query($sql, [$bpdasId]);
+    }
+    
+    /**
      * Get stock by BPDAS with pagination
      * 
      * @param int $bpdasId
@@ -129,11 +147,35 @@ class Stock extends Model {
      * @return array|null
      */
     public function findByBPDASAndSeedling($bpdasId, $seedlingTypeId, $programType = 'Reguler') {
-        return $this->findBy([
-            'bpdas_id' => $bpdasId,
-            'seedling_type_id' => $seedlingTypeId,
-            'program_type' => $programType
-        ]);
+        $sql = "SELECT * FROM {$this->table} 
+                WHERE bpdas_id = ? AND seedling_type_id = ? AND program_type = ? 
+                ORDER BY quantity DESC LIMIT 1";
+        return $this->queryOne($sql, [$bpdasId, $seedlingTypeId, $programType]);
+    }
+
+    /**
+     * Get available stock quantity for validation (nursery specific or aggregated BPDAS)
+     * 
+     * @param int $bpdasId
+     * @param int|null $nurseryId
+     * @param int $seedlingTypeId
+     * @param string $programType
+     * @return int
+     */
+    public function getAvailableStock($bpdasId, $nurseryId, $seedlingTypeId, $programType = 'Reguler') {
+        if (!empty($nurseryId)) {
+            $stock = $this->findByNurseryAndSeedling($nurseryId, $seedlingTypeId, $programType);
+            return $stock ? (int)$stock['quantity'] : 0;
+        } else {
+            $sqlJoint = "SELECT SUM(s.quantity) as total_qty 
+                         FROM {$this->table} s
+                         LEFT JOIN nurseries n ON s.nursery_id = n.id
+                         WHERE (s.bpdas_id = ? OR n.bpdas_id = ?) 
+                           AND s.seedling_type_id = ? 
+                           AND s.program_type = ?";
+            $result = $this->queryOne($sqlJoint, [$bpdasId, $bpdasId, $seedlingTypeId, $programType]);
+            return $result ? (int)$result['total_qty'] : 0;
+        }
     }
     
     /**
@@ -235,8 +277,14 @@ class Stock extends Model {
     public function getTotalNationalStock($programType = null) {
         $sql = "SELECT SUM(quantity) as total FROM {$this->table}";
         if ($programType) {
-            $sql .= " WHERE program_type = ?";
-            $result = $this->queryOne($sql, [$programType]);
+            if (is_array($programType)) {
+                $placeholders = implode(',', array_fill(0, count($programType), '?'));
+                $sql .= " WHERE program_type IN ($placeholders)";
+                $result = $this->queryOne($sql, $programType);
+            } else {
+                $sql .= " WHERE program_type = ?";
+                $result = $this->queryOne($sql, [$programType]);
+            }
         } else {
             $result = $this->queryOne($sql);
         }
@@ -600,11 +648,10 @@ class Stock extends Model {
      * @return array|null
      */
     public function findByNurseryAndSeedling($nurseryId, $seedlingTypeId, $programType = 'Reguler') {
-        return $this->findBy([
-            'nursery_id' => $nurseryId,
-            'seedling_type_id' => $seedlingTypeId,
-            'program_type' => $programType
-        ]);
+        $sql = "SELECT * FROM {$this->table} 
+                WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = ? 
+                ORDER BY quantity DESC LIMIT 1";
+        return $this->queryOne($sql, [$nurseryId, $seedlingTypeId, $programType]);
     }
 
     /**

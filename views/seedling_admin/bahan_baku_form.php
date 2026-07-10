@@ -62,7 +62,6 @@
                                 </select>
                             </div>
 
-                            <!-- STANDAR 2: Optimasi Input Angka -->
                             <div class="form-group mb-4 mt-4">
                                 <label class="font-weight-bold text-muted small px-1">JUMLAH ( <span id="unit-label" class="text-primary font-weight-bold">kg</span> ) <span class="text-danger">*</span></label>
                                 <div class="input-group input-group-lg shadow-sm overflow-hidden" style="border-radius: 12px; border: 1px solid #ced4da;">
@@ -160,7 +159,7 @@
 </div>
 
 <!-- ===== RIWAYAT TRANSAKSI BAHAN BAKU ===== -->
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 history-wrapper">
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="card shadow border-0 border-top-primary">
@@ -383,6 +382,13 @@
     /* Margin bawah ekstra untuk scroll */
     .form-wrapper {
         padding-bottom: 180px;
+    }
+
+    /* Area riwayat agar tidak tertutup sticky bar di bawah */
+    .history-wrapper {
+        padding-bottom: 120px;
+        position: relative;
+        z-index: 1;
     }
 </style>
 

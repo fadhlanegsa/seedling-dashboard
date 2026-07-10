@@ -435,6 +435,9 @@
                                                         <span class="font-weight-bold text-primary"><?= number_format($pc['total_polybags'] ?? 0, 0) ?> btg</span>
                                                         <span class="text-muted"><?= number_format($pc['seed_quantity'] ?? 0, 1) ?> <?= $pc['seed_unit'] ?></span>
                                                     </div>
+                                                    <?php if (!empty($pc['program_type']) && $pc['program_type'] !== 'Reguler'): ?>
+                                                    <span class="badge badge-danger x-small mt-1"><?= htmlspecialchars($pc['program_type']) ?></span>
+                                                    <?php endif; ?>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -700,7 +703,12 @@
                                             <?php foreach ($recentTransactions['data'] as $row): ?>
                                                 <tr>
                                                     <td class="p-2"><?= formatDate($row['transaction_date']) ?></td>
-                                                    <td class="p-2 font-weight-bold"><?= $row['item_name'] ?></td>
+                                                    <td class="p-2 font-weight-bold">
+                                                        <?= $row['item_name'] ?>
+                                                        <?php if (!empty($row['program_type']) && $row['program_type'] !== 'Reguler'): ?>
+                                                        <span class="badge badge-danger ml-1 x-small"><?= htmlspecialchars($row['program_type']) ?></span>
+                                                        <?php endif; ?>
+                                                    </td>
                                                     <td class="p-2 text-right font-weight-bold text-primary"><?= number_format($row['quantity'] ?? 0, 2) ?></td>
                                                     <td class="p-2"><?= $row['item_unit'] ?></td>
                                                     <td class="p-2 text-center">
@@ -1033,7 +1041,7 @@ window.printThermalQRDashboard = function() {
                     <img src="${qrImg}" />
                 </div>
                 <div class="info-box">
-                    <div class="title">🌳 BIBIT<br>${name.substring(0, 15)}</div>
+                    <div class="title">🌳 ${name.substring(0, 20)}</div>
                     <div class="detail">
                         Batch:<br>${code}<br>
                         Tgl: ${date}

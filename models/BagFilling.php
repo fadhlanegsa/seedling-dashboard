@@ -294,7 +294,7 @@ class BagFilling extends Model {
         $oldData = $this->queryOne("SELECT * FROM {$this->table} WHERE id = ?", [$id]);
         if (!$oldData) return false;
 
-        $media = $this->query("SELECT * FROM bag_filling_media WHERE filling_id = ?", [$id]);
+        $media = $this->query("SELECT * FROM bag_filling_media WHERE bag_filling_id = ?", [$id]);
 
         $this->beginTransaction();
         try {

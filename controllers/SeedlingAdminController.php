@@ -456,7 +456,9 @@ class SeedlingAdminController extends Controller {
             'bpdas_id'         => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['bpdas_id'],
             'nursery_id'       => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
             'created_by'       => $user['id'],
-            'seed_source_id'   => $this->post('seed_source_id') ?: null
+            'seed_source_id'   => $this->post('seed_source_id') ?: null,
+            'program_type'     => in_array($this->post('program_type'), ['Reguler','RHL','FOLU','bibitgratis'])
+                                   ? $this->post('program_type') : 'Reguler',
         ];
 
         // Basic validation
@@ -627,12 +629,15 @@ class SeedlingAdminController extends Controller {
         $user = currentUser();
         $fillingModel = $this->model('BagFilling');
 
+        // Hotfix: strip titik ribuan (format ID: 24.400) hanya untuk total_production sebelum konversi angka
+        $rawTotalProduction = str_replace('.', '', $this->post('total_production'));
+
         $fillingData = [
             'filling_code'     => $this->post('filling_code'),
             'filling_date'     => $this->post('filling_date'),
             'bag_item_id'      => (int)$this->post('bag_item_id'),
             'bag_quantity'     => (float)$this->post('bag_quantity'),
-            'total_production' => (float)$this->post('total_production'),
+            'total_production' => (int)$rawTotalProduction,
             'mandor'           => sanitize($this->post('mandor')),
             'manager'          => sanitize($this->post('manager')),
             'notes'            => sanitize($this->post('notes')),
@@ -818,7 +823,9 @@ class SeedlingAdminController extends Controller {
             'bpdas_id'         => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['bpdas_id'],
             'nursery_id'       => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
             'created_by'       => $user['id'],
-            'seed_source_id'   => $this->post('seed_source_id') ?: null
+            'seed_source_id'   => $this->post('seed_source_id') ?: null,
+            'program_type'     => in_array($this->post('program_type'), ['Reguler','RHL','FOLU','bibitgratis'])
+                                   ? $this->post('program_type') : 'Reguler',
         ];
 
         // Polybags structure
@@ -895,14 +902,28 @@ class SeedlingAdminController extends Controller {
         $code = strtoupper(sanitize($this->post('code')));
         $name = strtoupper(sanitize($this->post('name')));
 
-        if ($id) {
-            $sql = "UPDATE bahan_baku_categories SET code = ?, name = ? WHERE id = ?";
-            $this->db->prepare($sql)->execute([$code, $name, $id]);
-            $this->setFlash('success', 'Kategori berhasil diperbarui');
-        } else {
-            $sql = "INSERT INTO bahan_baku_categories (code, name) VALUES (?, ?)";
-            $this->db->prepare($sql)->execute([$code, $name]);
-            $this->setFlash('success', 'Kategori baru berhasil ditambahkan');
+        if (empty($code) || empty($name)) {
+            $this->setFlash('error', 'Kode dan Nama Kategori harus diisi');
+            $this->redirect('seedling-admin/manage-categories');
+            return;
+        }
+
+        try {
+            if ($id) {
+                $sql = "UPDATE bahan_baku_categories SET code = ?, name = ? WHERE id = ?";
+                $this->db->prepare($sql)->execute([$code, $name, $id]);
+                $this->setFlash('success', 'Kategori berhasil diperbarui');
+            } else {
+                $sql = "INSERT INTO bahan_baku_categories (code, name) VALUES (?, ?)";
+                $this->db->prepare($sql)->execute([$code, $name]);
+                $this->setFlash('success', 'Kategori baru berhasil ditambahkan');
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000 || (isset($e->errorInfo[1]) && $e->errorInfo[1] == 1062)) {
+                $this->setFlash('error', 'Gagal: Kode Kategori "' . $code . '" sudah digunakan. Silakan gunakan kode lain.');
+            } else {
+                $this->setFlash('error', 'Database Error: ' . $e->getMessage());
+            }
         }
 
         $this->redirect('seedling-admin/manage-categories');
@@ -1046,19 +1067,36 @@ class SeedlingAdminController extends Controller {
     }
 
     /**
-     * AJAX: Get Seeds from Bahan Baku for Direct Seed Weaning (Opsi B)
+     * AJAX: Get Seeds from Bahan Baku for Direct Seed Weaning (Opsi B - Langsung dari Benih only)
      */
     public function getSeedsBahanBakuAJAX() {
         $bahanBakuModel = $this->model('BahanBaku');
         $user = currentUser();
         $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
 
-        // Uses the existing getSeedStockWithSource which filters Category BENIH and > 0
-        $seeds = $bahanBakuModel->getSeedStockWithSource(['nursery_id' => $nurseryId]);
+        // Only BENIH category for direct seed weaning
+        $seeds = $bahanBakuModel->getWeaningSeedsStock(['nursery_id' => $nurseryId]);
 
         $this->json([
             'success' => true,
             'data' => $seeds
+        ]);
+    }
+
+    /**
+     * AJAX: Get Anakan from Bahan Baku for the Dari Anakan (PA) modal fallback
+     * Route: seedling-admin/get-anakan-bb-stock-ajax
+     */
+    public function getAnakanBbStockAjax() {
+        $bahanBakuModel = $this->model('BahanBaku');
+        $user = currentUser();
+        $nurseryId = ($user['role'] === 'operator_persemaian') ? $user['nursery_id'] : null;
+
+        $anakan = $bahanBakuModel->getAnakanBBStock(['nursery_id' => $nurseryId]);
+
+        $this->json([
+            'success' => true,
+            'data' => $anakan
         ]);
     }
 
@@ -1110,7 +1148,11 @@ class SeedlingAdminController extends Controller {
             'notes'              => sanitize($this->post('notes')),
             'bpdas_id'           => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['bpdas_id'],
             'nursery_id'         => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
-            'created_by'         => $user['id']
+            'created_by'         => $user['id'],
+            // program_type will be auto-inherited from harvest→sowing chain in model if not provided
+            // but if operator manually overrides via direct_seed path, we accept it
+            'program_type'       => in_array($this->post('program_type'), ['Reguler','RHL','FOLU','bibitgratis'])
+                                     ? $this->post('program_type') : null,
         ];
 
         // Process Arrays for Polybags and Materials

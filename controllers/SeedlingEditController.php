@@ -72,6 +72,8 @@ class SeedlingEditController extends Controller {
             'foreman'          => sanitize($this->post('foreman')),
             'manager'          => sanitize($this->post('manager')),
             'notes'            => sanitize($this->post('notes')),
+            'program_type'     => in_array($this->post('program_type'), ['Reguler','RHL','FOLU','bibitgratis'])
+                                   ? $this->post('program_type') : ($oldData['program_type'] ?? 'Reguler'),
         ];
 
         // Delta check validation
@@ -258,12 +260,15 @@ class SeedlingEditController extends Controller {
             $this->redirect("seedling-edit/edit-bag-filling/$id");
         }
 
+        // Hotfix: strip titik ribuan (format ID: 24.400) hanya untuk total_production sebelum konversi angka
+        $rawTotalProduction = str_replace('.', '', $this->post('total_production'));
+
         $newData = [
             'filling_code' => $oldData['filling_code'],
             'filling_date' => sanitize($this->post('filling_date')),
             'bag_item_id' => $this->post('bag_item_id'),
             'bag_quantity' => floatval($this->post('bag_quantity')),
-            'total_production' => floatval($this->post('total_production')),
+            'total_production' => (int)$rawTotalProduction,
             'mandor' => sanitize($this->post('mandor')),
             'manager' => sanitize($this->post('manager')),
             'notes' => sanitize($this->post('notes')),
@@ -411,6 +416,8 @@ class SeedlingEditController extends Controller {
             'mandor' => sanitize($this->post('mandor')),
             'manager' => sanitize($this->post('manager')),
             'notes' => sanitize($this->post('notes')),
+            'program_type' => in_array($this->post('program_type'), ['Reguler','RHL','FOLU','bibitgratis'])
+                              ? $this->post('program_type') : ($oldData['program_type'] ?? 'Reguler'),
         ];
 
         // Polybags
@@ -513,12 +520,12 @@ class SeedlingEditController extends Controller {
             // we are extracting more. check sowing remaining
             $sowingModel = $this->model('SeedSowing');
             // Simplified check: rely on model or simple delta
-            $sow = $this->db->prepare("SELECT sown_quantity, 
+            $sow = $this->db->prepare("SELECT seed_quantity, 
                 (SELECT COALESCE(SUM(harvested_quantity),0) FROM seedling_harvests WHERE sowing_id = ?) as used
                 FROM seed_sowings WHERE id = ?");
             $sow->execute([$oldData['sowing_id'], $oldData['sowing_id']]);
             $sInfo = $sow->fetch();
-            $remain = $sInfo['sown_quantity'] - $sInfo['used'];
+            $remain = $sInfo['seed_quantity'] - $sInfo['used'];
             if ($remain + $hDelta < 0) { // $hDelta is negative
                 $this->setFlash('error', 'Gagal: Stok hasil semai tidak cukup!');
                 $this->redirect("seedling-edit/edit-harvesting/$id");

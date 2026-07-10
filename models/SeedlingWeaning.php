@@ -43,23 +43,31 @@ class SeedlingWeaning extends Model {
                 $weaningData['weaning_code'] = $this->generateWeaningCode();
             }
 
-            // Inherit seed_source_id from sowing via harvest if harvest_id exists
+            // Inherit seed_source_id dan program_type from sowing via harvest if harvest_id exists
             if (!empty($weaningData['harvest_id'])) {
                 $sourceQ = $this->queryOne("
-                    SELECT s.seed_source_id 
+                    SELECT s.seed_source_id, 
+                           COALESCE(h.program_type, s.program_type, 'Reguler') as program_type
                     FROM seedling_harvests h 
                     JOIN seed_sowings s ON h.sowing_id = s.id 
                     WHERE h.id = ?", [$weaningData['harvest_id']]
                 );
                 $weaningData['seed_source_id'] = $sourceQ['seed_source_id'] ?? null;
+                // Only set program_type from chain if not explicitly provided
+                if (empty($weaningData['program_type'])) {
+                    $weaningData['program_type'] = $sourceQ['program_type'] ?? 'Reguler';
+                }
             } else {
                 $weaningData['seed_source_id'] = null;
+                if (empty($weaningData['program_type'])) {
+                    $weaningData['program_type'] = 'Reguler';
+                }
             }
 
             // 1. Insert Master Weaning
             $sql = "INSERT INTO {$this->table} 
-                    (weaning_code, weaning_date, harvest_id, result_item_id, weaned_quantity, location, mandor, manager, notes, bpdas_id, nursery_id, created_by, seed_source_id)
-                    VALUES (:weaning_code, :weaning_date, :harvest_id, :result_item_id, :weaned_quantity, :location, :mandor, :manager, :notes, :bpdas_id, :nursery_id, :created_by, :seed_source_id)";
+                    (weaning_code, weaning_date, harvest_id, result_item_id, weaned_quantity, location, mandor, manager, notes, bpdas_id, nursery_id, created_by, seed_source_id, program_type)
+                    VALUES (:weaning_code, :weaning_date, :harvest_id, :result_item_id, :weaned_quantity, :location, :mandor, :manager, :notes, :bpdas_id, :nursery_id, :created_by, :seed_source_id, :program_type)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($weaningData);
@@ -204,6 +212,7 @@ class SeedlingWeaning extends Model {
     public function paginateWeanings($page = 1, $perPage = 10, $filters = []) {
         $offset = ($page - 1) * $perPage;
         $sql = "SELECT w.*, h.harvest_code, st.name as result_name, ss.seed_source_name,
+                COALESCE(w.program_type, 'Reguler') as program_type,
                 (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock,
                 (EXISTS(SELECT 1 FROM seedling_mutations WHERE source_id = w.id AND source_type = 'PE') OR
                  EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = w.harvest_id)) as is_locked
@@ -281,6 +290,7 @@ class SeedlingWeaning extends Model {
         $sql = "SELECT w.id, w.weaning_code, w.weaning_date, w.weaned_quantity as total_initial, 
                 w.location, st.name as seed_name, 'pcs' as seed_unit, ss.seed_source_name,
                 w.bpdas_id, w.nursery_id, w.result_item_id as seedling_type_id, s.seed_source_id, s.sowing_date,
+                COALESCE(w.program_type, 'Reguler') as program_type,
                 (COALESCE(e.entres_stock, 0) + COALESCE(m.mutation_stock, 0)) as used_total,
                 (w.weaned_quantity - COALESCE(e.entres_stock, 0) - COALESCE(m.mutation_stock, 0)) as remaining_stock
                 FROM {$this->table} w

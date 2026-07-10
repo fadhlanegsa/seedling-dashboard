@@ -117,11 +117,14 @@
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center">
                                     <h5 class="m-0 font-weight-bold text-primary mr-3">JUMLAH PRODUKSI</h5>
-                                    <div class="input-group" style="width: 200px;">
-                                        <input type="number" step="0.01" name="total_production" class="form-control form-control-lg border-primary text-center font-weight-bold" placeholder="0.00" required>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text bg-light text-primary font-weight-bold">Bags</span>
+                                    <div class="d-flex flex-column">
+                                        <div class="input-group" style="width: 280px; min-width: 220px;">
+                                            <input type="number" step="1" min="1" name="total_production" class="form-control form-control-lg border-primary font-weight-bold text-center" placeholder="contoh: 24400" style="font-size: 1.15rem; letter-spacing: 1px;" required>
+                                            <div class="input-group-append">
+                                                <span class="input-group-text bg-primary text-white font-weight-bold px-3" style="font-size: 0.95rem; letter-spacing: 1px;">Bags</span>
+                                            </div>
                                         </div>
+                                        <small class="text-muted mt-2" style="font-size: 0.78rem;"><i class="fas fa-info-circle mr-1"></i>Tulis angka bulat tanpa titik/koma (mis: 24400)</small>
                                     </div>
                                 </div>
                             </div>

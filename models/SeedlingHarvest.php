@@ -35,6 +35,13 @@ class SeedlingHarvest extends Model {
         } else {
             $data['harvest_code'] = $this->generateHarvestCode();
         }
+
+        // Auto-propagate program_type from linked sowing
+        if (!empty($data['sowing_id']) && empty($data['program_type'])) {
+            $sowing = $this->queryOne("SELECT program_type FROM seed_sowings WHERE id = ? LIMIT 1", [$data['sowing_id']]);
+            $data['program_type'] = $sowing['program_type'] ?? 'Reguler';
+        }
+
         return $this->create($data);
     }
 
@@ -56,6 +63,7 @@ class SeedlingHarvest extends Model {
         
         $sql = "SELECT h.*, s.sowing_code, h.location,
                 m.name as seed_name, 'pcs' as seed_unit,
+                COALESCE(h.program_type, s.program_type, 'Reguler') as program_type,
                 (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock,
                 (EXISTS(SELECT 1 FROM seedling_weanings WHERE harvest_id = h.id) OR 
                  EXISTS(SELECT 1 FROM seedling_entres WHERE harvest_id = h.id)) as is_locked
@@ -158,6 +166,7 @@ class SeedlingHarvest extends Model {
     public function getAvailableHarvests($filters = []) {
         $sql = "SELECT h.id, h.harvest_code, h.harvest_date, h.harvested_quantity as total_initial,
                 h.location, m.name as seed_name, 'pcs' as seed_unit,
+                COALESCE(h.program_type, s.program_type, 'Reguler') as program_type,
                 COALESCE(w.used_stock, 0) as weaned_stock,
                 COALESCE(e.entres_stock, 0) as used_entres,
                 (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock
@@ -209,6 +218,7 @@ class SeedlingHarvest extends Model {
     public function getHarvestDetails($id) {
         $sql = "SELECT h.id, h.harvest_code, h.harvest_date, h.harvested_quantity,
                 h.location, m.name as seed_name, m.scientific_name as seed_scientific_name, 'pcs' as seed_unit,
+                COALESCE(h.program_type, s.program_type, 'Reguler') as program_type,
                 (h.harvested_quantity - COALESCE(w.used_stock, 0) - COALESCE(e.entres_stock, 0)) as remaining_stock
                 FROM {$this->table} h
                 JOIN seed_sowings s ON h.sowing_id = s.id

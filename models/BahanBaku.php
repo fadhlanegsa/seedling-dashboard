@@ -108,6 +108,7 @@ class BahanBaku extends Model {
     public function getItemsByCategory($category) {
         $sql = "SELECT id, name, scientific_name, unit, code FROM bahan_baku_master 
                 WHERE UPPER(TRIM(category)) = UPPER(TRIM(?)) 
+                AND is_active = 1
                 ORDER BY name ASC";
         return $this->query($sql, [$category]);
     }
@@ -495,21 +496,23 @@ class BahanBaku extends Model {
                     m.unit, 
                     t.seed_source_id, 
                     ss.seed_source_name,
+                    t.program_type,
                     SUM(t.quantity) as total_in,
                     (
                         SELECT COALESCE(SUM(seed_quantity), 0) 
                         FROM seed_sowings s 
                         WHERE s.seed_item_id = m.id 
+                        AND (s.program_type COLLATE utf8mb4_unicode_ci = t.program_type COLLATE utf8mb4_unicode_ci)
                         AND (s.seed_source_id = t.seed_source_id OR (s.seed_source_id IS NULL AND t.seed_source_id IS NULL))
                         $whereOutStr
                     ) as total_out
                 FROM bahan_baku_transactions t
                 JOIN bahan_baku_master m ON t.item_id = m.id
                 LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
-                WHERE UPPER(TRIM(m.category)) = 'BENIH' $whereInStr
-                GROUP BY m.id, m.name, m.unit, t.seed_source_id, ss.seed_source_name
+                WHERE UPPER(TRIM(m.category)) = 'BENIH' AND m.is_active = 1 $whereInStr
+                GROUP BY m.id, m.name, m.unit, t.seed_source_id, ss.seed_source_name, t.program_type
                 HAVING (total_in - total_out) > 0
-                ORDER BY m.name ASC, ss.seed_source_name ASC";
+                ORDER BY m.name ASC, t.program_type ASC, ss.seed_source_name ASC";
         
         $results = $this->query($sql);
         
@@ -518,5 +521,143 @@ class BahanBaku extends Model {
             $r['current_stock'] = $r['total_in'] - $r['total_out'];
         }
         return $results;
+    }
+
+    /**
+     * Get BENIH stock balance for direct seed weaning (Opsi B - Langsung dari Benih)
+     * Only returns BENIH category from bahan_baku, excluding ANAKAN
+     * @param array $filters
+     * @return array
+     */
+    public function getWeaningSeedsStock($filters = []) {
+        $nurseryId = $filters['nursery_id'] ?? null;
+        $bpdasId = $filters['bpdas_id'] ?? null;
+
+        $whereIn = [];
+        $whereOut = [];
+        $whereWeaningOut = [];
+        if ($nurseryId) {
+            $whereIn[] = "t.nursery_id = $nurseryId";
+            $whereOut[] = "s.nursery_id = $nurseryId";
+            $whereWeaningOut[] = "sw.nursery_id = $nurseryId";
+        }
+        if ($bpdasId) {
+            $whereIn[] = "t.bpdas_id = $bpdasId";
+            $whereOut[] = "s.bpdas_id = $bpdasId";
+            $whereWeaningOut[] = "sw.bpdas_id = $bpdasId";
+        }
+
+        $whereInStr = !empty($whereIn) ? " AND " . implode(" AND ", $whereIn) : "";
+        $whereOutStr = !empty($whereOut) ? " AND " . implode(" AND ", $whereOut) : "";
+        $whereWeaningOutStr = !empty($whereWeaningOut) ? " AND " . implode(" AND ", $whereWeaningOut) : "";
+
+        // Only BENIH category (seed direct weaning)
+        $sql = "SELECT 
+                    m.id as item_id, 
+                    m.name as item_name, 
+                    m.category,
+                    m.unit, 
+                    t.seed_source_id, 
+                    ss.seed_source_name,
+                    t.program_type,
+                    SUM(t.quantity) as total_in,
+                    (
+                        SELECT COALESCE(SUM(s.seed_quantity), 0) 
+                        FROM seed_sowings s 
+                        WHERE s.seed_item_id = m.id 
+                        AND (s.program_type COLLATE utf8mb4_unicode_ci = t.program_type COLLATE utf8mb4_unicode_ci)
+                        AND (s.seed_source_id = t.seed_source_id OR (s.seed_source_id IS NULL AND t.seed_source_id IS NULL))
+                        $whereOutStr
+                    ) as total_sowed,
+                    (
+                        SELECT COALESCE(SUM(ws.quantity), 0) 
+                        FROM seedling_weaning_seeds ws
+                        JOIN seedling_weanings sw ON ws.weaning_id = sw.id
+                        WHERE ws.item_id = m.id 
+                        AND (sw.program_type COLLATE utf8mb4_unicode_ci = t.program_type COLLATE utf8mb4_unicode_ci)
+                        AND (sw.seed_source_id = t.seed_source_id OR (sw.seed_source_id IS NULL AND t.seed_source_id IS NULL))
+                        $whereWeaningOutStr
+                    ) as total_weaned_direct
+                FROM bahan_baku_transactions t
+                JOIN bahan_baku_master m ON t.item_id = m.id
+                LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
+                WHERE UPPER(TRIM(m.category)) = 'BENIH' AND m.is_active = 1 $whereInStr
+                GROUP BY m.id, m.name, m.category, m.unit, t.seed_source_id, ss.seed_source_name, t.program_type
+                ORDER BY m.name ASC, t.program_type ASC, ss.seed_source_name ASC";
+        
+        $results = $this->query($sql);
+        
+        $filtered = [];
+        foreach ($results as $r) {
+            $stock = $r['total_in'] - $r['total_sowed'] - $r['total_weaned_direct'];
+            if ($stock > 0) {
+                $r['current_stock'] = $stock;
+                $filtered[] = $r;
+            }
+        }
+        return $filtered;
+    }
+
+    /**
+     * Get ANAKAN stock from Bahan Baku for direct anakan weaning
+     * Returns ANAKAN category from bahan_baku with remaining stock (deducting weaning usage)
+     * @param array $filters
+     * @return array
+     */
+    public function getAnakanBBStock($filters = []) {
+        $nurseryId = $filters['nursery_id'] ?? null;
+        $bpdasId = $filters['bpdas_id'] ?? null;
+
+        $whereIn = [];
+        $whereWeaningOut = [];
+        if ($nurseryId) {
+            $whereIn[] = "t.nursery_id = $nurseryId";
+            $whereWeaningOut[] = "sw.nursery_id = $nurseryId";
+        }
+        if ($bpdasId) {
+            $whereIn[] = "t.bpdas_id = $bpdasId";
+            $whereWeaningOut[] = "sw.bpdas_id = $bpdasId";
+        }
+
+        $whereInStr = !empty($whereIn) ? " AND " . implode(" AND ", $whereIn) : "";
+        $whereWeaningOutStr = !empty($whereWeaningOut) ? " AND " . implode(" AND ", $whereWeaningOut) : "";
+
+        // Only ANAKAN category
+        $sql = "SELECT 
+                    m.id as item_id, 
+                    m.name as item_name, 
+                    m.category,
+                    m.unit, 
+                    t.seed_source_id, 
+                    ss.seed_source_name,
+                    t.program_type,
+                    SUM(t.quantity) as total_in,
+                    (
+                        SELECT COALESCE(SUM(ws.quantity), 0) 
+                        FROM seedling_weaning_seeds ws
+                        JOIN seedling_weanings sw ON ws.weaning_id = sw.id
+                        WHERE ws.item_id = m.id
+                        AND (sw.program_type COLLATE utf8mb4_unicode_ci = t.program_type COLLATE utf8mb4_unicode_ci)
+                        AND (sw.seed_source_id = t.seed_source_id OR (sw.seed_source_id IS NULL AND t.seed_source_id IS NULL))
+                        $whereWeaningOutStr
+                    ) as total_weaned_direct
+                FROM bahan_baku_transactions t
+                JOIN bahan_baku_master m ON t.item_id = m.id
+                LEFT JOIN seed_sources ss ON t.seed_source_id = ss.id
+                WHERE UPPER(TRIM(m.category)) = 'ANAKAN' AND m.is_active = 1 $whereInStr
+                GROUP BY m.id, m.name, m.category, m.unit, t.seed_source_id, ss.seed_source_name, t.program_type
+                ORDER BY m.name ASC";
+
+        $results = $this->query($sql);
+        
+        $filtered = [];
+        foreach ($results as $r) {
+            $stock = $r['total_in'] - $r['total_weaned_direct'];
+            if ($stock > 0) {
+                $r['current_stock'] = $stock;
+                $filtered[] = $r;
+            }
+        }
+        return $filtered;
     }
 }

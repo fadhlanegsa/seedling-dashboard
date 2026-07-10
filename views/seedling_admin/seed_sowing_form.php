@@ -113,8 +113,9 @@
                             <select name="seed_item_id" id="seed_item_id" class="form-control select2" required>
                                 <option value="">-- Pilih Jenis Benih --</option>
                                 <?php foreach ($seeds as $s): ?>
-                                    <option value="<?= $s['item_id'] ?>" data-unit="<?= $s['unit'] ?>" data-stock="<?= $s['current_stock'] ?>" data-source-id="<?= $s['seed_source_id'] ?? '' ?>" data-source-name="<?= htmlspecialchars($s['seed_source_name'] ?? 'Tidak diketahui') ?>">
+                                    <option value="<?= $s['item_id'] ?>" data-unit="<?= $s['unit'] ?>" data-stock="<?= $s['current_stock'] ?>" data-source-id="<?= $s['seed_source_id'] ?? '' ?>" data-source-name="<?= htmlspecialchars($s['seed_source_name'] ?? 'Tidak diketahui') ?>" data-program-type="<?= htmlspecialchars($s['program_type'] ?? 'Reguler') ?>">
                                         <?= htmlspecialchars($s['item_name']) ?> - <?= htmlspecialchars($s['seed_source_name'] ?? 'Tanpa Sumber') ?> (Stok: <?= number_format($s['current_stock'], 2) ?> <?= $s['unit'] ?>)
+                                        [<?= $s['program_type'] ?? 'Reguler' ?>]
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -124,6 +125,23 @@
                         <div class="form-group" id="sumber_benih_display_group" style="display: none;">
                             <label class="small text-muted">Sumber Benih</label>
                             <input type="text" id="sumber_benih_display" class="form-control bg-light font-weight-bold text-success shadow-none" readonly>
+                        </div>
+
+                        <!-- PROGRAM TYPE: Pilihan RHL / Reguler untuk Penaburan -->
+                        <div class="form-group" id="sowing-program-type-group">
+                            <label class="small font-weight-bold text-muted">PROGRAM <span class="text-danger">*</span>
+                                <small class="font-weight-normal text-muted"> &mdash; benih ini untuk program apa?</small>
+                            </label>
+                            <div class="btn-group btn-group-toggle w-100" data-toggle="buttons" id="sowingProgramToggle">
+                                <label class="btn btn-outline-success active" style="border-radius: 8px 0 0 8px;">
+                                    <input type="radio" name="program_type" value="Reguler" checked> 
+                                    <i class="fas fa-leaf mr-1"></i> Reguler
+                                </label>
+                                <label class="btn btn-outline-danger" style="border-radius: 0 8px 8px 0;">
+                                    <input type="radio" name="program_type" value="RHL">
+                                    <i class="fas fa-mountain mr-1"></i> RHL
+                                </label>
+                            </div>
                         </div>
 
                         <div class="row form-group">
@@ -302,6 +320,23 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 document.getElementById('sumber_benih_display_group').style.display = 'block';
                 document.getElementById('sumber_benih_display').value = 'Tanpa Sumber Benih (Legacy)';
+            }
+
+            // Auto-select program_type based on stok benih yang dipilih
+            const programType = option.data('program-type') || 'Reguler';
+            const sowingProgramToggle = document.getElementById('sowingProgramToggle');
+            if (sowingProgramToggle) {
+                const labels = sowingProgramToggle.querySelectorAll('label');
+                const radios = sowingProgramToggle.querySelectorAll('input[type=radio]');
+                radios.forEach((radio, i) => {
+                    if (radio.value === programType) {
+                        radio.checked = true;
+                        labels[i].classList.add('active');
+                    } else {
+                        radio.checked = false;
+                        labels[i].classList.remove('active');
+                    }
+                });
             }
             
             if (parseFloat(seedQtyInput.value) > maxSeedStock) {

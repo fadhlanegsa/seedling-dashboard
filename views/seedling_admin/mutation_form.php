@@ -596,12 +596,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </style>
             </head>
             <body>
-                <div class="title">BIBIT RHL</div>
                 <div class="barcode-container">
                     <img src="${qrImg}" />
                 </div>
                 <div class="detail">${displayCode}</div>
-                <div class="date">Tgl: ${date} | ${name.substring(0, 20)}</div>
+                <div class="date">Tgl: ${date} | ${name.substring(0, 25)}</div>
             </body>
             </html>
         `);
@@ -652,12 +651,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             labelsHtml += `
                 <div class="label-page">
-                     <div class="title">BIBIT RHL</div>
                      <div class="barcode-container">
                          <img src="${qrImgSrc}" />
                      </div>
                      <div class="detail">${updatedBarcode}</div>
-                     <div class="date">Tgl: ${date} | ${name.substring(0, 20)}</div>
+                     <div class="date">Tgl: ${date} | ${name.substring(0, 25)}</div>
                 </div>
             `;
         }

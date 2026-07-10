@@ -85,9 +85,10 @@
                                 <div class="form-group mb-3">
                                     <label class="small font-weight-bold text-info">Total Produksi (Polybag)</label>
                                     <div class="input-group">
-                                        <input type="number" step="1" name="total_production" class="form-control form-control-lg border-info text-center font-weight-bold" style="background:#e8f7ff;" value="<?= $data['total_production'] ?>" required>
+                                        <input type="number" step="1" min="1" name="total_production" class="form-control form-control-lg border-info text-center font-weight-bold" style="background:#e8f7ff;" value="<?= $data['total_production'] ?>" required>
                                         <div class="input-group-append"><span class="input-group-text bg-light">poly</span></div>
                                     </div>
+                                    <small class="text-muted d-block mt-1">Tulis angka bulat tanpa titik/koma (mis: 24400)</small>
                                 </div>
                                 <div class="form-group mb-3">
                                     <label class="small font-weight-bold text-muted">Keterangan</label>
