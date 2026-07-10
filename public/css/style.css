@@ -116,6 +116,7 @@ h6 {
 .bg-success h1, .bg-success h2, .bg-success h3, .bg-success h4, .bg-success h5, .bg-success h6,
 .bg-info h1, .bg-info h2, .bg-info h3, .bg-info h4, .bg-info h5, .bg-info h6,
 .bg-danger h1, .bg-danger h2, .bg-danger h3, .bg-danger h4, .bg-danger h5, .bg-danger h6,
+.text-white h1, .text-white h2, .text-white h3, .text-white h4, .text-white h5, .text-white h6,
 .card-header.text-white h1, .card-header.text-white h2, .card-header.text-white h3, 
 .card-header.text-white h4, .card-header.text-white h5, .card-header.text-white h6 {
     color: var(--white) !important;

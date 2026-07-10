@@ -521,6 +521,15 @@ class AdminController extends Controller {
             'is_active'  => $this->post('is_active', 1)
         ];
 
+        // If role is operator_persemaian, auto-resolve bpdas_id from their nursery
+        if ($data['role'] === 'operator_persemaian' && !empty($data['nursery_id'])) {
+            $nurseryModel = $this->model('Nursery');
+            $nursery = $nurseryModel->find($data['nursery_id']);
+            if ($nursery && !empty($nursery['bpdas_id'])) {
+                $data['bpdas_id'] = $nursery['bpdas_id'];
+            }
+        }
+
         $userModel = $this->model('User');
 
         // Validate

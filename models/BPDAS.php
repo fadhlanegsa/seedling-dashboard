@@ -55,6 +55,63 @@ class BPDAS extends Model {
         
         return $this->query($sql, [$provinceId]);
     }
+
+    /**
+     * Get BPDAS for a province, respecting the delegated_bpdas_id mapping.
+     *
+     * Logic:
+     *  1. Cek apakah provinsi ini punya delegated_bpdas_id (pelimpahan BPDAS).
+     *  2. Jika ya → kembalikan hanya BPDAS yang di-delegate, beserta flag is_delegated=true
+     *     dan nama provinsi asli untuk info ke warga.
+     *  3. Jika tidak → fallback ke getByProvince() normal.
+     *
+     * @param int $provinceId
+     * @return array [
+     *   'bpdas_list'    => array,   // daftar BPDAS
+     *   'is_delegated'  => bool,    // true jika menggunakan delegasi
+     *   'province_name' => string,  // nama provinsi yang dipilih warga
+     * ]
+     */
+    public function getByProvinceWithDelegation(int $provinceId): array {
+        // Ambil data provinsi + potensi delegasi
+        $provinceSql = "SELECT p.id, p.name, p.delegated_bpdas_id
+                        FROM provinces p
+                        WHERE p.id = ? LIMIT 1";
+        $province = $this->queryOne($provinceSql, [$provinceId]);
+
+        if (!$province) {
+            return ['bpdas_list' => [], 'is_delegated' => false, 'province_name' => ''];
+        }
+
+        $provinceName = $province['name'];
+
+        // Kasus 1: Ada delegasi → return BPDAS tujuan
+        if (!empty($province['delegated_bpdas_id'])) {
+            $delegatedId = (int)$province['delegated_bpdas_id'];
+            $sql = "SELECT b.*, p.name as province_name
+                    FROM {$this->table} b
+                    INNER JOIN provinces p ON b.province_id = p.id
+                    WHERE b.id = ? AND b.is_active = 1
+                    LIMIT 1";
+            $delegatedBpdas = $this->queryOne($sql, [$delegatedId]);
+            $bpdasList = $delegatedBpdas ? [$delegatedBpdas] : [];
+            return [
+                'bpdas_list'   => $bpdasList,
+                'is_delegated' => true,
+                'province_name' => $provinceName,
+            ];
+        }
+
+        // Kasus 2: Tidak ada delegasi → lookup normal berdasarkan province_id
+        $bpdasList = $this->getByProvince($provinceId);
+        return [
+            'bpdas_list'   => $bpdasList,
+            'is_delegated' => false,
+            'province_name' => $provinceName,
+        ];
+    }
+
+
     
     /**
      * Search BPDAS
@@ -72,13 +129,13 @@ class BPDAS extends Model {
                 SUM(s.quantity) as total_stock
                 FROM {$this->table} b
                 INNER JOIN provinces p ON b.province_id = p.id
-                LEFT JOIN stock s ON b.id = s.bpdas_id
+                LEFT JOIN stock s ON b.id = s.bpdas_id AND s.program_type IN ('Reguler', 'bibitgratis')
                 WHERE b.is_active = 1";
         
         $countSql = "SELECT COUNT(DISTINCT b.id) as total
                      FROM {$this->table} b
                      INNER JOIN provinces p ON b.province_id = p.id
-                     LEFT JOIN stock s ON b.id = s.bpdas_id
+                     LEFT JOIN stock s ON b.id = s.bpdas_id AND s.program_type IN ('Reguler', 'bibitgratis')
                      WHERE b.is_active = 1";
         
         $params = [];
@@ -156,7 +213,7 @@ class BPDAS extends Model {
                 SUM(s.quantity) as total_stock
                 FROM {$this->table} b
                 INNER JOIN provinces p ON b.province_id = p.id
-                LEFT JOIN stock s ON b.id = s.bpdas_id
+                LEFT JOIN stock s ON b.id = s.bpdas_id AND s.program_type IN ('Reguler', 'bibitgratis')
                 WHERE b.id = ?
                 GROUP BY b.id, p.name
                 LIMIT 1";
@@ -180,7 +237,7 @@ class BPDAS extends Model {
                 (SELECT SUM(COALESCE((SELECT NULLIF(SUM(quantity), 0) FROM request_items ri WHERE ri.request_id = requests.id), quantity, 0)) 
                  FROM requests WHERE status IN ('delivered', 'completed')) as total_distributed
                 FROM {$this->table} b
-                LEFT JOIN stock s ON b.id = s.bpdas_id
+                LEFT JOIN stock s ON b.id = s.bpdas_id AND s.program_type IN ('Reguler', 'bibitgratis')
                 WHERE b.is_active = 1";
         
         return $this->queryOne($sql);

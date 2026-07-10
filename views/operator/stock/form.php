@@ -127,22 +127,31 @@
             <div class="form-group mb-4">
                 <label class="font-weight-bold text-muted small px-1">PROGRAM <span class="text-danger">*</span></label>
                 <div class="row">
-                    <div class="col-6 pr-2">
+                    <div class="col-4 pr-1">
                         <input type="radio" class="btn-check" name="program_type" id="prog_reguler" value="Reguler" autocomplete="off" 
                             <?= (!isset($stock) || (isset($stock['program_type']) && $stock['program_type'] == 'Reguler')) ? 'checked' : '' ?>
                             <?= isset($stock) ? 'disabled' : '' ?> required>
                         <label class="radio-card w-100 p-3 h-100 d-flex flex-column align-items-center justify-content-center <?= isset($stock) ? 'disabled' : '' ?>" for="prog_reguler">
-                            <i class="fas fa-seedling mb-2" style="font-size: 2rem;"></i>
-                            <span class="font-weight-bold">Reguler</span>
+                            <i class="fas fa-seedling mb-2" style="font-size: 1.5rem;"></i>
+                            <span class="font-weight-bold" style="font-size: 0.9rem;">Reguler</span>
                         </label>
                     </div>
-                    <div class="col-6 pl-2">
+                    <div class="col-4 px-1">
+                        <input type="radio" class="btn-check" name="program_type" id="prog_rhl" value="RHL" autocomplete="off"
+                            <?= (isset($stock) && isset($stock['program_type']) && $stock['program_type'] == 'RHL') ? 'checked' : '' ?>
+                            <?= isset($stock) ? 'disabled' : '' ?> required>
+                        <label class="radio-card w-100 p-3 h-100 d-flex flex-column align-items-center justify-content-center <?= isset($stock) ? 'disabled' : '' ?>" for="prog_rhl">
+                            <i class="fas fa-leaf mb-2" style="font-size: 1.5rem;"></i>
+                            <span class="font-weight-bold" style="font-size: 0.9rem;">RHL</span>
+                        </label>
+                    </div>
+                    <div class="col-4 pl-1">
                         <input type="radio" class="btn-check" name="program_type" id="prog_folu" value="FOLU" autocomplete="off"
                             <?= (isset($stock) && isset($stock['program_type']) && $stock['program_type'] == 'FOLU') ? 'checked' : '' ?>
                             <?= isset($stock) ? 'disabled' : '' ?> required>
                         <label class="radio-card w-100 p-3 h-100 d-flex flex-column align-items-center justify-content-center <?= isset($stock) ? 'disabled' : '' ?>" for="prog_folu">
-                            <i class="fas fa-tree mb-2" style="font-size: 2rem;"></i>
-                            <span class="font-weight-bold">FOLU</span>
+                            <i class="fas fa-tree mb-2" style="font-size: 1.5rem;"></i>
+                            <span class="font-weight-bold" style="font-size: 0.9rem;">FOLU</span>
                         </label>
                     </div>
                 </div>

@@ -36,6 +36,12 @@
                         <small class="form-text text-muted">Pilih BPDAS yang akan Anda ajukan permintaan</small>
                     </div>
 
+                    <div class="form-group" id="delegationGroup" style="display: none;">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle"></i> <span id="delegationText"></span>
+                        </div>
+                    </div>
+
                     <div class="form-group" id="nurseryGroup" style="display: none;">
                         <label class="form-label required">Persemaian (Opsional)</label>
                         <select name="nursery_id" id="nursery_id" class="form-control">
@@ -352,13 +358,21 @@ document.addEventListener('DOMContentLoaded', function() {
         bpdasSelect.innerHTML = '<option value="">-- Loading... --</option>';
         bpdasSelect.disabled = true;
         
+        // Hide delegation group by default
+        const delegationGroup = document.getElementById('delegationGroup');
+        const delegationText = document.getElementById('delegationText');
+        if (delegationGroup) {
+            delegationGroup.style.display = 'none';
+            delegationText.textContent = '';
+        }
+        
         // Clear items
         itemsContainer.innerHTML = '';
         addItemBtn.disabled = true;
         availableStocks = [];
         calculateTotal();
         
-    
+        if (provinceId) {
             fetch('<?= url('public/get-bpdas-by-province') ?>?province_id=' + provinceId)
                 .then(response => response.json())
                 .then(data => {
@@ -368,10 +382,30 @@ document.addEventListener('DOMContentLoaded', function() {
                             bpdasSelect.innerHTML += `<option value="${bpdas.id}">${bpdas.name}</option>`;
                         });
                         bpdasSelect.disabled = false;
+                        
+                        // Show delegation info banner if active
+                        if (data.is_delegated && data.delegation_note && delegationGroup) {
+                            delegationText.textContent = data.delegation_note;
+                            delegationGroup.style.display = 'block';
+                            
+                            // Auto select the only BPDAS (Citarum Ciliwung) to make it easier for user
+                            if (data.data.length === 1) {
+                                bpdasSelect.value = data.data[0].id;
+                                // Trigger change event on BPDAS select to load nurseries and stock
+                                bpdasSelect.dispatchEvent(new Event('change'));
+                            }
+                        }
                     } else {
                         bpdasSelect.innerHTML = '<option value="">-- Tidak Ada BPDAS --</option>';
                     }
+                })
+                .catch(error => {
+                    console.error('Error fetching BPDAS:', error);
+                    bpdasSelect.innerHTML = '<option value="">-- Gagal Memuat BPDAS --</option>';
                 });
+        } else {
+            bpdasSelect.innerHTML = '<option value="">-- Pilih Provinsi Terlebih Dahulu --</option>';
+        }
     });
     
     // Load seedlings and nurseries when BPDAS changes

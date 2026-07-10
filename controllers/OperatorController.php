@@ -186,7 +186,8 @@ class OperatorController extends Controller {
         $stockModel = $this->model('Stock');
         $items = $requestModel->getRequestItems($requestId);
         foreach ($items as $item) {
-            $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $item['seedling_type_id']);
+            $programType = $item['program_type'] ?? 'Reguler';
+            $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $item['seedling_type_id'], $programType);
             if ($stock) {
                 $stockModel->update($stock['id'], [
                     'quantity'         => $stock['quantity'] + $item['quantity'],
@@ -591,15 +592,59 @@ public function uploadDeliveryPhoto() {
         // Check stock availability
         $stockModel = $this->model('Stock');
         $isMultiItem = !empty($request['items']);
+        $forcePartial = $this->post('force_partial') ? true : false;
         
         if ($isMultiItem) {
+            // Separate items into available and out-of-stock
+            $availableItems = [];
+            $outOfStockItems = [];
+            
             foreach ($request['items'] as $item) {
                 $programType = $item['program_type'] ?? 'Reguler';
                 $stock = $stockModel->findByNurseryAndSeedling($userData['nursery_id'], $item['seedling_type_id'], $programType);
+                $seedlingName = $item['seedling_name'] ?? ('ID: ' . $item['seedling_type_id']);
+                
                 if (!$stock || $stock['quantity'] < $item['quantity']) {
-                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi untuk salah satu jenis bibit (' . $programType . ')']);
+                    $outOfStockItems[] = [
+                        'seedling_name' => $seedlingName,
+                        'program_type' => $programType,
+                        'requested' => $item['quantity'],
+                        'available' => $stock ? (int)$stock['quantity'] : 0
+                    ];
+                } else {
+                    $availableItems[] = $item;
+                }
+            }
+            
+            // If there are out-of-stock items, handle partial approval flow
+            if (!empty($outOfStockItems)) {
+                // All items out of stock — cannot approve at all
+                if (empty($availableItems)) {
+                    $this->json([
+                        'success' => false,
+                        'message' => 'Semua jenis bibit yang diminta stoknya kosong/tidak mencukupi. Tidak dapat menyetujui permintaan.'
+                    ]);
                     return;
                 }
+                
+                // Some items out of stock and operator has NOT confirmed yet
+                if (!$forcePartial) {
+                    $outOfStockNames = array_map(function($i) {
+                        return $i['seedling_name'] . ' (' . $i['program_type'] . ') — diminta: ' . $i['requested'] . ', tersedia: ' . $i['available'];
+                    }, $outOfStockItems);
+                    
+                    $this->json([
+                        'success' => false,
+                        'partial' => true,
+                        'message' => 'Beberapa jenis bibit stoknya tidak mencukupi.',
+                        'out_of_stock_items' => $outOfStockNames,
+                        'available_count' => count($availableItems),
+                        'total_count' => count($request['items'])
+                    ]);
+                    return;
+                }
+                
+                // force_partial=1: proceed with available items only
             }
         } else {
             $programType = $request['program_type'] ?? 'Reguler';
@@ -614,12 +659,21 @@ public function uploadDeliveryPhoto() {
         $requestModel->beginTransaction();
         
         try {
+            // Build approval notes with partial info if applicable
+            $approvalNotes = $notes;
+            if ($isMultiItem && !empty($outOfStockItems) && $forcePartial) {
+                $skippedNames = array_map(function($i) { return $i['seedling_name']; }, $outOfStockItems);
+                $approvalNotes .= ' [Partial Approval — bibit di-skip karena stok kosong: ' . implode(', ', $skippedNames) . ']';
+            }
+
             // Approve request
-            $requestModel->approve($requestId, $user['id'], $notes);
+            $requestModel->approve($requestId, $user['id'], $approvalNotes);
             
             // Decrease stock
             if ($isMultiItem) {
-                foreach ($request['items'] as $item) {
+                // Use $availableItems (filtered) if partial, otherwise all items
+                $itemsToProcess = (!empty($outOfStockItems) && $forcePartial) ? $availableItems : $request['items'];
+                foreach ($itemsToProcess as $item) {
                     $programType = $item['program_type'] ?? 'Reguler';
                     $stockModel->decreaseStockFromNursery($userData['nursery_id'], $item['seedling_type_id'], $item['quantity'], $programType);
                 }
@@ -629,7 +683,7 @@ public function uploadDeliveryPhoto() {
             }
             
             // Add to history
-            $requestModel->addHistory($requestId, 'approved', $user['id'], $notes . ' (Disetujui oleh Operator Persemaian)');
+            $requestModel->addHistory($requestId, 'approved', $user['id'], $approvalNotes . ' (Disetujui oleh Operator Persemaian)');
             
             // Generate PDF approval letter (wrapped in try-catch)
             try {
@@ -642,7 +696,14 @@ public function uploadDeliveryPhoto() {
             }
             
             $requestModel->commit();
-            $this->json(['success' => true, 'message' => 'Permintaan berhasil disetujui']);
+            
+            // Build success message
+            $successMsg = 'Permintaan berhasil disetujui';
+            if ($isMultiItem && !empty($outOfStockItems) && $forcePartial) {
+                $successMsg .= ' (partial — ' . count($availableItems) . ' dari ' . count($request['items']) . ' jenis bibit diproses)';
+            }
+            
+            $this->json(['success' => true, 'message' => $successMsg]);
         } catch (Exception $e) {
             $requestModel->rollback();
             logError("Approve Request Error (Operator): " . $e->getMessage());
@@ -766,10 +827,16 @@ public function uploadDeliveryPhoto() {
             return;
         }
 
-        // Check if username/email exists for OTHER users
-        $existingUser = $userModel->findByUsernameOrEmail($updateData['username'], $updateData['email']);
-        if ($existingUser && $existingUser['id'] != $id) {
-            $this->setFlash('error', 'Username atau Email sudah digunakan oleh pengguna lain.');
+        // Check if username exists for other users
+        if ($userModel->usernameExists($updateData['username'], $id)) {
+            $this->setFlash('error', 'Username sudah digunakan oleh pengguna lain.');
+            $this->redirect('operator/profile');
+            return;
+        }
+
+        // Check if email exists for other users
+        if ($userModel->emailExists($updateData['email'], $id)) {
+            $this->setFlash('error', 'Email sudah digunakan oleh pengguna lain.');
             $this->redirect('operator/profile');
             return;
         }
@@ -788,9 +855,11 @@ public function uploadDeliveryPhoto() {
         // Update process
         if ($userModel->update($id, $updateData)) {
             // Update session data
-            $_SESSION['user']['username'] = $updateData['username'];
-            $_SESSION['user']['full_name'] = $updateData['full_name'];
-            $_SESSION['user']['email'] = $updateData['email'];
+            $sessionUpdate = $updateData;
+            if (isset($sessionUpdate['password'])) {
+                unset($sessionUpdate['password']);
+            }
+            $_SESSION['user'] = array_merge($_SESSION['user'], $sessionUpdate);
             
             $this->setFlash('success', 'Profil berhasil diperbarui.');
         } else {

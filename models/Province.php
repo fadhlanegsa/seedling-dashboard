@@ -15,7 +15,12 @@ class Province extends Model {
      * @return array
      */
     public function getAllOrdered() {
-        return $this->all([], 'name ASC');
+        // Sertakan delegated_bpdas_id agar frontend/controller bisa tahu mapping
+        $sql = "SELECT p.*, b.name as delegated_bpdas_name
+                FROM {$this->table} p
+                LEFT JOIN bpdas b ON p.delegated_bpdas_id = b.id
+                ORDER BY p.name ASC";
+        return $this->query($sql);
     }
     
     /**
@@ -95,5 +100,22 @@ class Province extends Model {
      */
     public function findByCode($code) {
         return $this->findBy(['code' => $code]);
+    }
+
+    /**
+     * Get the effective BPDAS ID for a province.
+     * Returns delegated_bpdas_id if set, otherwise null
+     * (caller should then use normal BPDAS::getByProvince()).
+     *
+     * @param int $provinceId
+     * @return int|null  delegated BPDAS id, or null if no delegation
+     */
+    public function getEffectiveBPDASId(int $provinceId): ?int {
+        $sql = "SELECT delegated_bpdas_id FROM {$this->table} WHERE id = ? LIMIT 1";
+        $row = $this->queryOne($sql, [$provinceId]);
+        if ($row && !empty($row['delegated_bpdas_id'])) {
+            return (int)$row['delegated_bpdas_id'];
+        }
+        return null;
     }
 }

@@ -44,6 +44,7 @@ $isEdit = isset($stock);
                 <label class="form-label required">Program</label>
                 <select name="program_type" class="form-control" <?= $isEdit ? 'disabled' : '' ?> required>
                     <option value="Reguler" <?= ($isEdit && isset($stock['program_type']) && $stock['program_type'] == 'Reguler') ? 'selected' : '' ?>>Reguler</option>
+                    <option value="RHL" <?= ($isEdit && isset($stock['program_type']) && $stock['program_type'] == 'RHL') ? 'selected' : '' ?>>RHL</option>
                     <option value="FOLU" <?= ($isEdit && isset($stock['program_type']) && $stock['program_type'] == 'FOLU') ? 'selected' : '' ?>>FOLU Net Sink 2030</option>
                 </select>
                 <?php if ($isEdit): ?>

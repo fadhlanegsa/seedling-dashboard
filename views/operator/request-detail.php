@@ -418,34 +418,60 @@ if (document.getElementById('approveForm')) {
         
         const approveBtn = document.getElementById('approveBtn');
         const originalText = approveBtn.innerHTML;
+        const form = this;
         
-        // Disable button and show loading
-        approveBtn.disabled = true;
-        approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-        
-        const formData = new FormData(this);
-        
-        fetch('<?= url('operator/approveRequest') ?>', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
+        // Helper: send approval request
+        function sendApproval(forcePartial) {
+            approveBtn.disabled = true;
+            approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            
+            const formData = new FormData(form);
+            if (forcePartial) {
+                formData.append('force_partial', '1');
+            }
+            
+            fetch('<?= url('operator/approveRequest') ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else if (data.partial) {
+                    // Partial approval confirmation
+                    let msg = 'Beberapa bibit stoknya tidak mencukupi:\n\n';
+                    if (data.out_of_stock_items && data.out_of_stock_items.length) {
+                        data.out_of_stock_items.forEach(function(item, idx) {
+                            msg += (idx + 1) + '. ' + item + '\n';
+                        });
+                    }
+                    msg += '\nLanjut approve ' + data.available_count + ' dari ' + data.total_count + ' jenis bibit yang tersedia saja?';
+                    
+                    if (confirm(msg)) {
+                        // Re-send with force_partial
+                        sendApproval(true);
+                    } else {
+                        approveBtn.disabled = false;
+                        approveBtn.innerHTML = originalText;
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                    approveBtn.disabled = false;
+                    approveBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan: ' + error.message);
                 approveBtn.disabled = false;
                 approveBtn.innerHTML = originalText;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Terjadi kesalahan: ' + error.message);
-            approveBtn.disabled = false;
-            approveBtn.innerHTML = originalText;
-        });
+            });
+        }
+        
+        // Initial send (without force_partial)
+        sendApproval(false);
     });
 }
 

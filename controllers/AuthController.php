@@ -81,18 +81,34 @@ class AuthController extends Controller {
             'remoteip' => $_SERVER['REMOTE_ADDR']
         ];
 
-        $options = [
-            'http' => [
-                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-                'method'  => 'POST',
-                'content' => http_build_query($recaptchaData)
-            ]
-        ];
-        $context  = stream_context_create($options);
-        $verifyResult = file_get_contents($recaptchaVerifyUrl, false, $context);
+        // Gunakan cURL untuk outbound request (file_get_contents diblokir firewall hosting)
+        $ch = curl_init($recaptchaVerifyUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($recaptchaData),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_SSL_VERIFYPEER => false, // Bypass SSL verification jika CA bundle di hosting tidak terkonfigurasi/outdated
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) reCAPTCHA-Verify/1.0',
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
+        ]);
+        $verifyResult = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($verifyResult === false) {
+            error_log('reCAPTCHA cURL error: ' . $curlError);
+            $this->setFlash('error', 'Gagal menghubungi server verifikasi. Silakan coba lagi.');
+            $this->redirect('auth/login');
+            return;
+        }
+
         $captchaSuccess = json_decode($verifyResult);
 
         if (!$captchaSuccess || !$captchaSuccess->success) {
+            $errorDetail = $verifyResult ? trim($verifyResult) : 'Empty response';
+            logError('reCAPTCHA validation failed. Response: ' . $errorDetail);
             $this->setFlash('error', 'Verifikasi reCAPTCHA gagal. Silakan coba lagi.');
             $this->redirect('auth/login');
             return;

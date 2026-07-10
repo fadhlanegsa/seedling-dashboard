@@ -352,21 +352,68 @@ class BPDASController extends Controller {
         // Check stock availability at specific nursery
         $stockModel = $this->model('Stock');
         $isMultiItem = !empty($request['items']);
+        $forcePartial = $this->post('force_partial') ? true : false;
         
         if ($isMultiItem) {
+            // Separate items into available and out-of-stock
+            $availableItems = [];
+            $outOfStockItems = [];
+            
             foreach ($request['items'] as $item) {
-                $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $item['seedling_type_id']);
+                $programType = $item['program_type'] ?? 'Reguler';
+                $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $item['seedling_type_id'], $programType);
+                $seedlingName = $item['seedling_name'] ?? ('ID: ' . $item['seedling_type_id']);
+                
                 if (!$stock || $stock['quantity'] < $item['quantity']) {
-                    $this->json(['success' => false, 'message' => 'Stok tidak mencukupi di persemaian terpilih untuk salah satu jenis bibit']);
-                    return;
+                    $outOfStockItems[] = [
+                        'seedling_name' => $seedlingName,
+                        'program_type' => $programType,
+                        'requested' => $item['quantity'],
+                        'available' => $stock ? (int)$stock['quantity'] : 0
+                    ];
+                } else {
+                    $availableItems[] = $item;
                 }
             }
+            
+            // If there are out-of-stock items, handle partial approval flow
+            if (!empty($outOfStockItems)) {
+                // All items out of stock — cannot approve at all
+                if (empty($availableItems)) {
+                    $this->json([
+                        'success' => false,
+                        'message' => 'Semua jenis bibit yang diminta stoknya kosong/tidak mencukupi di persemaian terpilih. Tidak dapat menyetujui permintaan.'
+                    ]);
+                    return;
+                }
+                
+                // Some items out of stock and admin has NOT confirmed yet
+                if (!$forcePartial) {
+                    $outOfStockNames = array_map(function($i) {
+                        return $i['seedling_name'] . ' (' . $i['program_type'] . ') — diminta: ' . $i['requested'] . ', tersedia: ' . $i['available'];
+                    }, $outOfStockItems);
+                    
+                    $this->json([
+                        'success' => false,
+                        'partial' => true,
+                        'message' => 'Beberapa jenis bibit stoknya tidak mencukupi.',
+                        'out_of_stock_items' => $outOfStockNames,
+                        'available_count' => count($availableItems),
+                        'total_count' => count($request['items'])
+                    ]);
+                    return;
+                }
+                
+                // force_partial=1: proceed with available items only
+                // (flow continues below with $availableItems)
+            }
         } else {
-            // Legacy single item
-            $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $request['seedling_type_id']);
+            // Legacy single item — keep original hard-block behavior
+            $programType = $request['program_type'] ?? 'Reguler';
+            $stock = $stockModel->findByNurseryAndSeedling($nurseryId, $request['seedling_type_id'], $programType);
             
             if (!$stock || $stock['quantity'] < $request['quantity']) {
-                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi di persemaian terpilih']);
+                $this->json(['success' => false, 'message' => 'Stok tidak mencukupi di persemaian terpilih (' . $programType . ')']);
                 return;
             }
         }
@@ -383,20 +430,31 @@ class BPDASController extends Controller {
                 $requestModel->update($requestId, ['nursery_id' => $nurseryId]);
             }
 
+            // Build approval notes with partial info if applicable
+            $approvalNotes = $notes;
+            if ($isMultiItem && !empty($outOfStockItems) && $forcePartial) {
+                $skippedNames = array_map(function($i) { return $i['seedling_name']; }, $outOfStockItems);
+                $approvalNotes .= ' [Partial Approval — bibit di-skip karena stok kosong: ' . implode(', ', $skippedNames) . ']';
+            }
+
             // Approve request
-            $requestModel->approve($requestId, $user['id'], $notes);
+            $requestModel->approve($requestId, $user['id'], $approvalNotes);
             
             // Decrease stock from nursery
             if ($isMultiItem) {
-                foreach ($request['items'] as $item) {
-                    $stockModel->decreaseStockFromNursery($nurseryId, $item['seedling_type_id'], $item['quantity']);
+                // Use $availableItems (filtered) if partial, otherwise all items
+                $itemsToProcess = (!empty($outOfStockItems) && $forcePartial) ? $availableItems : $request['items'];
+                foreach ($itemsToProcess as $item) {
+                    $programType = $item['program_type'] ?? 'Reguler';
+                    $stockModel->decreaseStockFromNursery($nurseryId, $item['seedling_type_id'], $item['quantity'], $programType);
                 }
             } else {
-                $stockModel->decreaseStockFromNursery($nurseryId, $request['seedling_type_id'], $request['quantity']);
+                $programType = $request['program_type'] ?? 'Reguler';
+                $stockModel->decreaseStockFromNursery($nurseryId, $request['seedling_type_id'], $request['quantity'], $programType);
             }
             
             // Add to history
-            $requestModel->addHistory($requestId, 'approved', $user['id'], $notes);
+            $requestModel->addHistory($requestId, 'approved', $user['id'], $approvalNotes);
             
             // Generate PDF approval letter (wrapped in try-catch)
             $pdfPath = null;
@@ -417,7 +475,13 @@ class BPDASController extends Controller {
             
             $requestModel->commit();
             
-            $this->json(['success' => true, 'message' => 'Permintaan berhasil disetujui']);
+            // Build success message
+            $successMsg = 'Permintaan berhasil disetujui';
+            if ($isMultiItem && !empty($outOfStockItems) && $forcePartial) {
+                $successMsg .= ' (partial — ' . count($availableItems) . ' dari ' . count($request['items']) . ' jenis bibit diproses)';
+            }
+            
+            $this->json(['success' => true, 'message' => $successMsg]);
         } catch (Exception $e) {
             // Clean output buffer on error
             ob_end_clean();
@@ -551,7 +615,8 @@ class BPDASController extends Controller {
             
             foreach ($items as $item) {
                 // Find the stock entry for this nursery + seedling
-                $stock = $stockModel->findByNurseryAndSeedling($request['nursery_id'], $item['seedling_type_id']);
+                $programType = $item['program_type'] ?? 'Reguler';
+                $stock = $stockModel->findByNurseryAndSeedling($request['nursery_id'], $item['seedling_type_id'], $programType);
                 if ($stock) {
                     $stockModel->update($stock['id'], [
                         'quantity'         => $stock['quantity'] + $item['quantity'],

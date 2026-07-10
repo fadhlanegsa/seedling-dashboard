@@ -30,6 +30,7 @@
             <select name="program_type" id="program_type" class="form-control" onchange="this.form.submit()">
                 <option value="">Semua Program</option>
                 <option value="Reguler" <?= ($currentProgram === 'Reguler') ? 'selected' : '' ?>>Reguler</option>
+                <option value="RHL" <?= ($currentProgram === 'RHL') ? 'selected' : '' ?>>RHL</option>
                 <option value="FOLU" <?= ($currentProgram === 'FOLU') ? 'selected' : '' ?>>FOLU Net Sink 2030</option>
             </select>
         </form>

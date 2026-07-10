@@ -97,8 +97,8 @@ class HomeController extends Controller {
             return;
         }
         
-        // Get stock for this BPDAS
-        $stock = $stockModel->getByBPDAS($id);
+        // Get stock for this BPDAS (only public programs)
+        $stock = $stockModel->getByBPDASPublic($id);
         
         $data = [
             'title' => $bpdas['name'],
@@ -178,10 +178,22 @@ class HomeController extends Controller {
         }
         
         $bpdasModel = $this->model('BPDAS');
-        $bpdasList = $bpdasModel->getByProvince($provinceId);
-        
-        $this->json(['success' => true, 'data' => $bpdasList]);
+        $result     = $bpdasModel->getByProvinceWithDelegation((int)$provinceId);
+
+        $response = [
+            'success'      => true,
+            'data'         => $result['bpdas_list'],
+            'is_delegated' => $result['is_delegated'],
+        ];
+
+        if ($result['is_delegated'] && !empty($result['bpdas_list'])) {
+            $delegatedName = $result['bpdas_list'][0]['name'] ?? '';
+            $response['delegation_note'] = "Provinsi {$result['province_name']} dilayani oleh {$delegatedName}.";
+        }
+
+        $this->json($response);
     }
+
     
     /**
      * AJAX: Get stock by BPDAS and seedling type
