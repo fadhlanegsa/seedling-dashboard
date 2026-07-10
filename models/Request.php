@@ -215,11 +215,12 @@ class Request extends Model {
      * @return array
      */
     public function getByUser($userId, $status = null) {
-        $sql = "SELECT r.*, 
+        $sql = "SELECT r.*,
                 b.name as bpdas_name,
                 COALESCE(st.name, 'Permintaan Multi-Item') as seedling_name,
                 (SELECT SUM(quantity) FROM request_items ri WHERE ri.request_id = r.id) as item_quantity,
-                p.name as province_name
+                p.name as province_name,
+                (SELECT COUNT(*) FROM satisfaction_surveys s WHERE s.request_id = r.id) as has_survey
                 FROM {$this->table} r
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 INNER JOIN provinces p ON b.province_id = p.id

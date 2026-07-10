@@ -166,123 +166,177 @@
         </div>
     </section>
 
-    <!-- News / Highlight Section -->
-    <section class="news-section">
+    <!-- Testimoni Pilihan Section -->
+    <section class="news-section testimonial-section">
         <div class="container">
             <div class="section-title text-center" style="margin-bottom: 1.5rem;">
-                <h2>Kabar Kehutanan</h2>
-                <p>Informasi dan berita terbaru seputar penghijauan dari Pusat, BPDAS, dan BPTH</p>
+                <h2>Testimoni Pilihan</h2>
+                <p>Apa kata masyarakat yang telah menerima bibit gratis dari kami</p>
             </div>
 
-            <!-- Tab Filter -->
-            <div class="nl-tabs" id="nlTabs">
-                <button class="nl-tab active" data-filter="all">
-                    <i class="fas fa-list"></i> Semua
-                    <span class="nl-tab-count" id="cnt-all"><?= count($latestNews ?? []) ?></span>
-                </button>
-                <button class="nl-tab" data-filter="pusat">
-                    <i class="fas fa-landmark"></i> Pusat
-                    <span class="nl-tab-count" id="cnt-pusat">0</span>
-                </button>
-                <button class="nl-tab" data-filter="bpdas">
-                    <i class="fas fa-water"></i> BPDAS
-                    <span class="nl-tab-count" id="cnt-bpdas">0</span>
-                </button>
-                <button class="nl-tab" data-filter="bpth">
-                    <i class="fas fa-tree"></i> BPTH
-                    <span class="nl-tab-count" id="cnt-bpth">0</span>
-                </button>
+            <?php
+                $avgRating = $surveyStats['average'] ?? 0;
+                $totalSurveys = $surveyStats['total'] ?? 0;
+                $fullStars = (int)floor($avgRating);
+            ?>
+            <div class="testimonial-score text-center">
+                <div class="testimonial-score-value"><?= number_format($avgRating, 1) ?></div>
+                <div class="testimonial-score-stars">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="fa<?= $i <= $fullStars ? 's' : 'r' ?> fa-star"></i>
+                    <?php endfor; ?>
+                </div>
+                <p class="testimonial-score-desc">Rata-rata penilaian dari <?= formatNumber($totalSurveys) ?> ulasan pengguna layanan</p>
             </div>
 
-            <?php if (!empty($latestNews)): ?>
-                <div class="nl-grid" id="nlGrid">
-                    <?php foreach ($latestNews as $news): ?>
-                        <?php
-                            $src = htmlspecialchars($news['source_type']);
-                            $bpdasName = htmlspecialchars($news['bpdas_name'] ?? '');
-                        ?>
-                        <div class="news-card" data-source="<?= $src ?>">
-                            <?php if (!empty($news['image_filename'])): ?>
-                                <img src="<?= asset('uploads/news/' . htmlspecialchars($news['image_filename'])) ?>"
-                                     alt="<?= htmlspecialchars($news['title']) ?>"
-                                     class="news-image"
-                                     onerror="this.outerHTML='<div class=\'news-image-placeholder\'><i class=\'fas fa-leaf\'></i></div>'">
-                            <?php else: ?>
-                                <div class="news-image-placeholder"><i class="fas fa-leaf"></i></div>
-                            <?php endif; ?>
-                            <div class="news-content">
-                                <div class="news-meta-row">
-                                    <?php if ($news['source_type'] === 'pusat'): ?>
-                                        <span class="news-source-pill news-source-pusat"><i class="fas fa-landmark"></i> Pusat</span>
-                                    <?php elseif ($news['source_type'] === 'bpth'): ?>
-                                        <span class="news-source-pill news-source-bpth"><i class="fas fa-tree"></i> <?= $bpdasName ?: 'BPTH' ?></span>
-                                    <?php else: ?>
-                                        <span class="news-source-pill news-source-bpdas"><i class="fas fa-water"></i> <?= $bpdasName ?: 'BPDAS' ?></span>
-                                    <?php endif; ?>
-                                    <div class="news-date"><?= formatDate($news['published_at'], 'j M Y') ?></div>
+            <?php if (!empty($testimonials)): ?>
+                <div class="testimonial-carousel-wrapper">
+                    <button type="button" class="testimonial-nav testimonial-nav-prev" id="testiPrev" aria-label="Sebelumnya">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="testimonial-track" id="testiTrack">
+                        <?php foreach ($testimonials as $t): ?>
+                            <div class="testimonial-card">
+                                <div class="testimonial-stars">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <i class="fa<?= $i <= (int)$t['rating'] ? 's' : 'r' ?> fa-star"></i>
+                                    <?php endfor; ?>
                                 </div>
-                                <h3 class="news-title"><?= htmlspecialchars($news['title']) ?></h3>
-                                <p class="news-excerpt"><?= htmlspecialchars(mb_strimwidth(strip_tags($news['content']), 0, 110, '...')) ?></p>
-                                <a href="<?= url('public/kabar-kehutanan') ?>" class="news-link">
-                                    Baca Selengkapnya <i class="fas fa-arrow-right"></i>
-                                </a>
+                                <p class="testimonial-comment">"<?= htmlspecialchars($t['comment']) ?>"</p>
+
+                                <table class="testimonial-detail-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-hashtag"></i> No. Permintaan</td>
+                                            <td><?= htmlspecialchars($t['request_number'] ?? '-') ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-water"></i> BPDAS</td>
+                                            <td><?= htmlspecialchars($t['bpdas_name'] ?? '-') ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-seedling"></i> Jenis Bibit</td>
+                                            <td><?= htmlspecialchars($t['seedling_name'] ?? '-') ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-truck"></i> Serah Terima</td>
+                                            <td><?= !empty($t['delivery_date']) ? formatDate($t['delivery_date'], 'j M Y') : '-' ?></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div class="testimonial-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <div>
+                                        <strong><?= htmlspecialchars($t['full_name'] ?? 'Warga') ?></strong>
+                                        <div class="testimonial-date">Ulasan diberikan <?= formatDate($t['created_at'], 'j M Y') ?></div>
+                                    </div>
+                                    <span class="testimonial-verified-badge" title="Permintaan terverifikasi di sistem">
+                                        <i class="fas fa-check-circle"></i> Terverifikasi
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="nl-empty" id="nlEmpty" style="display:none">
-                    <i class="fas fa-newspaper"></i>
-                    <p>Belum ada berita dari kategori ini.</p>
-                </div>
-                <div class="text-center" style="margin-top: 2.5rem;">
-                    <a href="<?= url('public/kabar-kehutanan') ?>" class="btn btn-outline btn-lg">
-                        <i class="fas fa-newspaper"></i> Lihat Semua Berita
-                    </a>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="testimonial-nav testimonial-nav-next" id="testiNext" aria-label="Berikutnya">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             <?php else: ?>
                 <div class="news-empty-landing">
-                    <i class="fas fa-newspaper"></i>
-                    <p>Belum ada berita yang dipublikasikan.</p>
-                    <a href="<?= url('public/kabar-kehutanan') ?>" class="btn btn-outline">
-                        <i class="fas fa-newspaper"></i> Buka Kabar Kehutanan
-                    </a>
+                    <i class="fas fa-comment-dots"></i>
+                    <p>Belum ada ulasan yang dipublikasikan.</p>
                 </div>
             <?php endif; ?>
         </div>
     </section>
+    <style>
+        .testimonial-score { margin-bottom: 2rem; }
+        .testimonial-score-value { font-size: 2.5rem; font-weight: 700; color: var(--primary-dark, #1b5e20); line-height: 1; }
+        .testimonial-score-stars { color: #ffc107; font-size: 1.25rem; margin: 0.5rem 0; }
+        .testimonial-score-desc { color: var(--text-light, #666); }
+        .testimonial-carousel-wrapper { display: flex; align-items: center; gap: 0.75rem; }
+        .testimonial-track { display: flex; gap: 1.25rem; overflow-x: auto; scroll-behavior: smooth; flex: 1; padding: 0.5rem 0.25rem 1rem; scrollbar-width: thin; }
+        .testimonial-card {
+            flex: 0 0 340px;
+            background: var(--white, #fff);
+            border-radius: 12px;
+            box-shadow: var(--shadow, 0 2px 10px rgba(0,0,0,0.08));
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .testimonial-stars { color: #ffc107; margin-bottom: 0.75rem; }
+        .testimonial-comment { font-style: italic; color: #333; margin-bottom: 1rem; min-height: 4.5em; }
+        .testimonial-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            background: var(--light-bg, #f7f9f7);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .testimonial-detail-table td {
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            vertical-align: top;
+        }
+        .testimonial-detail-table tr:last-child td { border-bottom: none; }
+        .testimonial-detail-table td:first-child {
+            color: var(--text-light, #777);
+            white-space: nowrap;
+            width: 40%;
+        }
+        .testimonial-detail-table td:first-child i {
+            width: 14px;
+            color: var(--primary-color, #2e7d32);
+            margin-right: 4px;
+        }
+        .testimonial-detail-table td:last-child { font-weight: 600; color: #222; text-align: right; }
+        .testimonial-author { display: flex; align-items: center; gap: 0.6rem; margin-top: auto; flex-wrap: wrap; }
+        .testimonial-author i { font-size: 1.8rem; color: var(--primary-color, #2e7d32); }
+        .testimonial-date { font-size: 0.75rem; color: var(--text-light, #888); }
+        .testimonial-verified-badge {
+            margin-left: auto;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1b5e20;
+            background: #e6f4ea;
+            padding: 3px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .testimonial-nav {
+            flex-shrink: 0;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary-color, #2e7d32);
+            color: #fff;
+            cursor: pointer;
+        }
+        .testimonial-nav:hover { opacity: 0.9; }
+        @media (max-width: 576px) {
+            .testimonial-card { flex-basis: 280px; }
+            .testimonial-detail-table { font-size: 0.75rem; }
+        }
+    </style>
     <script nonce="<?= cspNonce() ?>">
     (function() {
-        var tabs   = document.querySelectorAll('#nlTabs .nl-tab');
-        var cards  = document.querySelectorAll('#nlGrid .news-card');
-        var empty  = document.getElementById('nlEmpty');
+        var track = document.getElementById('testiTrack');
+        var prev  = document.getElementById('testiPrev');
+        var next  = document.getElementById('testiNext');
+        if (!track) return;
 
-        // Count per tab
-        var counts = {pusat: 0, bpdas: 0, bpth: 0};
-        cards.forEach(function(c) {
-            var s = c.dataset.source;
-            if (counts[s] !== undefined) counts[s]++;
-        });
-        document.getElementById('cnt-pusat').textContent = counts.pusat;
-        document.getElementById('cnt-bpdas').textContent = counts.bpdas;
-        document.getElementById('cnt-bpth').textContent  = counts.bpth;
-
-        function filterCards(filter) {
-            var visible = 0;
-            cards.forEach(function(c) {
-                var show = filter === 'all' || c.dataset.source === filter;
-                c.style.display = show ? '' : 'none';
-                if (show) visible++;
-            });
-            if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+        function scrollByCard(direction) {
+            var card = track.querySelector('.testimonial-card');
+            var amount = card ? (card.offsetWidth + 20) * direction : 300 * direction;
+            track.scrollBy({ left: amount, behavior: 'smooth' });
         }
 
-        tabs.forEach(function(tab) {
-            tab.addEventListener('click', function() {
-                tabs.forEach(function(t) { t.classList.remove('active'); });
-                tab.classList.add('active');
-                filterCards(tab.dataset.filter);
-            });
-        });
+        if (prev) prev.addEventListener('click', function() { scrollByCard(-1); });
+        if (next) next.addEventListener('click', function() { scrollByCard(1); });
     })();
     </script>
 

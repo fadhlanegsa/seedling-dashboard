@@ -437,6 +437,37 @@ class AdminController extends Controller {
     }
 
     /**
+     * Survey Kepuasan Pelanggan - recap page (for Pusdatin reporting)
+     */
+    public function surveySummary() {
+        $page = $this->get('page', 1);
+        $filters = [
+            'rating'   => $this->get('rating') ? (int)$this->get('rating') : null,
+            'bpdas_id' => $this->get('bpdas_id') ? (int)$this->get('bpdas_id') : null
+        ];
+
+        $surveyModel = $this->model('SatisfactionSurvey');
+        $bpdasModel  = $this->model('BPDAS');
+
+        $result       = $surveyModel->paginate($page, ITEMS_PER_PAGE, $filters);
+        $overallStats = $surveyModel->getOverallStats();
+        $distribution = $surveyModel->getRatingDistribution();
+        $bpdasList    = $bpdasModel->getAllWithProvince();
+
+        $data = [
+            'title'        => 'Rekap Survei Kepuasan Pelanggan',
+            'surveys'      => $result['data'],
+            'pagination'   => $result,
+            'filters'      => $filters,
+            'overallStats' => $overallStats,
+            'distribution' => $distribution,
+            'bpdasList'    => $bpdasList
+        ];
+
+        $this->render('admin/survey-summary', $data, 'dashboard');
+    }
+
+    /**
      * Manage users page
      */
     public function users() {

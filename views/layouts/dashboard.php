@@ -286,6 +286,9 @@ if ($role === 'admin') {
                         <li><a href="<?= url('admin/kabar-kehutanan') ?>" class="<?= $this->activeClass('admin/kabar-kehutanan') ?>">
                             <i class="fas fa-newspaper"></i> Kabar Kehutanan
                         </a></li>
+                        <li><a href="<?= url('admin/survey-summary') ?>" class="<?= $this->activeClass('admin/survey-summary') ?>">
+                            <i class="fas fa-poll"></i> Survei Kepuasan
+                        </a></li>
                     <?php elseif (($user['role'] ?? '') === 'bpdas'): ?>
                         <li><a href="<?= url('bpdas/dashboard') ?>" class="<?= $this->activeClass('bpdas/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
@@ -304,6 +307,9 @@ if ($role === 'admin') {
                         </a></li>
                         <li><a href="<?= url('bpdas/kabar-kehutanan') ?>" class="<?= $this->activeClass('bpdas/kabar-kehutanan') ?>">
                             <i class="fas fa-newspaper"></i> Kabar Kehutanan
+                        </a></li>
+                        <li><a href="<?= url('bpdas/survey-summary') ?>" class="<?= $this->activeClass('bpdas/survey-summary') ?>">
+                            <i class="fas fa-poll"></i> Survei Kepuasan
                         </a></li>
                     <?php elseif (($user['role'] ?? '') === 'operator_persemaian'): ?>
                         <li><a href="<?= url('operator/dashboard') ?>" class="<?= $this->activeClass('operator/dashboard') ?>">

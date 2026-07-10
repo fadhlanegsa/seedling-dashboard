@@ -162,17 +162,25 @@
                                     <?php endif; ?>
                                 </td>
                                 <td><?= formatNumber($request['quantity'] ?? 0) ?> bibit</td>
+                                <td>
                                     <?php $status = $request['status'] ?? 'pending'; ?>
                                     <span class="badge badge-<?= status_badge_class($status) ?>">
                                         <?= status_text($status) ?>
                                     </span>
                                 </td>
                                 <td><?= isset($request['created_at']) ? formatDate($request['created_at']) : 'N/A' ?></td>
-                                <td>
-                                    <a href="<?= url('public/requestDetail/' . ($request['id'] ?? '')) ?>" 
+                                <td class="action-cell">
+                                    <a href="<?= url('public/requestDetail/' . ($request['id'] ?? '')) ?>"
                                        class="btn btn-sm btn-info" title="Lihat Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    <?php if (in_array($status, ['pending', 'approved', 'delivered']) && empty($request['has_survey'])): ?>
+                                        <button type="button" class="btn btn-sm btn-warning btn-rate-request"
+                                                data-request-id="<?= (int)($request['id'] ?? 0) ?>"
+                                                data-request-number="<?= htmlspecialchars($request['request_number'] ?? '') ?>">
+                                            ⭐ Beri Penilaian
+                                        </button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -182,6 +190,24 @@
         <?php endif; ?>
     </div>
 </div>
+
+<style>
+.action-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+@media (max-width: 576px) {
+    .action-cell {
+        white-space: normal;
+    }
+}
+</style>
+
+<?php if (!empty($recentRequests)): ?>
+    <?php require_once VIEWS_PATH . 'partials/survey-modal.php'; ?>
+<?php endif; ?>
 
 <!-- Information Box -->
 <div class="card mt-4">

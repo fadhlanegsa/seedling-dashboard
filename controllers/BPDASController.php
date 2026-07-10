@@ -7,11 +7,47 @@
 require_once CORE_PATH . 'Controller.php';
 
 class BPDASController extends Controller {
-    
+
     public function __construct() {
         parent::__construct();
         // Require BPDAS authentication for all methods
         $this->requireAuth('bpdas');
+    }
+
+    /**
+     * Survey Kepuasan Pelanggan - recap page scoped to this BPDAS
+     */
+    public function surveySummary() {
+        $user = currentUser();
+        $bpdasId = $user['bpdas_id'];
+
+        $page = $this->get('page', 1);
+        $filters = [
+            'rating'   => $this->get('rating') ? (int)$this->get('rating') : null,
+            'bpdas_id' => $bpdasId
+        ];
+
+        $surveyModel = $this->model('SatisfactionSurvey');
+        $bpdasModel  = $this->model('BPDAS');
+
+        $result       = $surveyModel->paginate($page, ITEMS_PER_PAGE, $filters);
+        $overallStats = $surveyModel->getOverallStats($bpdasId);
+        $distribution = $surveyModel->getRatingDistribution($bpdasId);
+        $bpdasList    = array_filter($bpdasModel->getAllWithProvince(), function ($b) use ($bpdasId) {
+            return (int)$b['id'] === (int)$bpdasId;
+        });
+
+        $data = [
+            'title'        => 'Rekap Survei Kepuasan Pelanggan',
+            'surveys'      => $result['data'],
+            'pagination'   => $result,
+            'filters'      => $filters,
+            'overallStats' => $overallStats,
+            'distribution' => $distribution,
+            'bpdasList'    => $bpdasList
+        ];
+
+        $this->render('admin/survey-summary', $data, 'dashboard');
     }
     
     /**

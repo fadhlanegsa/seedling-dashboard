@@ -177,8 +177,18 @@ class PublicController extends Controller {
         // Get latest news (up to 9) for Pusat/BPDAS/BPTH tab filter on landing
         $newsModel = $this->model('News');
         $latestNews = $newsModel->getAll(null, 9);
-        
-        $this->render('public/landing', ['stats' => $stats, 'latestNews' => $latestNews], 'public');
+
+        // Get satisfaction survey testimonials for the "Testimoni Pilihan" section
+        $surveyModel = $this->model('SatisfactionSurvey');
+        $surveyStats = $surveyModel->getOverallStats();
+        $testimonials = $surveyModel->getTopTestimonials(10);
+
+        $this->render('public/landing', [
+            'stats' => $stats,
+            'latestNews' => $latestNews,
+            'surveyStats' => $surveyStats,
+            'testimonials' => $testimonials
+        ], 'public');
     }
     
     /**
@@ -243,17 +253,21 @@ class PublicController extends Controller {
         
         // Get recent requests
         $recentRequests = array_slice($requests, 0, 5);
-        
+
         // Calculate quota
         $approvedQuantity = $requestModel->getUserApprovedQuantity($user['id']);
         $maxQuota = isset($user['user_type']) && $user['user_type'] === 'kelompok' ? 10000 : 2000;
         $remainingQuota = $maxQuota - $approvedQuantity;
         if ($remainingQuota < 0) $remainingQuota = 0;
-        
+
+        $surveyModel = $this->model('SatisfactionSurvey');
+        $pendingSurveyRequest = $surveyModel->getPendingSurveyRequestForUser($user['id']);
+
         $data = [
             'title' => 'Dashboard Saya',
             'stats' => $stats,
             'recentRequests' => $recentRequests,
+            'pendingSurveyRequest' => $pendingSurveyRequest,
             'quota' => [
                 'max' => $maxQuota,
                 'used' => $approvedQuantity,
@@ -261,7 +275,7 @@ class PublicController extends Controller {
                 'percentage' => min(100, round(($approvedQuantity / $maxQuota) * 100))
             ]
         ];
-        
+
         $this->render('public/dashboard', $data, 'dashboard');
     }
     
@@ -564,19 +578,83 @@ class PublicController extends Controller {
      * My requests page
      */
     public function myRequests() {
+        if (!$this->requireAuth()) {
+            return;
+        }
+
         $user = currentUser();
         $status = $this->get('status');
-        
+
         $requestModel = $this->model('Request');
         $requests = $requestModel->getByUser($user['id'], $status);
-        
+
+        $surveyModel = $this->model('SatisfactionSurvey');
+        $pendingSurveyRequest = $surveyModel->getPendingSurveyRequestForUser($user['id']);
+
         $data = [
             'title' => 'Permintaan Saya',
             'requests' => $requests,
-            'currentStatus' => $status
+            'currentStatus' => $status,
+            'pendingSurveyRequest' => $pendingSurveyRequest
         ];
-        
+
         $this->render('public/my-requests', $data, 'dashboard');
+    }
+
+    /**
+     * Submit satisfaction survey (rating & review)
+     * Only allowed for a request that has actually been submitted (exists in `requests`)
+     * and belongs to the logged-in user, and has not been surveyed yet.
+     */
+    public function submitSurvey() {
+        if (!isLoggedIn()) {
+            $this->redirect('auth/login');
+            return;
+        }
+
+        if (!$this->validateCSRF()) {
+            return;
+        }
+
+        $user = currentUser();
+        $requestId = (int)$this->post('request_id');
+        $rating = (int)$this->post('rating');
+        $comment = trim((string)$this->post('comment', ''));
+
+        $requestModel = $this->model('Request');
+        $request = $requestModel->find($requestId);
+
+        // Survey can only be filled if the request was actually submitted by this user
+        if (!$request || (int)$request['user_id'] !== (int)$user['id']) {
+            $this->setFlash('error', 'Permintaan tidak ditemukan.');
+            $this->redirect('public/my-requests');
+            return;
+        }
+
+        if ($rating < 1 || $rating > 5) {
+            $this->setFlash('error', 'Rating harus antara 1-5.');
+            $this->redirect('public/my-requests');
+            return;
+        }
+
+        $surveyModel = $this->model('SatisfactionSurvey');
+
+        // Prevent duplicate survey for the same request
+        if ($surveyModel->getByRequestId($requestId)) {
+            $this->setFlash('error', 'Anda sudah memberikan ulasan untuk permintaan ini.');
+            $this->redirect('public/my-requests');
+            return;
+        }
+
+        $surveyModel->createSurvey([
+            'request_id' => $requestId,
+            'user_id'    => $user['id'],
+            'rating'     => $rating,
+            'comment'    => $comment !== '' ? $comment : null
+        ]);
+
+        $this->setFlash('success', 'Terima kasih atas penilaian dan ulasan Anda!');
+        $this->redirect('public/my-requests');
     }
     
     /**
