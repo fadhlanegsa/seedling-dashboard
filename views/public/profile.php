@@ -97,7 +97,7 @@
                     <div class="form-group">
                         <label class="form-label">Tanggal Registrasi</label>
                         <input type="text" class="form-control" 
-                               value="<?= formatDate($user['created_at'], DATETIME_FORMAT) ?>" disabled>
+                               value="<?= !empty($user['created_at']) ? formatDate($user['created_at'], DATETIME_FORMAT) : '-' ?>" disabled>
                     </div>
                     
                     <hr>

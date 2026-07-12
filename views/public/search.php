@@ -126,7 +126,7 @@
                                 </div>
                             </div>
                             <div class="card-footer">
-                                <a href="<?= url('home/detail/' . $bpdas['id']) ?>" class="btn btn-primary" style="width:100%;">
+                                <a href="<?= url('home/detail/' . $bpdas['id']) . (!empty($filters['nursery_id']) ? '?nursery_id=' . (int)$filters['nursery_id'] : '') ?>" class="btn btn-primary" style="width:100%;">
                                     <i class="fas fa-eye"></i> Lihat Detail
                                 </a>
                             </div>

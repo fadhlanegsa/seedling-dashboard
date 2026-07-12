@@ -179,7 +179,7 @@
                         </div>
 
                         <hr>
-                        <h6 class="font-weight-bold text-primary text-uppercase mb-3">ANAKAN YANG DIHASILKAN</h6>
+                        <h6 class="font-weight-bold text-primary text-uppercase mb-3">JUMLAH SEMAI YANG DIHASILKAN</h6>
 
                         <div class="form-group row align-items-center mb-3">
                             <div class="col-10">

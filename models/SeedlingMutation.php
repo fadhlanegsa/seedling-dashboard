@@ -152,20 +152,20 @@ class SeedlingMutation extends Model {
     private function rollbackReadyStock($data) {
         $seedlingTypeId = null;
         if ($data['source_type'] === 'PE') {
-            $sql = "SELECT result_item_id, COALESCE(program_type, 'Reguler') as program_type FROM seedling_weanings WHERE id = ?";
+            $sql = "SELECT result_item_id FROM seedling_weanings WHERE id = ?";
         } else {
-            $sql = "SELECT result_item_id, 'Reguler' as program_type FROM seedling_entres WHERE id = ?";
+            $sql = "SELECT result_item_id FROM seedling_entres WHERE id = ?";
         }
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$data['source_id']]);
         $row = $stmt->fetch();
         if (!$row) return;
-        
+
         $seedlingTypeId = $row['result_item_id'];
 
-        // Prioritize program_type from weaning record, fallback to mutation_type mapping
-        $programType = !empty($row['program_type']) ? $row['program_type'] 
-                       : self::getProgramTypeFromMutation($data['mutation_type'] ?? 'NAIK KELAS');
+        // program_type is authoritatively determined by the mutation_type dropdown
+        // (NAIK KELAS REGULER/FOLU/RHL), overriding whatever the source record carries
+        $programType = self::getProgramTypeFromMutation($data['mutation_type'] ?? 'NAIK KELAS');
 
         $sqlCheck = "SELECT id, quantity FROM stock WHERE nursery_id = ? AND seedling_type_id = ? AND program_type = ? AND source_type = 'PUB' LIMIT 1";
         $stmt = $this->db->prepare($sqlCheck);
@@ -279,21 +279,10 @@ class SeedlingMutation extends Model {
             $bpdasId = $bpdasRow['id'] ?? null;
         }
 
-        // Determine the program_type — prioritize from weaning/entres record, fallback to mutation_type mapping
-        $programType = 'Reguler';
-        if ($data['source_type'] === 'PE') {
-            $ptQ = $this->db->prepare("SELECT COALESCE(program_type, 'Reguler') as program_type FROM seedling_weanings WHERE id = ? LIMIT 1");
-        } else {
-            $ptQ = $this->db->prepare("SELECT 'Reguler' as program_type FROM seedling_entres WHERE id = ? LIMIT 1");
-        }
-        $ptQ->execute([$data['source_id']]);
-        $ptRow = $ptQ->fetch();
-        if ($ptRow && !empty($ptRow['program_type'])) {
-            $programType = $ptRow['program_type'];
-        } else {
-            // Fallback: derive from mutation_type string for backward compat
-            $programType = self::getProgramTypeFromMutation($data['mutation_type']);
-        }
+        // program_type is authoritatively determined by the mutation_type dropdown
+        // (NAIK KELAS REGULER/FOLU/RHL), overriding the 'Reguler' default carried over
+        // from the sowing/harvest/weaning chain
+        $programType = self::getProgramTypeFromMutation($data['mutation_type']);
 
         $newNotes = "Asal PUB [" . $batchInfo . "]. " . date('d/m/Y');
 

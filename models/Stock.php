@@ -70,16 +70,24 @@ class Stock extends Model {
      * @param int $bpdasId
      * @return array
      */
-    public function getByBPDASPublic($bpdasId) {
+    public function getByBPDASPublic($bpdasId, $nurseryId = null) {
+        $params = [$bpdasId];
+
         $sql = "SELECT s.*, st.name as seedling_name, st.scientific_name, st.category,
                 n.name as nursery_name
                 FROM {$this->table} s
                 INNER JOIN seedling_types st ON s.seedling_type_id = st.id
                 LEFT JOIN nurseries n ON s.nursery_id = n.id
-                WHERE s.bpdas_id = ? AND s.program_type IN ('Reguler', 'bibitgratis')
-                ORDER BY st.name ASC";
-        
-        return $this->query($sql, [$bpdasId]);
+                WHERE s.bpdas_id = ? AND s.program_type IN ('Reguler', 'bibitgratis')";
+
+        if (!empty($nurseryId)) {
+            $sql .= " AND s.nursery_id = ?";
+            $params[] = $nurseryId;
+        }
+
+        $sql .= " ORDER BY st.name ASC";
+
+        return $this->query($sql, $params);
     }
     
     /**

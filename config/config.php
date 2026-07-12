@@ -87,8 +87,8 @@ define('JS_PATH', BASE_PATH . '/js/');
 define('IMG_PATH', BASE_PATH . '/images/');
 
 // Error Reporting (Set to 0 in production)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
+ini_set('display_errors', 0);
 
 // Logging
 define('LOG_PATH', APP_PATH . '/logs/');

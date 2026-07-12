@@ -88,22 +88,27 @@ class HomeController extends Controller {
     public function detail($id) {
         $bpdasModel = $this->model('BPDAS');
         $stockModel = $this->model('Stock');
-        
+
+        // Optional nursery filter carried over from the search results page,
+        // so the detail page reflects the same scope the user filtered by.
+        $nurseryId = $this->get('nursery_id') ? (int)$this->get('nursery_id') : null;
+
         // Get BPDAS details
-        $bpdas = $bpdasModel->getWithStockDetails($id);
-        
+        $bpdas = $bpdasModel->getWithStockDetails($id, $nurseryId);
+
         if (!$bpdas) {
             $this->redirect('home');
             return;
         }
-        
+
         // Get stock for this BPDAS (only public programs)
-        $stock = $stockModel->getByBPDASPublic($id);
-        
+        $stock = $stockModel->getByBPDASPublic($id, $nurseryId);
+
         $data = [
             'title' => $bpdas['name'],
             'bpdas' => $bpdas,
-            'stock' => $stock
+            'stock' => $stock,
+            'nurseryId' => $nurseryId
         ];
         
         $this->render('public/bpdas-detail', $data, 'public');

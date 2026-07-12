@@ -824,8 +824,7 @@ class SeedlingAdminController extends Controller {
             'nursery_id'       => $this->resolveLocationIds($this->post('bpdas_id'), $this->post('nursery_id'))['nursery_id'],
             'created_by'       => $user['id'],
             'seed_source_id'   => $this->post('seed_source_id') ?: null,
-            'program_type'     => in_array($this->post('program_type'), ['Reguler','RHL','FOLU','bibitgratis'])
-                                   ? $this->post('program_type') : 'Reguler',
+            'program_type'     => 'Reguler',
         ];
 
         // Polybags structure

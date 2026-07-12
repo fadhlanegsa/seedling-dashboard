@@ -207,18 +207,27 @@ class BPDAS extends Model {
      * @param int $id BPDAS ID
      * @return array|null
      */
-    public function getWithStockDetails($id) {
+    public function getWithStockDetails($id, $nurseryId = null) {
+        $params = [];
+
         $sql = "SELECT b.*, p.name as province_name,
                 COUNT(DISTINCT s.seedling_type_id) as seedling_types_count,
                 SUM(s.quantity) as total_stock
                 FROM {$this->table} b
                 INNER JOIN provinces p ON b.province_id = p.id
-                LEFT JOIN stock s ON b.id = s.bpdas_id AND s.program_type IN ('Reguler', 'bibitgratis')
-                WHERE b.id = ?
+                LEFT JOIN stock s ON b.id = s.bpdas_id AND s.program_type IN ('Reguler', 'bibitgratis')";
+
+        if (!empty($nurseryId)) {
+            $sql .= " AND s.nursery_id = ?";
+            $params[] = $nurseryId;
+        }
+
+        $sql .= " WHERE b.id = ?
                 GROUP BY b.id, p.name
                 LIMIT 1";
-        
-        return $this->queryOne($sql, [$id]);
+        $params[] = $id;
+
+        return $this->queryOne($sql, $params);
     }
     
     /**

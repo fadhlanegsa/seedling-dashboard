@@ -318,12 +318,16 @@ class PublicController extends Controller {
             return;
         }
         
+        if (!$this->requireAuth('public')) {
+            return;
+        }
+
         if (!$this->validateCSRF()) {
             return;
         }
-        
+
         $user = currentUser();
-        
+
         //  Parse items from POST
         $items = $_POST['items'] ?? [];
         
@@ -578,7 +582,7 @@ class PublicController extends Controller {
      * My requests page
      */
     public function myRequests() {
-        if (!$this->requireAuth()) {
+        if (!$this->requireAuth('public')) {
             return;
         }
 
@@ -661,8 +665,12 @@ class PublicController extends Controller {
      * Request detail page
      */
     public function requestDetail($id) {
+        if (!$this->requireAuth('public')) {
+            return;
+        }
+
         $user = currentUser();
-        
+
         $requestModel = $this->model('Request');
         $request = $requestModel->getWithDetails($id);
         
@@ -689,8 +697,12 @@ class PublicController extends Controller {
      * Download approval letter
      */
     public function downloadApprovalLetter($id) {
+        if (!$this->requireAuth('public')) {
+            return;
+        }
+
         $user = currentUser();
-        
+
         $requestModel = $this->model('Request');
         $request = $requestModel->getWithDetails($id);
         
@@ -746,8 +758,12 @@ class PublicController extends Controller {
      * Profile page
      */
     public function profile() {
+        if (!$this->requireAuth('public')) {
+            return;
+        }
+
         $user = currentUser();
-        
+
         // If operator, get nursery info
         if ($user['role'] === 'operator_persemaian') {
             $userModel = $this->model('User');
@@ -774,10 +790,14 @@ class PublicController extends Controller {
             return;
         }
         
+        if (!$this->requireAuth('public')) {
+            return;
+        }
+
         if (!$this->validateCSRF()) {
             return;
         }
-        
+
         $user = currentUser();
         $userId = $user['id'];
         
