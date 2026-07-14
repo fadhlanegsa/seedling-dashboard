@@ -62,30 +62,33 @@ class BahanBaku extends Model {
     }
 
     /**
-     * Check if master item already exists by name or seedling_type_id
+     * Check if master item already exists for this unit, either by name or by seedling_type_id.
+     * Same name/jenis-bibit is allowed to repeat as long as the unit (satuan standar) differs.
      * @param string $name
+     * @param string $unit
      * @param int|null $seedlingTypeId
      * @param int|null $excludeId
      * @return bool
      */
-    public function checkDuplicateMaster($name, $seedlingTypeId = null, $excludeId = null) {
+    public function checkDuplicateMaster($name, $unit, $seedlingTypeId = null, $excludeId = null) {
+        $conditions = ["name = ?"];
         $params = [$name];
-        $sql = "SELECT id FROM bahan_baku_master WHERE (name = ?";
-        
+
         if ($seedlingTypeId) {
-            $sql .= " OR seedling_type_id = ?";
+            $conditions[] = "seedling_type_id = ?";
             $params[] = $seedlingTypeId;
         }
-        
-        $sql .= ")";
-        
+
+        $sql = "SELECT id FROM bahan_baku_master WHERE unit = ? AND (" . implode(" OR ", $conditions) . ")";
+        array_unshift($params, $unit);
+
         if ($excludeId) {
             $sql .= " AND id != ?";
             $params[] = $excludeId;
         }
-        
+
         $sql .= " LIMIT 1";
-        
+
         $result = $this->queryOne($sql, $params);
         return $result ? true : false;
     }

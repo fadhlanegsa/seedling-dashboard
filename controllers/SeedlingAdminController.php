@@ -359,9 +359,9 @@ class SeedlingAdminController extends Controller {
             return;
         }
 
-        // Check for duplicates
-        if ($bahanBakuModel->checkDuplicateMaster($data['name'], $data['seedling_type_id'], $id)) {
-            $this->setFlash('error', 'Gagal: Item dengan nama atau jenis bibit tersebut sudah ada.');
+        // Check for duplicates: same name+unit combo, or seedling_type_id already mapped
+        if ($bahanBakuModel->checkDuplicateMaster($data['name'], $data['unit'], $data['seedling_type_id'], $id)) {
+            $this->setFlash('error', 'Gagal: Item dengan nama dan satuan yang sama, atau jenis bibit tersebut, sudah ada.');
             $this->redirect('seedling-admin/master-data-form' . ($id ? '/' . $id : ''));
             return;
         }
