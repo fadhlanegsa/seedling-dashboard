@@ -109,12 +109,13 @@ class SatisfactionSurvey extends Model {
     }
 
     /**
-     * Best testimonials (5-star, with a non-empty comment) for the public landing page
+     * Best testimonials (rating >= 3, comment optional) for the public landing page
      *
      * @param int $limit
+     * @param int $minRating
      * @return array
      */
-    public function getTopTestimonials($limit = 10) {
+    public function getTopTestimonials($limit = 10, $minRating = 3) {
         $sql = "SELECT s.rating, s.comment, s.created_at, u.full_name,
                 r.id as request_id, r.request_number, r.updated_at as delivery_date,
                 b.name as bpdas_name,
@@ -128,12 +129,13 @@ class SatisfactionSurvey extends Model {
                 INNER JOIN requests r ON s.request_id = r.id
                 INNER JOIN bpdas b ON r.bpdas_id = b.id
                 LEFT JOIN seedling_types st ON r.seedling_type_id = st.id
-                WHERE s.rating = 5 AND s.comment IS NOT NULL AND TRIM(s.comment) != ''
-                ORDER BY s.created_at DESC
+                WHERE s.rating >= ?
+                ORDER BY s.rating DESC, s.created_at DESC
                 LIMIT ?";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(1, (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(1, (int)$minRating, PDO::PARAM_INT);
+        $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
         $stmt->execute();
         $testimonials = $stmt->fetchAll();
 

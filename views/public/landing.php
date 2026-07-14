@@ -202,7 +202,11 @@
                                         <i class="fa<?= $i <= (int)$t['rating'] ? 's' : 'r' ?> fa-star"></i>
                                     <?php endfor; ?>
                                 </div>
-                                <p class="testimonial-comment">"<?= htmlspecialchars($t['comment']) ?>"</p>
+                                <?php if (!empty(trim((string)($t['comment'] ?? '')))): ?>
+                                    <p class="testimonial-comment">"<?= htmlspecialchars($t['comment']) ?>"</p>
+                                <?php else: ?>
+                                    <p class="testimonial-comment testimonial-comment-empty">Memberikan penilaian tanpa ulasan tertulis.</p>
+                                <?php endif; ?>
 
                                 <table class="testimonial-detail-table">
                                     <tbody>
@@ -268,6 +272,7 @@
         }
         .testimonial-stars { color: #ffc107; margin-bottom: 0.75rem; }
         .testimonial-comment { font-style: italic; color: #333; margin-bottom: 1rem; min-height: 4.5em; }
+        .testimonial-comment-empty { color: var(--text-light, #999); font-style: normal; }
         .testimonial-detail-table {
             width: 100%;
             border-collapse: collapse;
