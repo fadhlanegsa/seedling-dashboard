@@ -447,7 +447,7 @@ class SeedlingAdminController extends Controller {
             'transaction_id'   => $this->post('transaction_id'),
             'transaction_date' => $this->post('transaction_date'),
             'item_id'          => (int)$this->post('item_id'),
-            'quantity'         => (float)str_replace(',', '.', str_replace('.', '', $this->post('quantity'))),
+            'quantity'         => parseDecimal($this->post('quantity')),
             'notes'            => sanitize($this->post('notes')),
             'sender'           => sanitize($this->post('sender')),
             'receiver'         => sanitize($this->post('receiver')),

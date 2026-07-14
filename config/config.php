@@ -204,6 +204,37 @@ function sanitize($data) {
     return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
 }
 
+// Helper function to safely parse a decimal number input where either
+// ',' or '.' may be used as the decimal separator (e.g. "0.4" or "0,4").
+// When both appear, the rightmost one is treated as the decimal separator
+// and the other as a thousands separator (e.g. "1.234,56" or "1,234.56").
+function parseDecimal($value) {
+    $value = trim((string)$value);
+    if ($value === '') {
+        return 0.0;
+    }
+
+    $lastComma = strrpos($value, ',');
+    $lastDot   = strrpos($value, '.');
+
+    if ($lastComma !== false && $lastDot !== false) {
+        if ($lastComma > $lastDot) {
+            // Comma is the decimal separator, dot(s) are thousands separators
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        } else {
+            // Dot is the decimal separator, comma(s) are thousands separators
+            $value = str_replace(',', '', $value);
+        }
+    } elseif ($lastComma !== false) {
+        // Only comma present -> it's the decimal separator
+        $value = str_replace(',', '.', $value);
+    }
+    // Only a dot present (or no separator at all): already valid float format
+
+    return (float)$value;
+}
+
 // Helper function to generate CSRF token
 function generateCSRFToken() {
     if (!isset($_SESSION[CSRF_TOKEN_NAME])) {
