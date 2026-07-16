@@ -128,6 +128,7 @@ define('USER_ROLES', [
     'admin' => 'Administrator',
     'bpdas' => 'BPDAS',
     'operator_persemaian' => 'Operator Persemaian',
+    'pelaku_usaha' => 'Pelaku Usaha',
     'public' => 'Masyarakat'
 ]);
 

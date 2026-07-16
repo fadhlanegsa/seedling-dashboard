@@ -234,9 +234,10 @@ class AdminController extends Controller {
     public function seedlingTypes() {
         $page     = $this->get('page', 1);
         $category = $this->get('category');
+        $search   = $this->get('search');
 
         $seedlingTypeModel = $this->model('SeedlingType');
-        $result     = $seedlingTypeModel->paginate($page, ITEMS_PER_PAGE, $category);
+        $result     = $seedlingTypeModel->paginate($page, ITEMS_PER_PAGE, $category, $search);
         $categories = $seedlingTypeModel->getCategoriesWithCounts();
 
         $data = [
@@ -244,7 +245,8 @@ class AdminController extends Controller {
             'seedlingTypes'   => $result['data'],
             'pagination'      => $result,
             'categories'      => $categories,
-            'currentCategory' => $category
+            'currentCategory' => $category,
+            'search'          => $search
         ];
 
         $this->render('admin/seedling-types', $data, 'dashboard');
@@ -339,6 +341,103 @@ class AdminController extends Controller {
         } else {
             $this->json(['success' => false, 'message' => 'Gagal menghapus jenis bibit']);
         }
+    }
+
+    /**
+     * Rekap PDB (Biaya Produksi Bibit) — rekapitulasi seluruh pelaku usaha.
+     * Filter opsional: per pelaku usaha (user_id) & per tahun (year).
+     */
+    public function pdbRecap() {
+        $userId = $this->get('user_id') ? (int) $this->get('user_id') : null;
+        $year   = $this->get('year') ? (int) $this->get('year') : null;
+
+        $userModel   = $this->model('User');
+        $masterModel = $this->model('PdbMaster');
+        $detailModel = $this->model('PdbDetail');
+
+        $data = [
+            'title'           => 'Rekap PDB',
+            'pelakuUsahaList' => $userModel->getByRole('pelaku_usaha'),
+            'years'           => $masterModel->getDistinctYears(),
+            'recap'           => $masterModel->getRecap($userId, $year),
+            'details'         => $detailModel->getRecapDetails($userId, $year),
+            'filterUserId'    => $userId,
+            'filterYear'      => $year,
+        ];
+
+        $this->render('admin/pdb-recap', $data, 'dashboard');
+    }
+
+    /**
+     * Export rekap PDB (detail flat) ke Excel (.xlsx) menggunakan PhpSpreadsheet.
+     * Mengikuti filter yang sama dengan pdbRecap().
+     */
+    public function pdbExport() {
+        $userId = $this->get('user_id') ? (int) $this->get('user_id') : null;
+        $year   = $this->get('year') ? (int) $this->get('year') : null;
+
+        $rows = $this->model('PdbDetail')->getRecapDetails($userId, $year);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Rekap PDB');
+
+        $headers = [
+            'No', 'Pelaku Usaha', 'Tahun', 'Jenis Bibit',
+            'Harga Benih (Rp)', 'Berat 1000 Butir (gr)', 'Daya Kecambah (%)', 'Bibit Jadi (%)',
+            'Jml Benih/Kg', 'Jml Berkecambah', 'Jml Bibit Jadi',
+            'Harga Benih/Butir (Rp)', 'C12 Biaya Prod/Batang (Rp)', 'Harga Final/Batang (Rp)',
+        ];
+
+        // Header row
+        $col = 1;
+        foreach ($headers as $h) {
+            $sheet->setCellValueByColumnAndRow($col++, 1, $h);
+        }
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$lastCol}1")->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('C6EFCE');
+
+        // Data rows
+        $r = 2; $no = 1;
+        foreach ($rows as $row) {
+            $c = 1;
+            $sheet->setCellValueByColumnAndRow($c++, $r, $no++);
+            $sheet->setCellValueByColumnAndRow($c++, $r, $row['full_name']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, $row['periode_tahun']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, $row['seedling_name']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (float) $row['harga_benih']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (float) $row['berat_1000_butir']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (float) $row['daya_kecambah'] * 100);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (float) $row['bibit_jadi'] * 100);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (int) $row['jml_benih_per_kg']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (int) $row['jml_benih_berkecambah']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (int) $row['jml_bibit_jadi']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (float) $row['harga_benih_per_butir']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (float) $row['biaya_produksi_per_batang_c12']);
+            $sheet->setCellValueByColumnAndRow($c++, $r, (int) $row['harga_bibit_per_batang_final']);
+            $r++;
+        }
+
+        // Auto-size kolom
+        for ($i = 1; $i <= count($headers); $i++) {
+            $letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $sheet->getColumnDimension($letter)->setAutoSize(true);
+        }
+
+        $filename = 'Rekap_PDB_' . ($year ?: 'semua-tahun') . '_' . date('Ymd_His') . '.xlsx';
+
+        // Bersihkan buffer agar file tidak korup
+        if (ob_get_length()) { ob_end_clean(); }
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 
     /**

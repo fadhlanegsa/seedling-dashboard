@@ -528,6 +528,9 @@ class AuthController extends Controller {
             case 'operator_persemaian':
                 $this->redirect('operator/dashboard');
                 break;
+            case 'pelaku_usaha':
+                $this->redirect('pdb/langkah1');
+                break;
             case 'public':
                 $this->redirect('public/dashboard');
                 break;

@@ -24,6 +24,10 @@ if ($role === 'admin') {
     $bnHome = url('operator/dashboard');
     $bnStok = url('operator/stock');
     $bnProfile = url('operator/profile');
+} elseif ($role === 'pelaku_usaha') {
+    $bnHome = url('pdb/langkah1');
+    $bnStok = url('pdb/langkah2');
+    $bnProfile = url('pdb/langkah1');
 }
 ?>
 <!DOCTYPE html>
@@ -289,6 +293,9 @@ if ($role === 'admin') {
                         <li><a href="<?= url('admin/survey-summary') ?>" class="<?= $this->activeClass('admin/survey-summary') ?>">
                             <i class="fas fa-poll"></i> Survei Kepuasan
                         </a></li>
+                        <li><a href="<?= url('admin/pdb-recap') ?>" class="<?= $this->activeClass('admin/pdb-recap') ?>">
+                            <i class="fas fa-file-invoice-dollar"></i> Rekap PDB
+                        </a></li>
                     <?php elseif (($user['role'] ?? '') === 'bpdas'): ?>
                         <li><a href="<?= url('bpdas/dashboard') ?>" class="<?= $this->activeClass('bpdas/dashboard') ?>">
                             <i class="fas fa-home"></i> Dashboard
@@ -326,6 +333,14 @@ if ($role === 'admin') {
                         </a></li>
                         <li><a href="<?= url('operator/profile') ?>" class="<?= $this->activeClass('operator/profile') ?>">
                             <i class="fas fa-user"></i> Profil
+                        </a></li>
+                    <?php elseif (($user['role'] ?? '') === 'pelaku_usaha'): ?>
+                        <li class="nav-section-header mt-2 px-3 small text-muted font-weight-bold">INPUT PDB (BIAYA PRODUKSI BIBIT)</li>
+                        <li><a href="<?= url('pdb/langkah1') ?>" class="<?= $this->activeClass('pdb/langkah1') ?>">
+                            <i class="fas fa-coins"></i> Langkah 1: Biaya Operasional
+                        </a></li>
+                        <li><a href="<?= url('pdb/langkah2') ?>" class="<?= $this->activeClass('pdb/langkah2') ?>">
+                            <i class="fas fa-seedling"></i> Langkah 2: Detail Bibit
                         </a></li>
                     <?php else: ?>
                         <li><a href="<?= url('public/dashboard') ?>" class="<?= $this->activeClass('public/dashboard') ?>">
