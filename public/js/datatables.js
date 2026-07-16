@@ -64,10 +64,13 @@ $(document).ready(function() {
         }));
     }
 
-    // Seedling types table
+    // Seedling types table (search/pagination handled server-side, see admin/seedling-types.php)
     if ($('#seedlingTypesTable').length) {
         $('#seedlingTypesTable').DataTable($.extend({}, defaultConfig, {
             order: [[1, 'asc']],
+            paging: false,
+            searching: false,
+            info: false,
             columnDefs: [
                 { orderable: false, targets: -1 }
             ]

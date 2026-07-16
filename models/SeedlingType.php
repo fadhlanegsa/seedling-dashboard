@@ -84,53 +84,77 @@ class SeedlingType extends Model {
     
     /**
      * Get seedling types with pagination
-     * 
+     *
      * @param int $page
      * @param int $perPage
      * @param string $category Filter by category (optional)
+     * @param string $search Search by name/scientific name (optional). When set, all
+     *                       matching rows are returned at once instead of being split
+     *                       across pages.
      * @return array
      */
-    public function paginate($page = 1, $perPage = ITEMS_PER_PAGE, $category = null) {
+    public function paginate($page = 1, $perPage = ITEMS_PER_PAGE, $category = null, $search = null) {
         $offset = ($page - 1) * $perPage;
-        
-        $sql = "SELECT st.*, 
+
+        $sql = "SELECT st.*,
                 COUNT(DISTINCT s.bpdas_id) as bpdas_count,
                 SUM(s.quantity) as total_stock
                 FROM {$this->table} st
                 LEFT JOIN stock s ON st.id = s.seedling_type_id";
-        
+
         $countSql = "SELECT COUNT(*) as total FROM {$this->table}";
+        $where = [];
+        $whereCount = [];
         $params = [];
-        
+
         if ($category) {
-            $sql .= " WHERE st.category = ?";
-            $countSql .= " WHERE category = ?";
+            $where[] = "st.category = ?";
+            $whereCount[] = "category = ?";
             $params[] = $category;
         }
-        
-        $sql .= " GROUP BY st.id
-                  ORDER BY st.name ASC
-                  LIMIT ? OFFSET ?";
-        
-        $stmt = $this->db->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key + 1, $value);
+
+        if ($search) {
+            $where[] = "(st.name LIKE ? OR st.scientific_name LIKE ?)";
+            $whereCount[] = "(name LIKE ? OR scientific_name LIKE ?)";
+            $searchTerm = "%$search%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
         }
-        $stmt->bindValue(count($params) + 1, (int)$perPage, PDO::PARAM_INT);
-        $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+
+        if ($where) {
+            $sql .= " WHERE " . implode(' AND ', $where);
+            $countSql .= " WHERE " . implode(' AND ', $whereCount);
+        }
+
+        $sql .= " GROUP BY st.id ORDER BY st.name ASC";
+
+        $showAll = !empty($search);
+        if (!$showAll) {
+            $sql .= " LIMIT ? OFFSET ?";
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $bindIndex = 1;
+        foreach ($params as $value) {
+            $stmt->bindValue($bindIndex++, $value);
+        }
+        if (!$showAll) {
+            $stmt->bindValue($bindIndex++, (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue($bindIndex++, (int)$offset, PDO::PARAM_INT);
+        }
         $stmt->execute();
         $data = $stmt->fetchAll();
-        
+
         $countStmt = $this->db->prepare($countSql);
         $countStmt->execute($params);
         $total = $countStmt->fetch()['total'];
-        
+
         return [
             'data' => $data,
             'total' => $total,
-            'page' => $page,
-            'perPage' => $perPage,
-            'totalPages' => ceil($total / $perPage)
+            'page' => $showAll ? 1 : $page,
+            'perPage' => $showAll ? max((int)$total, 1) : $perPage,
+            'totalPages' => $showAll ? 1 : ceil($total / $perPage)
         ];
     }
     

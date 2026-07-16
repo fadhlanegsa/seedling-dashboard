@@ -14,18 +14,42 @@
 <!-- Category Filter -->
 <div class="card mb-3">
     <div class="card-body">
-        <div class="filter-buttons">
-            <a href="<?= url('admin/seedling-types') ?>" 
-               class="btn btn-sm <?= !$currentCategory ? 'btn-primary' : 'btn-outline-primary' ?>">
-                Semua (<?= array_sum(array_column($categories, 'count')) ?>)
-            </a>
-            <?php foreach ($categories as $cat): ?>
-                <a href="<?= url('admin/seedling-types?category=' . urlencode($cat['category'])) ?>" 
-                   class="btn btn-sm <?= $currentCategory == $cat['category'] ? 'btn-primary' : 'btn-outline-primary' ?>">
-                    <?= htmlspecialchars($cat['category']) ?> (<?= $cat['count'] ?>)
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="filter-buttons mb-2 mb-md-0">
+                <a href="<?= url('admin/seedling-types') ?>"
+                   class="btn btn-sm <?= !$currentCategory ? 'btn-primary' : 'btn-outline-primary' ?>">
+                    Semua (<?= array_sum(array_column($categories, 'count')) ?>)
                 </a>
-            <?php endforeach; ?>
+                <?php foreach ($categories as $cat): ?>
+                    <a href="<?= url('admin/seedling-types?category=' . urlencode($cat['category'])) ?>"
+                       class="btn btn-sm <?= $currentCategory == $cat['category'] ? 'btn-primary' : 'btn-outline-primary' ?>">
+                        <?= htmlspecialchars($cat['category']) ?> (<?= $cat['count'] ?>)
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
+            <form action="<?= url('admin/seedling-types') ?>" method="GET" class="form-inline">
+                <?php if ($currentCategory): ?>
+                    <input type="hidden" name="category" value="<?= htmlspecialchars($currentCategory) ?>">
+                <?php endif; ?>
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari nama bibit atau nama ilmiah..." value="<?= htmlspecialchars($search ?? '') ?>">
+                    <div class="input-group-append">
+                        <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-search"></i> Cari</button>
+                        <?php if (!empty($search)): ?>
+                            <a href="<?= url('admin/seedling-types' . ($currentCategory ? '?category=' . urlencode($currentCategory) : '')) ?>" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
         </div>
+        <?php if (!empty($search)): ?>
+            <div class="mt-2 text-muted small">
+                Menampilkan semua hasil pencarian untuk "<strong><?= htmlspecialchars($search) ?></strong>" (<?= $pagination['total'] ?? count($seedlingTypes) ?> ditemukan)
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -86,15 +110,15 @@
 </div>
 
 <?php
-// Render pagination using helper
-if (isset($pagination)) {
+// Render pagination using helper (hidden while searching, since search shows all matches at once)
+if (isset($pagination) && empty($search)) {
     require_once VIEWS_PATH . 'helpers/pagination.php';
-    
+
     // Preserve category filter in pagination
     $queryParams = [
         'category' => $currentCategory ?? null
     ];
-    
+
     renderPagination($pagination, 'admin/seedling-types', $queryParams);
 }
 ?>
